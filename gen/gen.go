@@ -17,7 +17,34 @@ import (
 // GenerateDomains generates domains for the Chrome Debugging Protocol domain
 // definitions, returning a set of file buffers as a map of the file name ->
 // content.
-func GenerateDomains(domains []*types.Domain, sharedFunc func(string, string) bool, basePkg string) map[string]*bytes.Buffer {
+func GenerateDomains(domains []*types.Domain, basePkg string, redirect bool) map[string]*bytes.Buffer {
+	// setup shared types
+	sharedTypes := map[string]bool{
+		"DOM.BackendNodeId":      true,
+		"DOM.BackendNode":        true,
+		"DOM.NodeId":             true,
+		"DOM.Node":               true,
+		"DOM.NodeType":           true,
+		"DOM.PseudoType":         true,
+		"DOM.RGBA":               true,
+		"DOM.ShadowRootType":     true,
+		"Inspector.ErrorType":    true,
+		"Inspector.MessageError": true,
+		"Inspector.Message":      true,
+		"Inspector.MethodType":   true,
+		"Network.LoaderId":       true,
+		"Network.MonotonicTime":  true,
+		"Network.TimeSinceEpoch": true,
+		"Page.FrameId":           true,
+		"Page.Frame":             true,
+		"Network.Cookie":         redirect,
+		"Network.CookieSameSite": redirect,
+		"Page.ResourceType":      redirect,
+	}
+	sharedFunc := func(dtyp string, typ string) bool {
+		return sharedTypes[dtyp+"."+typ]
+	}
+
 	fb := make(fileBuffers)
 
 	var w *qtpl.Writer

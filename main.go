@@ -148,12 +148,10 @@ func run() error {
 	}
 
 	// fixup
-	cdpTypes := fixup.FixDomains(processed, *flagRedirect)
+	fixup.FixDomains(processed)
 
 	// generate
-	files := gen.GenerateDomains(processed, func(dtyp, typ string) bool {
-		return cdpTypes[dtyp+"."+typ]
-	}, *flagPkg)
+	files := gen.GenerateDomains(processed, *flagPkg, *flagRedirect)
 
 	// write
 	err = write(files)

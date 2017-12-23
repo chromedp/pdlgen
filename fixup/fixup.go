@@ -58,9 +58,7 @@ const (
 //
 // Please see package-level documentation for the list of changes made to the
 // various debugging protocol domains.
-//
-// Returns the types common to all packages, based on redirect.
-func FixDomains(domains []*types.Domain, redirect bool) map[string]bool {
+func FixDomains(domains []*types.Domain) {
 	// method type
 	methodType := &types.Type{
 		ID:               "MethodType",
@@ -394,33 +392,6 @@ const ModifierCommand Modifier = ModifierMeta`,
 		}
 	}
 
-	sharedTypes := map[string]bool{
-		"DOM.BackendNodeId":      true,
-		"DOM.BackendNode":        true,
-		"DOM.NodeId":             true,
-		"DOM.Node":               true,
-		"DOM.NodeType":           true,
-		"DOM.PseudoType":         true,
-		"DOM.RGBA":               true,
-		"DOM.ShadowRootType":     true,
-		"Inspector.ErrorType":    true,
-		"Inspector.MessageError": true,
-		"Inspector.Message":      true,
-		"Inspector.MethodType":   true,
-		"Network.LoaderId":       true,
-		"Network.MonotonicTime":  true,
-		"Network.TimeSinceEpoch": true,
-		"Page.FrameId":           true,
-		"Page.Frame":             true,
-	}
-
-	if redirect {
-		sharedTypes["Network.Cookie"] = true
-		sharedTypes["Network.CookieSameSite"] = true
-		sharedTypes["Page.ResourceType"] = true
-	}
-
-	return sharedTypes
 }
 
 // processTypesWithParameters adds the types to t's enum values, setting the
