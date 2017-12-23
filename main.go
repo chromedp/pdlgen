@@ -20,9 +20,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/knq/chromedp/cmd/chromedp-gen/fixup"
-	"github.com/knq/chromedp/cmd/chromedp-gen/gen"
-	"github.com/knq/chromedp/cmd/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/fixup"
+	"github.com/chromedp/chromedp-gen/gen"
+	"github.com/chromedp/chromedp-gen/internal"
 )
 
 func main() {
