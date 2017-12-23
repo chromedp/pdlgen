@@ -1,3 +1,4 @@
 /chromedp-gen
 /chromedp-gen.exe
-.last
+/.last
+*.json
