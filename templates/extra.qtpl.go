@@ -6,7 +6,7 @@ package templates
 
 //line templates/extra.qtpl:1
 import (
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 )
 
 // ExtraTimestampTemplate is a special template for the Timestamp type that
@@ -26,12 +26,12 @@ var (
 )
 
 //line templates/extra.qtpl:7
-func StreamExtraTimestampTemplate(qw422016 *qt422016.Writer, t *internal.Type, d *internal.Domain) {
+func StreamExtraTimestampTemplate(qw422016 *qt422016.Writer, t *types.Type, d *types.Domain) {
 	//line templates/extra.qtpl:8
 	typ := t.IDorName()
-	monotonic := t.TimestampType == internal.TimestampTypeMonotonic
+	monotonic := t.TimestampType == types.TimestampTypeMonotonic
 	timeRes := "time.Millisecond"
-	if t.TimestampType != internal.TimestampTypeMillisecond {
+	if t.TimestampType != types.TimestampTypeMillisecond {
 		timeRes = "time.Second"
 	}
 
@@ -164,7 +164,7 @@ func (t *`)
 }
 
 //line templates/extra.qtpl:49
-func WriteExtraTimestampTemplate(qq422016 qtio422016.Writer, t *internal.Type, d *internal.Domain) {
+func WriteExtraTimestampTemplate(qq422016 qtio422016.Writer, t *types.Type, d *types.Domain) {
 	//line templates/extra.qtpl:49
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/extra.qtpl:49
@@ -175,7 +175,7 @@ func WriteExtraTimestampTemplate(qq422016 qtio422016.Writer, t *internal.Type, d
 }
 
 //line templates/extra.qtpl:49
-func ExtraTimestampTemplate(t *internal.Type, d *internal.Domain) string {
+func ExtraTimestampTemplate(t *types.Type, d *types.Domain) string {
 	//line templates/extra.qtpl:49
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/extra.qtpl:49
@@ -635,7 +635,7 @@ func ExtraCDPTypes() string {
 // ExtraUtilTemplate generates the decode func for the Message type.
 
 //line templates/extra.qtpl:279
-func StreamExtraUtilTemplate(qw422016 *qt422016.Writer, domains []*internal.Domain) {
+func StreamExtraUtilTemplate(qw422016 *qt422016.Writer, domains []*types.Domain) {
 	//line templates/extra.qtpl:279
 	qw422016.N().S(`
 type empty struct{}
@@ -731,7 +731,7 @@ func UnmarshalMessage(msg *cdp.Message) (interface{}, error) {
 }
 
 //line templates/extra.qtpl:314
-func WriteExtraUtilTemplate(qq422016 qtio422016.Writer, domains []*internal.Domain) {
+func WriteExtraUtilTemplate(qq422016 qtio422016.Writer, domains []*types.Domain) {
 	//line templates/extra.qtpl:314
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/extra.qtpl:314
@@ -742,7 +742,7 @@ func WriteExtraUtilTemplate(qq422016 qtio422016.Writer, domains []*internal.Doma
 }
 
 //line templates/extra.qtpl:314
-func ExtraUtilTemplate(domains []*internal.Domain) string {
+func ExtraUtilTemplate(domains []*types.Domain) string {
 	//line templates/extra.qtpl:314
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/extra.qtpl:314

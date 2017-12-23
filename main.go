@@ -4,65 +4,128 @@
 // Please see README.md for more information on using this tool.
 package main
 
-//go:generate go run gen-domain.go
 //go:generate qtc -dir templates -ext qtpl
 //go:generate gofmt -w -s templates/
 
 import (
 	"bytes"
+	"context"
+	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
-	"sync"
+	"strings"
+	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/chromedp/chromedp-gen/fixup"
 	"github.com/chromedp/chromedp-gen/gen"
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/har"
+	"github.com/chromedp/chromedp-gen/types"
+)
+
+const (
+	chromiumSrc = "https://chromium.googlesource.com/"
+	browserURL  = chromiumSrc + "chromium/src/+/%s/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=TEXT"
+	jsURL       = chromiumSrc + "v8/v8/+/%s/src/inspector/js_protocol.json?format=TEXT"
+)
+
+var (
+	flagVerbose = flag.Bool("v", true, "toggle verbose")
+	flagWorkers = flag.Int("workers", runtime.NumCPU()+1, "number of workers")
+
+	flagProto   = flag.String("proto", "", "protocol.json path")
+	flagBrowser = flag.String("browser", "master", "browser protocol version to use")
+	flagJS      = flag.String("js", "master", "js protocol version to use")
+	flagTtl     = flag.Duration("ttl", 24*time.Hour, "browser and js protocol cache ttl")
+	flagHarTtl  = flag.Duration("harTtl", 0, "har cache ttl")
+
+	flagCache = flag.String("cache", filepath.Join(os.Getenv("GOPATH"), "pkg", "chromedp-gen"), "protocol cache directory")
+	flagPkg   = flag.String("pkg", "github.com/chromedp/cdproto", "out base package")
+	flagOut   = flag.String("out", "", "out directory")
+
+	flagCleanWl = flag.String("wl", "LICENSE,README.md", "comma-separated list of files to not remove from out directory")
+	flagNoClean = flag.Bool("noclean", false, "toggle not cleaning (removing) existing directories")
+	flagNoCopy  = flag.Bool("nocopy", false, "toggle not copying combined protocol.json to out directory")
+	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR domain")
+
+	flagDep      = flag.Bool("dep", false, "toggle generation for deprecated APIs")
+	flagExp      = flag.Bool("exp", true, "toggle generation for experimental APIs")
+	flagRedirect = flag.Bool("redirect", false, "toggle generation for redirect APIs")
 )
 
 func main() {
-	// parse flags
-	err := internal.FlagSet.Parse(os.Args[1:])
+	var err error
+
+	flag.Parse()
+
+	// fix out directory
+	if *flagOut == "" {
+		*flagOut = filepath.Join(os.Getenv("GOPATH"), "src", *flagPkg)
+	}
+
+	err = run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+}
 
-	// load protocol data
-	buf, err := ioutil.ReadFile(*internal.FlagFile)
+// run runs the generator.
+func run() error {
+	// load protocol definitions
+	protoInfo, err := loadProtocolInfo()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return err
+	}
+	sort.Slice(protoInfo.Domains, func(i, j int) bool {
+		return strings.Compare(protoInfo.Domains[i].String(), protoInfo.Domains[j].String()) <= 0
+	})
+
+	// create out directory
+	err = os.MkdirAll(*flagOut, 0755)
+	if err != nil {
+		return err
 	}
 
-	// unmarshal protocol info
-	var protoInfo internal.ProtocolInfo
-	err = json.Unmarshal(buf, &protoInfo)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-
-	// remove existing directory
-	if !*internal.FlagNoRemove {
-		err = os.RemoveAll(out())
+	// clean up files
+	if !*flagNoClean {
+		logf("CLEANING: %s", *flagOut)
+		wl := splitToMap(*flagCleanWl, ",")
+		outpath := *flagOut + string(filepath.Separator)
+		err = filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
+			switch {
+			case os.IsNotExist(err):
+				return nil
+			case err != nil:
+				return err
+			}
+			if fn := fi.Name(); n == outpath || filepath.Dir(n) != *flagOut || fn == "" || strings.HasPrefix(fn, ".") || wl[fn] {
+				return nil
+			}
+			logf("REMOVING: %s", n)
+			return os.RemoveAll(n)
+		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
+			return err
 		}
 	}
 
 	// determine what to process
 	pkgs := []string{""}
-	var processed []*internal.Domain
+	var processed []*types.Domain
 	for _, d := range protoInfo.Domains {
 		// skip if not processing
-		if (!*internal.FlagDep && d.Deprecated.Bool()) || (!*internal.FlagExp && d.Experimental.Bool()) {
+		if (!*flagDep && d.Deprecated.Bool()) || (!*flagExp && d.Experimental.Bool()) {
 			// extra info
 			var extra []string
 			if d.Deprecated.Bool() {
@@ -72,7 +135,7 @@ func main() {
 				extra = append(extra, "experimental")
 			}
 
-			log.Printf("skipping domain %s (%s) %v", d, d.PackageName(), extra)
+			logf("SKIPPING(domain): %s %v", d, extra)
 			continue
 		}
 
@@ -85,55 +148,107 @@ func main() {
 	}
 
 	// fixup
-	fixup.FixDomains(processed)
+	cdpTypes := fixup.FixDomains(processed, *flagRedirect)
 
 	// generate
-	files := gen.GenerateDomains(processed)
+	files := gen.GenerateDomains(processed, func(dtyp, typ string) bool {
+		return cdpTypes[dtyp+"."+typ]
+	}, *flagPkg)
 
 	// write
 	err = write(files)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
 	// goimports
 	err = goimports(files)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
 	// easyjson
 	err = easyjson(pkgs)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
 	// gofmt
 	err = gofmt(files)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
-	log.Printf("done.")
+	logf("done.")
+	return nil
+}
+
+// loadProtocolInfo loads the protocol.json either from the path specified in
+// -proto or by retrieving the versions specified in the -browser and -js
+// files. Unless -nohar is specified, the virtual "HAR" domain will be
+// generated as well and added to the specification.
+func loadProtocolInfo() (*types.ProtocolInfo, error) {
+	if *flagProto != "" {
+		buf, err := ioutil.ReadFile(*flagProto)
+		if err != nil {
+			return nil, err
+		}
+
+		// unmarshal
+		protoInfo := new(types.ProtocolInfo)
+		err = json.Unmarshal(buf, protoInfo)
+		if err != nil {
+			return nil, err
+		}
+		return protoInfo, nil
+	}
+
+	logf("BROWSER: %s", *flagBrowser)
+	logf("JS:      %s", *flagJS)
+
+	// grab browser definition
+	browserBuf, err := fileCacher{
+		path: filepath.Join(*flagCache, "browser", *flagBrowser),
+		ttl:  *flagTtl,
+	}.Get(fmt.Sprintf(browserURL, *flagBrowser), true, "browser_protocol.json")
+	if err != nil {
+		return nil, err
+	}
+
+	// grab js definition
+	jsBuf, err := fileCacher{
+		path: filepath.Join(*flagCache, "js", *flagJS),
+		ttl:  *flagTtl,
+	}.Get(fmt.Sprintf(jsURL, *flagJS), true, "js_protocol.json")
+	if err != nil {
+		return nil, err
+	}
+
+	// grab har definition
+	harBuf, err := har.LoadProto(&fileCacher{
+		path: filepath.Join(*flagCache, "har"),
+		ttl:  *flagHarTtl,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return combineProtoInfos(browserBuf, jsBuf, harBuf)
 }
 
 // cleanupTypes removes deprecated types.
-func cleanupTypes(n string, dtyp string, types []*internal.Type) []*internal.Type {
-	var ret []*internal.Type
+func cleanupTypes(n string, dtyp string, typs []*types.Type) []*types.Type {
+	var ret []*types.Type
 
-	for _, t := range types {
+	for _, t := range typs {
 		typ := dtyp + "." + t.IDorName()
-		if !*internal.FlagDep && t.Deprecated.Bool() {
-			log.Printf("skipping %s %s [deprecated]", n, typ)
+		if !*flagDep && t.Deprecated.Bool() {
+			logf("SKIPPING(%s): %s [deprecated]", n, typ)
 			continue
 		}
 
-		if !*internal.FlagRedirect && string(t.Redirect) != "" {
-			log.Printf("skipping %s %s [redirect:%s]", n, typ, t.Redirect)
+		if !*flagRedirect && string(t.Redirect) != "" {
+			logf("SKIPPING(%s): %s [redirect:%s]", n, typ, t.Redirect)
 			continue
 		}
 
@@ -156,41 +271,45 @@ func cleanupTypes(n string, dtyp string, types []*internal.Type) []*internal.Typ
 }
 
 // cleanup removes deprecated types, events, and commands from the domain.
-func cleanup(d *internal.Domain) {
+func cleanup(d *types.Domain) {
 	d.Types = cleanupTypes("type", d.String(), d.Types)
 	d.Events = cleanupTypes("event", d.String(), d.Events)
 	d.Commands = cleanupTypes("command", d.String(), d.Commands)
 }
 
-// write writes all the file buffers.
+// write writes all file buffer to disk.
 func write(fileBuffers map[string]*bytes.Buffer) error {
-	var err error
+	logf("WRITING: %d files", len(fileBuffers))
 
-	out := out() + "/"
-	for n, buf := range fileBuffers {
+	var keys []string
+	for k := range fileBuffers {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		// add out path
-		n = out + n
+		n := filepath.Join(*flagOut, k)
 
 		// create directory
 		dir := filepath.Dir(n)
-		err = os.MkdirAll(dir, 0755)
+		err := os.MkdirAll(dir, 0755)
 		if err != nil {
 			return err
 		}
 
 		// write file
-		err = ioutil.WriteFile(n, buf.Bytes(), 0644)
+		err = ioutil.WriteFile(n, fileBuffers[k].Bytes(), 0644)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
 // goimports formats all the output file buffers on disk using goimports.
 func goimports(fileBuffers map[string]*bytes.Buffer) error {
-	log.Printf("running goimports")
+	logf("RUNNING: goimports")
 
 	var keys []string
 	for k := range fileBuffers {
@@ -198,67 +317,69 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 	}
 	sort.Strings(keys)
 
-	var wg sync.WaitGroup
-	for _, n := range keys {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, n string) {
-			defer wg.Done()
-			buf, err := exec.Command("goimports", "-w", out()+"/"+n).CombinedOutput()
-			if err != nil {
-				log.Fatalf("error: could not format %s, got:\n%s", n, string(buf))
+	eg, ctxt := errgroup.WithContext(context.Background())
+	for _, k := range keys {
+		eg.Go(func(n string) func() error {
+			n = filepath.Join(*flagOut, n)
+			return func() error {
+				buf, err := exec.CommandContext(ctxt, "goimports", "-w", n).CombinedOutput()
+				if err != nil {
+					return fmt.Errorf("could not format %s, got:\n%s", n, string(buf))
+				}
+				return nil
 			}
-		}(&wg, n)
+		}(k))
 	}
-	wg.Wait()
-
-	return nil
+	return eg.Wait()
 }
 
 // easyjson runs easy json on the list of packages.
 func easyjson(pkgs []string) error {
-	p := []string{"-pkg", "-all", "-output_filename", "easyjson.go"}
-
-	log.Printf("running easyjson (stubs)")
+	params := []string{"-pkg", "-all", "-output_filename", "easyjson.go"}
 
 	// generate easyjson stubs
-	var wg sync.WaitGroup
-	for _, n := range pkgs {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, n string) {
-			defer wg.Done()
-			cmd := exec.Command("easyjson", append(p, "-stubs")...)
-			cmd.Dir = out() + "/" + n
-			buf, err := cmd.CombinedOutput()
-			if err != nil {
-				log.Fatalf("could not generate easyjson stubs for %s, got:\n%s", cmd.Dir, string(buf))
+	logf("RUNNING: easyjson (stubs)")
+	eg, ctxt := errgroup.WithContext(context.Background())
+	for _, k := range pkgs {
+		eg.Go(func(n string) func() error {
+			return func() error {
+				cmd := exec.CommandContext(ctxt, "easyjson", append(params, "-stubs")...)
+				cmd.Dir = filepath.Join(*flagOut, n)
+				buf, err := cmd.CombinedOutput()
+				if err != nil {
+					return fmt.Errorf("could not generate easyjson stubs for %s, got:\n%s", cmd.Dir, string(buf))
+				}
+				return nil
 			}
-		}(&wg, n)
+		}(k))
 	}
-	wg.Wait()
-
-	log.Printf("running easyjson")
+	err := eg.Wait()
+	if err != nil {
+		return err
+	}
 
 	// generate actual easyjson types
-	for _, n := range pkgs {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, n string) {
-			defer wg.Done()
-			cmd := exec.Command("easyjson", p...)
-			cmd.Dir = out() + "/" + n
-			buf, err := cmd.CombinedOutput()
-			if err != nil {
-				log.Fatalf("could not easyjson %s, got:\n%s", cmd.Dir, string(buf))
+	logf("RUNNING: easyjson")
+	eg, ctxt = errgroup.WithContext(context.Background())
+	for _, k := range pkgs {
+		eg.Go(func(n string) func() error {
+			return func() error {
+				cmd := exec.CommandContext(ctxt, "easyjson", params...)
+				cmd.Dir = filepath.Join(*flagOut, n)
+				buf, err := cmd.CombinedOutput()
+				if err != nil {
+					return fmt.Errorf("could not easyjson %s, got:\n%s", cmd.Dir, string(buf))
+				}
+				return nil
 			}
-		}(&wg, n)
+		}(k))
 	}
-	wg.Wait()
-
-	return nil
+	return eg.Wait()
 }
 
 // gofmt formats all the output file buffers on disk using gofmt.
 func gofmt(fileBuffers map[string]*bytes.Buffer) error {
-	log.Printf("running gofmt")
+	logf("RUNNING: gofmt")
 
 	var keys []string
 	for k := range fileBuffers {
@@ -266,23 +387,129 @@ func gofmt(fileBuffers map[string]*bytes.Buffer) error {
 	}
 	sort.Strings(keys)
 
-	var wg sync.WaitGroup
-	for _, n := range keys {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, n string) {
-			defer wg.Done()
-			buf, err := exec.Command("gofmt", "-w", "-s", out()+"/"+n).CombinedOutput()
-			if err != nil {
-				log.Fatalf("error: could not format %s, got:\n%s", n, string(buf))
+	eg, ctxt := errgroup.WithContext(context.Background())
+	for _, k := range keys {
+		eg.Go(func(n string) func() error {
+			n = filepath.Join(*flagOut, n)
+			return func() error {
+				buf, err := exec.CommandContext(ctxt, "gofmt", "-w", "-s", n).CombinedOutput()
+				if err != nil {
+					return fmt.Errorf("could not format %s, got:\n%s", n, string(buf))
+				}
+				return nil
 			}
-		}(&wg, n)
+		}(k))
 	}
-	wg.Wait()
-
-	return nil
+	return eg.Wait()
 }
 
-// out returns the output path of the passed package flag.
-func out() string {
-	return os.Getenv("GOPATH") + "/src/" + *internal.FlagPkg
+// fileCacher handles caching files to a path with a ttl.
+type fileCacher struct {
+	path string
+	ttl  time.Duration
+}
+
+// Load attempts to load the file from disk, disregarding ttl.
+func (fc fileCacher) Load(names ...string) ([]byte, error) {
+	return ioutil.ReadFile(pathJoin(fc.path, names...))
+}
+
+// Cache writes buf to the fileCacher path joined with names.
+func (fc fileCacher) Cache(buf []byte, names ...string) error {
+	return ioutil.WriteFile(pathJoin(fc.path, names...), buf, 0644)
+}
+
+// Retrieve retrieves a file from disk or from the remote URL, optionally
+// base64 decoding it and writing it to disk.
+func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte, error) {
+	n := pathJoin(fc.path, names...)
+	cd := filepath.Dir(n)
+	err := os.MkdirAll(cd, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	// check if exists on disk
+	fi, err := os.Stat(n)
+	if err == nil && fc.ttl != 0 && !time.Now().After(fi.ModTime().Add(fc.ttl)) {
+		// logf("LOADING: %s", n)
+		return ioutil.ReadFile(n)
+	}
+
+	logf("RETRIEVING: %s", urlstr)
+
+	// retrieve
+	cl := &http.Client{}
+	req, err := http.NewRequest("GET", urlstr, nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := cl.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// decode
+	if b64Decode {
+		buf, err = base64.StdEncoding.DecodeString(string(buf))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// write
+	err = fc.Cache(buf, names...)
+	if err != nil {
+		return nil, err
+	}
+
+	logf("WROTE: %s", pathJoin(fc.path, names...))
+
+	return buf, nil
+}
+
+// combineProtoInfos combines the types and commands from multiple JSON-encoded
+// protocol definitions.
+func combineProtoInfos(buffers ...[]byte) (*types.ProtocolInfo, error) {
+	protoInfo := new(types.ProtocolInfo)
+	for _, buf := range buffers {
+		var pi types.ProtocolInfo
+		err := json.Unmarshal(buf, &pi)
+		if err != nil {
+			return nil, err
+		}
+		if protoInfo.Version == nil {
+			protoInfo.Version = pi.Version
+		}
+		protoInfo.Domains = append(protoInfo.Domains, pi.Domains...)
+	}
+	return protoInfo, nil
+}
+
+// pathJoin is a simple wrapper around filepath.Join to simplify inline syntax.
+func pathJoin(n string, m ...string) string {
+	return filepath.Join(append([]string{n}, m...)...)
+}
+
+// logf is a wrapper around log.Printf.
+func logf(s string, v ...interface{}) {
+	if *flagVerbose {
+		log.Printf(s, v...)
+	}
+}
+
+// splitToMap splits a string to a map.
+func splitToMap(s string, sep string) map[string]bool {
+	z := strings.Split(s, sep)
+	m := make(map[string]bool, len(z))
+	for _, v := range z {
+		m[v] = true
+	}
+	return m
 }

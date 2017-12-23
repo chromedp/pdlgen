@@ -2,22 +2,22 @@
 	"strings"
 	"strconv"
 
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 ) %}
 
 // TypeTemplate is a template for a Typable type.
-{% func TypeTemplate(t *internal.Type, prefix, suffix string, d *internal.Domain, domains []*internal.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
+{% func TypeTemplate(t *types.Type, prefix, suffix string, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
 	typ := prefix + t.CamelName() + suffix
 
-	var extra []*internal.Type
+	var extra []*types.Type
 	switch x := v.(type) {
-	case []*internal.Type:
+	case []*types.Type:
 		extra = x
 	}
 %}
 {%s= formatComment(t.GetDescription(), "", typ + " ") %}
-type {%s= typ %} {%s= t.GoTypeDef(d, domains, extra, noExposeOverride, omitOnlyWhenOptional) %}
-{% if t.Parameters == nil && t.Type != internal.TypeArray && t.Type != internal.TypeObject && t.Type != internal.TypeAny %}{%code
+type {%s= typ %} {%s= t.GoTypeDef(d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional) %}
+{% if t.Parameters == nil && t.Type != types.TypeArray && t.Type != types.TypeObject && t.Type != types.TypeAny %}{%code
 	gz := t.Type.GoType()
 	z := gz
 	if strings.Contains(z, ".") {
@@ -41,15 +41,15 @@ func (t {%s= typ %}) {%s= z %}() {%s= gz %} {
 const ({% for i, e := range ev %}{% code
 	n := t.EnumValueName(e)
 	val := `"` + e + `"`
-	if t.Type == internal.TypeInteger && t.EnumBitMask {
+	if t.Type == types.TypeInteger && t.EnumBitMask {
 		val = strconv.Itoa(1<<uint(i-1))
-	} else if t.Type == internal.TypeInteger {
+	} else if t.Type == types.TypeInteger {
 		val = strconv.Itoa(i+1)
 	}
 %}
 	{%s= n %} {%s= typ %} = {%s= val %}{% endfor %}
 )
-{% if t.Type != internal.TypeString %}
+{% if t.Type != types.TypeString %}
 // String returns the {%s= typ %} as string value.
 func (t {%s= typ %}) String() string {
 	switch t {{% for _, e := range t.EnumValues() %}

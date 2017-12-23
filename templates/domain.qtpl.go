@@ -6,7 +6,7 @@ package templates
 
 //line templates/domain.qtpl:1
 import (
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 )
 
 // DomainTemplate is the template for a single domain.
@@ -25,13 +25,13 @@ var (
 )
 
 //line templates/domain.qtpl:6
-func StreamDomainTemplate(qw422016 *qt422016.Writer, d *internal.Domain, domains []*internal.Domain) {
+func StreamDomainTemplate(qw422016 *qt422016.Writer, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, pkgName string) {
 	//line templates/domain.qtpl:6
 	qw422016.N().S(`
 `)
 	//line templates/domain.qtpl:7
 	qw422016.N().S(FileImportTemplate(map[string]string{
-		*internal.FlagPkg: "cdp",
+		pkgName: "cdp",
 	}))
 	//line templates/domain.qtpl:9
 	qw422016.N().S(`
@@ -42,7 +42,7 @@ func StreamDomainTemplate(qw422016 *qt422016.Writer, d *internal.Domain, domains
 		qw422016.N().S(`
 `)
 		//line templates/domain.qtpl:11
-		qw422016.N().S(CommandTemplate(c, d, domains))
+		qw422016.N().S(CommandTemplate(c, d, domains, sharedFunc))
 		//line templates/domain.qtpl:11
 		qw422016.N().S(`
 `)
@@ -55,22 +55,22 @@ func StreamDomainTemplate(qw422016 *qt422016.Writer, d *internal.Domain, domains
 }
 
 //line templates/domain.qtpl:13
-func WriteDomainTemplate(qq422016 qtio422016.Writer, d *internal.Domain, domains []*internal.Domain) {
+func WriteDomainTemplate(qq422016 qtio422016.Writer, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, pkgName string) {
 	//line templates/domain.qtpl:13
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/domain.qtpl:13
-	StreamDomainTemplate(qw422016, d, domains)
+	StreamDomainTemplate(qw422016, d, domains, sharedFunc, pkgName)
 	//line templates/domain.qtpl:13
 	qt422016.ReleaseWriter(qw422016)
 //line templates/domain.qtpl:13
 }
 
 //line templates/domain.qtpl:13
-func DomainTemplate(d *internal.Domain, domains []*internal.Domain) string {
+func DomainTemplate(d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, pkgName string) string {
 	//line templates/domain.qtpl:13
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/domain.qtpl:13
-	WriteDomainTemplate(qb422016, d, domains)
+	WriteDomainTemplate(qb422016, d, domains, sharedFunc, pkgName)
 	//line templates/domain.qtpl:13
 	qs422016 := string(qb422016.B)
 	//line templates/domain.qtpl:13
@@ -83,7 +83,7 @@ func DomainTemplate(d *internal.Domain, domains []*internal.Domain) string {
 // CommandTemplate is the general command template.
 
 //line templates/domain.qtpl:16
-func StreamCommandTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func StreamCommandTemplate(qw422016 *qt422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:16
 	qw422016.N().S(`
 `)
@@ -94,7 +94,7 @@ func StreamCommandTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *inter
 	qw422016.N().S(`
 `)
 	//line templates/domain.qtpl:18
-	qw422016.N().S(TypeTemplate(c, internal.CommandTypePrefix, internal.CommandTypeSuffix, d, domains, nil, false, true))
+	qw422016.N().S(TypeTemplate(c, types.CommandTypePrefix, types.CommandTypeSuffix, d, domains, sharedFunc, nil, false, true))
 	//line templates/domain.qtpl:18
 	qw422016.N().S(`
 
@@ -106,7 +106,7 @@ func StreamCommandTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *inter
 	qw422016.N().S(`
 `)
 	//line templates/domain.qtpl:21
-	qw422016.N().S(CommandFuncTemplate(c, d, domains))
+	qw422016.N().S(CommandFuncTemplate(c, d, domains, sharedFunc))
 	//line templates/domain.qtpl:21
 	qw422016.N().S(`
 
@@ -131,7 +131,7 @@ func StreamCommandTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *inter
 			qw422016.N().S(`
 `)
 			//line templates/domain.qtpl:25
-			qw422016.N().S(CommandOptionFuncTemplate(p, c, d, domains))
+			qw422016.N().S(CommandOptionFuncTemplate(p, c, d, domains, sharedFunc))
 			//line templates/domain.qtpl:25
 			qw422016.N().S(`
 `)
@@ -155,12 +155,12 @@ func StreamCommandTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *inter
 		qw422016.N().S(`
 `)
 		//line templates/domain.qtpl:30
-		qw422016.N().S(TypeTemplate(&internal.Type{
+		qw422016.N().S(TypeTemplate(&types.Type{
 			ID:          c.Name,
-			Type:        internal.TypeObject,
+			Type:        types.TypeObject,
 			Description: "Return values.",
 			Properties:  c.Returns,
-		}, internal.CommandReturnsPrefix, internal.CommandReturnsSuffix, d, domains, nil, false, false))
+		}, types.CommandReturnsPrefix, types.CommandReturnsSuffix, d, domains, sharedFunc, nil, false, false))
 		//line templates/domain.qtpl:35
 		qw422016.N().S(`
 `)
@@ -177,7 +177,7 @@ func StreamCommandTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *inter
 	qw422016.N().S(`
 `)
 	//line templates/domain.qtpl:39
-	qw422016.N().S(CommandDoFuncTemplate(c, d, domains))
+	qw422016.N().S(CommandDoFuncTemplate(c, d, domains, sharedFunc))
 	//line templates/domain.qtpl:39
 	qw422016.N().S(`
 `)
@@ -185,22 +185,22 @@ func StreamCommandTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *inter
 }
 
 //line templates/domain.qtpl:40
-func WriteCommandTemplate(qq422016 qtio422016.Writer, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func WriteCommandTemplate(qq422016 qtio422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:40
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/domain.qtpl:40
-	StreamCommandTemplate(qw422016, c, d, domains)
+	StreamCommandTemplate(qw422016, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:40
 	qt422016.ReleaseWriter(qw422016)
 //line templates/domain.qtpl:40
 }
 
 //line templates/domain.qtpl:40
-func CommandTemplate(c *internal.Type, d *internal.Domain, domains []*internal.Domain) string {
+func CommandTemplate(c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
 	//line templates/domain.qtpl:40
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/domain.qtpl:40
-	WriteCommandTemplate(qb422016, c, d, domains)
+	WriteCommandTemplate(qb422016, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:40
 	qs422016 := string(qb422016.B)
 	//line templates/domain.qtpl:40
@@ -213,7 +213,7 @@ func CommandTemplate(c *internal.Type, d *internal.Domain, domains []*internal.D
 // CommandFuncTemplate is the command func template.
 
 //line templates/domain.qtpl:43
-func StreamCommandFuncTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func StreamCommandFuncTemplate(qw422016 *qt422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:44
 	cmdName := c.CamelName()
 	typ := c.CommandType()
@@ -260,7 +260,7 @@ func `)
 	//line templates/domain.qtpl:51
 	qw422016.N().S(`(`)
 	//line templates/domain.qtpl:51
-	qw422016.N().S(c.ParamList(d, domains, false))
+	qw422016.N().S(c.ParamList(d, domains, sharedFunc, false))
 	//line templates/domain.qtpl:51
 	qw422016.N().S(`) *`)
 	//line templates/domain.qtpl:51
@@ -300,22 +300,22 @@ func `)
 }
 
 //line templates/domain.qtpl:56
-func WriteCommandFuncTemplate(qq422016 qtio422016.Writer, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func WriteCommandFuncTemplate(qq422016 qtio422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:56
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/domain.qtpl:56
-	StreamCommandFuncTemplate(qw422016, c, d, domains)
+	StreamCommandFuncTemplate(qw422016, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:56
 	qt422016.ReleaseWriter(qw422016)
 //line templates/domain.qtpl:56
 }
 
 //line templates/domain.qtpl:56
-func CommandFuncTemplate(c *internal.Type, d *internal.Domain, domains []*internal.Domain) string {
+func CommandFuncTemplate(c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
 	//line templates/domain.qtpl:56
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/domain.qtpl:56
-	WriteCommandFuncTemplate(qb422016, c, d, domains)
+	WriteCommandFuncTemplate(qb422016, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:56
 	qs422016 := string(qb422016.B)
 	//line templates/domain.qtpl:56
@@ -328,10 +328,10 @@ func CommandFuncTemplate(c *internal.Type, d *internal.Domain, domains []*intern
 // CommandOptionFuncTemplate is the command option func template.
 
 //line templates/domain.qtpl:59
-func StreamCommandOptionFuncTemplate(qw422016 *qt422016.Writer, t *internal.Type, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func StreamCommandOptionFuncTemplate(qw422016 *qt422016.Writer, t *types.Type, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:60
 	n := t.GoName(false)
-	optName := internal.OptionFuncPrefix + n + internal.OptionFuncSuffix
+	optName := types.OptionFuncPrefix + n + types.OptionFuncSuffix
 	typ := c.CommandType()
 	v := t.GoName(true)
 
@@ -356,7 +356,7 @@ func (p `)
 	//line templates/domain.qtpl:66
 	qw422016.N().S(` `)
 	//line templates/domain.qtpl:66
-	qw422016.N().S(t.GoType(d, domains))
+	qw422016.N().S(t.GoType(d, domains, sharedFunc))
 	//line templates/domain.qtpl:66
 	qw422016.N().S(`) *`)
 	//line templates/domain.qtpl:66
@@ -379,22 +379,22 @@ func (p `)
 }
 
 //line templates/domain.qtpl:70
-func WriteCommandOptionFuncTemplate(qq422016 qtio422016.Writer, t *internal.Type, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func WriteCommandOptionFuncTemplate(qq422016 qtio422016.Writer, t *types.Type, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:70
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/domain.qtpl:70
-	StreamCommandOptionFuncTemplate(qw422016, t, c, d, domains)
+	StreamCommandOptionFuncTemplate(qw422016, t, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:70
 	qt422016.ReleaseWriter(qw422016)
 //line templates/domain.qtpl:70
 }
 
 //line templates/domain.qtpl:70
-func CommandOptionFuncTemplate(t *internal.Type, c *internal.Type, d *internal.Domain, domains []*internal.Domain) string {
+func CommandOptionFuncTemplate(t *types.Type, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
 	//line templates/domain.qtpl:70
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/domain.qtpl:70
-	WriteCommandOptionFuncTemplate(qb422016, t, c, d, domains)
+	WriteCommandOptionFuncTemplate(qb422016, t, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:70
 	qs422016 := string(qb422016.B)
 	//line templates/domain.qtpl:70
@@ -407,19 +407,19 @@ func CommandOptionFuncTemplate(t *internal.Type, c *internal.Type, d *internal.D
 // CommandDoFuncTemplate is the command do func template.
 
 //line templates/domain.qtpl:73
-func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:74
 	typ := c.CommandType()
 
 	hasEmptyParams := len(c.Parameters) == 0
 	hasEmptyRet := len(c.Returns) == 0
 
-	emptyRet := c.EmptyRetList(d, domains)
+	emptyRet := c.EmptyRetList(d, domains, sharedFunc)
 	if emptyRet != "" {
 		emptyRet += ", "
 	}
 
-	retTypeList := c.RetTypeList(d, domains)
+	retTypeList := c.RetTypeList(d, domains, sharedFunc)
 	if retTypeList != "" {
 		retTypeList += ", "
 	}
@@ -435,7 +435,7 @@ func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *internal.Type, d 
 	// returned value is b64 encoded.
 	var b64cond bool
 	for _, p := range c.Returns {
-		if p.Name == internal.Base64EncodedParamName {
+		if p.Name == types.Base64EncodedParamName {
 			b64cond = true
 			break
 		}
@@ -463,7 +463,7 @@ func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *internal.Type, d 
 		//line templates/domain.qtpl:114
 		for _, p := range c.Returns {
 			//line templates/domain.qtpl:114
-			if p.Name == internal.Base64EncodedParamName {
+			if p.Name == types.Base64EncodedParamName {
 				//line templates/domain.qtpl:114
 				continue
 				//line templates/domain.qtpl:114
@@ -587,22 +587,22 @@ func (p *`)
 }
 
 //line templates/domain.qtpl:137
-func WriteCommandDoFuncTemplate(qq422016 qtio422016.Writer, c *internal.Type, d *internal.Domain, domains []*internal.Domain) {
+func WriteCommandDoFuncTemplate(qq422016 qtio422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
 	//line templates/domain.qtpl:137
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/domain.qtpl:137
-	StreamCommandDoFuncTemplate(qw422016, c, d, domains)
+	StreamCommandDoFuncTemplate(qw422016, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:137
 	qt422016.ReleaseWriter(qw422016)
 //line templates/domain.qtpl:137
 }
 
 //line templates/domain.qtpl:137
-func CommandDoFuncTemplate(c *internal.Type, d *internal.Domain, domains []*internal.Domain) string {
+func CommandDoFuncTemplate(c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
 	//line templates/domain.qtpl:137
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/domain.qtpl:137
-	WriteCommandDoFuncTemplate(qb422016, c, d, domains)
+	WriteCommandDoFuncTemplate(qb422016, c, d, domains, sharedFunc)
 	//line templates/domain.qtpl:137
 	qs422016 := string(qb422016.B)
 	//line templates/domain.qtpl:137

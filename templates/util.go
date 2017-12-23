@@ -8,7 +8,7 @@ import (
 
 	"github.com/knq/snaker"
 
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 )
 
 const (
@@ -29,7 +29,7 @@ var keep = map[string]bool{
 // formatComment formats a comment.
 func formatComment(s, chop, newstr string) string {
 	s = strings.TrimPrefix(s, chop)
-	s = strings.TrimSpace(internal.CleanDesc(s))
+	s = strings.TrimSpace(types.CleanDesc(s))
 
 	l := len(s)
 	if newstr != "" && l > 0 {

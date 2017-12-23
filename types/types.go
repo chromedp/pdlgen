@@ -1,11 +1,13 @@
-// Package internal contains the types and util funcs common to the
-// chromedp-gen command.
-package internal
+// Package types contains the types used by the the chromedp-gen command.
+package types
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/knq/snaker"
 )
 
 // ProtocolInfo holds information about the Chrome Debugging Protocol.
@@ -94,6 +96,181 @@ func (d *Domain) PackageRefName() string {
 	return pkgAlias
 }
 
+// DomainType is the Chrome domain type.
+type DomainType string
+
+// String satisfies Stringer.
+func (dt DomainType) String() string {
+	return string(dt)
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (dt DomainType) MarshalJSON() ([]byte, error) {
+	return []byte("\"" + dt + "\""), nil
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (dt *DomainType) UnmarshalJSON(buf []byte) error {
+	s, err := strconv.Unquote(string(buf))
+	if err != nil {
+		return err
+	}
+	*dt = DomainType(s)
+	return nil
+}
+
+// HandlerType are the handler targets for commands and events.
+type HandlerType string
+
+// HandlerType values.
+const (
+	HandlerTypeBrowser  HandlerType = "browser"
+	HandlerTypeRenderer HandlerType = "renderer"
+)
+
+// String satisfies stringer.
+func (ht HandlerType) String() string {
+	return string(ht)
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (ht HandlerType) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + ht + `"`), nil
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (ht *HandlerType) UnmarshalJSON(buf []byte) error {
+	s, err := strconv.Unquote(string(buf))
+	if err != nil {
+		return err
+	}
+
+	switch HandlerType(s) {
+	case HandlerTypeBrowser:
+		*ht = HandlerTypeBrowser
+	case HandlerTypeRenderer:
+		*ht = HandlerTypeRenderer
+
+	default:
+		return fmt.Errorf("unknown handler type %s", string(buf))
+	}
+
+	return nil
+}
+
+// TypeEnum is the Chrome domain type enum.
+type TypeEnum string
+
+// TypeEnum values.
+const (
+	TypeAny       TypeEnum = "any"
+	TypeArray     TypeEnum = "array"
+	TypeBoolean   TypeEnum = "boolean"
+	TypeInteger   TypeEnum = "integer"
+	TypeNumber    TypeEnum = "number"
+	TypeObject    TypeEnum = "object"
+	TypeString    TypeEnum = "string"
+	TypeTimestamp TypeEnum = "timestamp"
+)
+
+// String satisfies stringer.
+func (te TypeEnum) String() string {
+	return string(te)
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (te TypeEnum) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + te + `"`), nil
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (te *TypeEnum) UnmarshalJSON(buf []byte) error {
+	s, err := strconv.Unquote(string(buf))
+	if err != nil {
+		return err
+	}
+
+	switch TypeEnum(s) {
+	case TypeAny:
+		*te = TypeAny
+	case TypeArray:
+		*te = TypeArray
+	case TypeBoolean:
+		*te = TypeBoolean
+	case TypeInteger:
+		*te = TypeInteger
+	case TypeNumber:
+		*te = TypeNumber
+	case TypeObject:
+		*te = TypeObject
+	case TypeString:
+		*te = TypeString
+
+	default:
+		return fmt.Errorf("unknown type enum %s", string(buf))
+	}
+
+	return nil
+}
+
+// GoType returns the Go type for the TypeEnum.
+func (te TypeEnum) GoType() string {
+	switch te {
+	case TypeAny:
+		return "easyjson.RawMessage"
+
+	case TypeBoolean:
+		return "bool"
+
+	case TypeInteger:
+		return "int64"
+
+	case TypeNumber:
+		return "float64"
+
+	case TypeString:
+		return "string"
+
+	case TypeTimestamp:
+		return "time.Time"
+
+	default:
+		panic(fmt.Sprintf("called GoType on non primitive type %s", te.String()))
+	}
+}
+
+// GoEmptyValue returns the Go empty value for the TypeEnum.
+func (te TypeEnum) GoEmptyValue() string {
+	switch te {
+	case TypeBoolean:
+		return `false`
+
+	case TypeInteger:
+		return `0`
+
+	case TypeNumber:
+		return `0`
+
+	case TypeString:
+		return `""`
+
+	case TypeTimestamp:
+		return `time.Time{}`
+	}
+
+	return `nil`
+}
+
+// TimestampType are the various timestamp subtypes.
+type TimestampType int
+
+// TimestampType values.
+const (
+	TimestampTypeMillisecond TimestampType = 1 + iota
+	TimestampTypeSecond
+	TimestampTypeMonotonic
+)
+
 // Type represents a type available to the domain.
 type Type struct {
 	// Type is the provided type enum.
@@ -169,13 +346,13 @@ type Type struct {
 // Returns the DomainType of the underlying type, the underlying type (or the
 // original passed type if not a reference) and the fully qualified name type
 // name.
-func (t *Type) ResolveType(d *Domain, domains []*Domain) (DomainType, *Type, string) {
+func (t *Type) ResolveType(d *Domain, domains []*Domain, sharedFunc func(string, string) bool) (DomainType, *Type, string) {
 	switch {
 	case t.NoExpose || t.NoResolve || strings.HasPrefix(t.Ref, "*"):
 		return d.Domain, t, t.Ref
 
 	case t.Ref != "":
-		dtyp, typ, z := resolve(t.Ref, d, domains)
+		dtyp, typ, z := resolve(t.Ref, d, domains, sharedFunc)
 
 		// add ptr if object
 		ptr := ""
@@ -187,10 +364,10 @@ func (t *Type) ResolveType(d *Domain, domains []*Domain) (DomainType, *Type, str
 		return dtyp, typ, ptr + z
 
 	case t.ID != "":
-		return resolve(t.ID, d, domains)
+		return resolve(t.ID, d, domains, sharedFunc)
 
 	case t.Type == TypeArray:
-		dtyp, typ, z := t.Items.ResolveType(d, domains)
+		dtyp, typ, z := t.Items.ResolveType(d, domains, sharedFunc)
 		return dtyp, typ, "[]" + z
 
 	case t.Type == TypeObject && (t.Properties == nil || len(t.Properties) == 0):
@@ -219,7 +396,7 @@ func (t Type) String() string {
 		desc = " - " + desc
 	}
 
-	return ForceCamelWithFirstLower(t.IDorName()) + desc
+	return snaker.ForceLowerCamelIdentifier(t.IDorName()) + desc
 }
 
 // GetDescription returns the cleaned description for the type.
@@ -240,13 +417,13 @@ func (t *Type) GoName(noExposeOverride bool) string {
 			if goReservedNames[n] {
 				n += "Val"
 			}
-			n = ForceCamelWithFirstLower(n)
+			n = snaker.ForceLowerCamelIdentifier(n)
 		}
 
 		return n
 	}
 
-	return ForceCamel(t.IDorName())
+	return snaker.ForceCamelIdentifier(t.IDorName())
 }
 
 // EnumValueName returns the name for a enum value.
@@ -263,21 +440,21 @@ func (t *Type) EnumValueName(v string) string {
 		neg = "Negative"
 	}
 
-	return ForceCamel(t.IDorName()) + neg + ForceCamel(v)
+	return snaker.ForceCamelIdentifier(t.IDorName()) + neg + snaker.ForceCamelIdentifier(v)
 }
 
 // GoTypeDef returns the Go type definition for the type.
-func (t *Type) GoTypeDef(d *Domain, domains []*Domain, extra []*Type, noExposeOverride, omitOnlyWhenOptional bool) string {
+func (t *Type) GoTypeDef(d *Domain, domains []*Domain, sharedFunc func(string, string) bool, extra []*Type, noExposeOverride, omitOnlyWhenOptional bool) string {
 	switch {
 	case t.Parameters != nil:
-		return structDef(append(extra, t.Parameters...), d, domains, noExposeOverride, omitOnlyWhenOptional)
+		return structDef(append(extra, t.Parameters...), d, domains, sharedFunc, noExposeOverride, omitOnlyWhenOptional)
 
 	case t.Type == TypeArray:
-		_, o, _ := t.Items.ResolveType(d, domains)
-		return "[]" + o.GoTypeDef(d, domains, nil, false, false)
+		_, o, _ := t.Items.ResolveType(d, domains, sharedFunc)
+		return "[]" + o.GoTypeDef(d, domains, sharedFunc, nil, false, false)
 
 	case t.Type == TypeObject:
-		return structDef(append(extra, t.Properties...), d, domains, noExposeOverride, omitOnlyWhenOptional)
+		return structDef(append(extra, t.Properties...), d, domains, sharedFunc, noExposeOverride, omitOnlyWhenOptional)
 
 	case t.Type == TypeAny && t.Ref != "":
 		return t.Ref
@@ -287,14 +464,14 @@ func (t *Type) GoTypeDef(d *Domain, domains []*Domain, extra []*Type, noExposeOv
 }
 
 // GoType returns the Go type for the type.
-func (t *Type) GoType(d *Domain, domains []*Domain) string {
-	_, _, z := t.ResolveType(d, domains)
+func (t *Type) GoType(d *Domain, domains []*Domain, sharedFunc func(string, string) bool) string {
+	_, _, z := t.ResolveType(d, domains, sharedFunc)
 	return z
 }
 
 // GoEmptyValue returns the empty Go value for the type.
-func (t *Type) GoEmptyValue(d *Domain, domains []*Domain) string {
-	typ := t.GoType(d, domains)
+func (t *Type) GoEmptyValue(d *Domain, domains []*Domain, sharedFunc func(string, string) bool) string {
+	typ := t.GoType(d, domains, sharedFunc)
 
 	switch {
 	case strings.HasPrefix(typ, "[]") || strings.HasPrefix(typ, "*"):
@@ -305,14 +482,14 @@ func (t *Type) GoEmptyValue(d *Domain, domains []*Domain) string {
 }
 
 // ParamList returns the list of parameters.
-func (t *Type) ParamList(d *Domain, domains []*Domain, all bool) string {
+func (t *Type) ParamList(d *Domain, domains []*Domain, sharedFunc func(string, string) bool, all bool) string {
 	var s string
 	for _, p := range t.Parameters {
 		if !all && p.Optional.Bool() {
 			continue
 		}
 
-		_, _, z := p.ResolveType(d, domains)
+		_, _, z := p.ResolveType(d, domains, sharedFunc)
 		s += p.GoName(true) + " " + z + ","
 	}
 
@@ -320,7 +497,7 @@ func (t *Type) ParamList(d *Domain, domains []*Domain, all bool) string {
 }
 
 // RetTypeList returns a list of the return types.
-func (t *Type) RetTypeList(d *Domain, domains []*Domain) string {
+func (t *Type) RetTypeList(d *Domain, domains []*Domain, sharedFunc func(string, string) bool) string {
 	var s string
 
 	b64ret := t.Base64EncodedRetParam()
@@ -330,21 +507,21 @@ func (t *Type) RetTypeList(d *Domain, domains []*Domain) string {
 		}
 
 		n := p.Name
-		_, _, z := p.ResolveType(d, domains)
+		_, _, z := p.ResolveType(d, domains, sharedFunc)
 
 		// if this is a base64 encoded item
 		if b64ret != nil && b64ret.Name == p.Name {
 			z = "[]byte"
 		}
 
-		s += ForceCamelWithFirstLower(n) + " " + z + ","
+		s += snaker.ForceLowerCamelIdentifier(n) + " " + z + ","
 	}
 
 	return strings.TrimSuffix(s, ",")
 }
 
 // EmptyRetList returns a list of the empty return values.
-func (t *Type) EmptyRetList(d *Domain, domains []*Domain) string {
+func (t *Type) EmptyRetList(d *Domain, domains []*Domain, sharedFunc func(string, string) bool) string {
 	var s string
 
 	b64ret := t.Base64EncodedRetParam()
@@ -353,7 +530,7 @@ func (t *Type) EmptyRetList(d *Domain, domains []*Domain) string {
 			continue
 		}
 
-		_, o, z := p.ResolveType(d, domains)
+		_, o, z := p.ResolveType(d, domains, sharedFunc)
 		v := o.Type.GoEmptyValue()
 		if strings.HasPrefix(z, "*") || strings.HasPrefix(z, "[]") || (b64ret != nil && b64ret.Name == p.Name) {
 			v = "nil"
@@ -405,7 +582,7 @@ func (t *Type) Base64EncodedRetParam() *Type {
 
 // CamelName returns the CamelCase name of the type.
 func (t *Type) CamelName() string {
-	return ForceCamel(t.IDorName())
+	return snaker.ForceCamelIdentifier(t.IDorName())
 }
 
 // ProtoName returns the protocol name of the type.
@@ -415,12 +592,12 @@ func (t *Type) ProtoName(d *Domain) string {
 
 // EventMethodType returns the method type of the event.
 func (t *Type) EventMethodType(d *Domain) string {
-	return EventMethodPrefix + ForceCamel(t.ProtoName(d)) + EventMethodSuffix
+	return EventMethodPrefix + snaker.ForceCamelIdentifier(t.ProtoName(d)) + EventMethodSuffix
 }
 
 // CommandMethodType returns the method type of the event.
 func (t *Type) CommandMethodType(d *Domain) string {
-	return CommandMethodPrefix + ForceCamel(t.ProtoName(d)) + CommandMethodSuffix
+	return CommandMethodPrefix + snaker.ForceCamelIdentifier(t.ProtoName(d)) + CommandMethodSuffix
 }
 
 // TypeName returns the type name using the supplied prefix and suffix.
@@ -485,4 +662,138 @@ func (b *Bool) UnmarshalJSON(buf []byte) error {
 // Bool returns the bool as a Go bool.
 func (b Bool) Bool() bool {
 	return bool(b)
+}
+
+// resolve finds the ref in the provided domains, relative to domain d when ref
+// is not namespaced.
+func resolve(ref string, d *Domain, domains []*Domain, sharedFunc func(string, string) bool) (DomainType, *Type, string) {
+	n := strings.SplitN(ref, ".", 2)
+
+	// determine domain
+	dtyp := d.Domain
+	typ := n[0]
+	if len(n) == 2 {
+		err := (&dtyp).UnmarshalJSON([]byte(`"` + n[0] + `"`))
+		if err != nil {
+			panic(err)
+		}
+		typ = n[1]
+	}
+
+	// determine if ref points to an object
+	var other *Type
+	for _, z := range domains {
+		if dtyp == z.Domain {
+			for _, j := range z.Types {
+				if j.ID == typ {
+					other = j
+					break
+				}
+			}
+			break
+		}
+	}
+
+	if other == nil {
+		panic(fmt.Sprintf("could not resolve type %s in domain %s", ref, d))
+	}
+
+	var s string
+	// add prefix if not an internal type and not defined in the domain
+	if sharedFunc(dtyp.String(), typ) {
+		if d.Domain != DomainType("cdp") {
+			s += "cdp."
+		}
+	} else if dtyp != d.Domain {
+		s += strings.ToLower(dtyp.String()) + "."
+	}
+
+	return dtyp, other, s + snaker.ForceCamelIdentifier(typ)
+}
+
+// structDef returns a struct definition for a list of types.
+func structDef(types []*Type, d *Domain, domains []*Domain, sharedFunc func(string, string) bool, noExposeOverride, omitOnlyWhenOptional bool) string {
+	s := "struct"
+	if len(types) > 0 {
+		s += " "
+	}
+	s += "{"
+	for _, v := range types {
+		s += "\n\t" + v.GoName(noExposeOverride) + " " + v.GoType(d, domains, sharedFunc)
+
+		omit := ",omitempty"
+		if omitOnlyWhenOptional && !v.Optional.Bool() {
+			omit = ""
+		}
+
+		// add json tag
+		if v.NoExpose {
+			s += " `json:\"-\"`"
+		} else {
+			s += " `json:\"" + v.Name + omit + "\"`"
+		}
+
+		// add comment
+		if v.Type != TypeObject && v.Description != "" {
+			s += " // " + CleanDesc(v.Description)
+		}
+	}
+	if len(types) > 0 {
+		s += "\n"
+	}
+	s += "}"
+
+	return s
+}
+
+// goReservedNames is the list of reserved names in Go.
+var goReservedNames = map[string]bool{
+	// language words
+	"break":       true,
+	"case":        true,
+	"chan":        true,
+	"const":       true,
+	"continue":    true,
+	"default":     true,
+	"defer":       true,
+	"else":        true,
+	"fallthrough": true,
+	"for":         true,
+	"func":        true,
+	"go":          true,
+	"goto":        true,
+	"if":          true,
+	"import":      true,
+	"interface":   true,
+	"map":         true,
+	"package":     true,
+	"range":       true,
+	"return":      true,
+	"select":      true,
+	"struct":      true,
+	"switch":      true,
+	"type":        true,
+	"var":         true,
+
+	// go types
+	"error":      true,
+	"bool":       true,
+	"string":     true,
+	"byte":       true,
+	"rune":       true,
+	"uintptr":    true,
+	"int":        true,
+	"int8":       true,
+	"int16":      true,
+	"int32":      true,
+	"int64":      true,
+	"uint":       true,
+	"uint8":      true,
+	"uint16":     true,
+	"uint32":     true,
+	"uint64":     true,
+	"float32":    true,
+	"float64":    true,
+	"complex64":  true,
+	"complex128": true,
 }

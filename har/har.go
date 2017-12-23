@@ -1,31 +1,24 @@
-// +build ignore
-
-package main
+package har
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"sort"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gedex/inflector"
+	"github.com/knq/snaker"
 
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 )
 
 const (
 	specURL = "http://www.softwareishard.com/blog/har-12-spec/"
 
 	cacheDataID = "CacheData"
-)
-
-var (
-	flagOut = flag.String("out", "har.json", "out file")
 )
 
 // propRefMap is the map of property names to their respective type.
@@ -51,47 +44,90 @@ var propRefMap = map[string]string{
 	"Cache.afterRequest":  cacheDataID,
 }
 
-func main() {
-	var err error
+// Cacher is an interface to retrieve and cache remote files to disk.
+type Cacher interface {
+	Load(...string) ([]byte, error)
+	Cache([]byte, ...string) error
+	Get(string, bool, ...string) ([]byte, error)
+}
 
-	flag.Parse()
+// LoadProto loads the HAR protocol definition using the cacher. If the
+// har.json file is not cached, then it's generated from the remote spec and
+// written to the cache.
+func LoadProto(cacher Cacher) ([]byte, error) {
+	// load file on disk
+	harBuf, err := cacher.Load("har.json")
+	if err == nil {
+		return harBuf, nil
+	}
 
+	// grab spec file
+	specBuf, err := cacher.Get(specURL, false, "spec.html")
+	if err != nil {
+		return nil, err
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	harProto, err := generateDomain(specBuf)
+	if err != nil {
+		return nil, err
+	}
+
+	// marshal to json
+	harBuf, err = json.MarshalIndent(harProto, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	// write
+	err = cacher.Cache(harBuf, "har.json")
+	if err != nil {
+		return nil, err
+	}
+
+	return harBuf, nil
+}
+
+// generateDomain generates a HAR domain definition using the supplied cacher
+// mechanism.
+func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
 	// initial type map
-	typeMap := map[string]internal.Type{
+	typeMap := map[string]types.Type{
 		"HAR": {
 			ID:          "HAR",
-			Type:        internal.TypeObject,
+			Type:        types.TypeObject,
 			Description: "Parent container for HAR log.",
-			Properties: []*internal.Type{{
+			Properties: []*types.Type{{
 				Name: "log",
 				Ref:  "Log",
 			}},
 		},
 		"NameValuePair": {
 			ID:          "NameValuePair",
-			Type:        internal.TypeObject,
+			Type:        types.TypeObject,
 			Description: "Describes a name/value pair.",
-			Properties: []*internal.Type{{
+			Properties: []*types.Type{{
 				Name:        "name",
-				Type:        internal.TypeString,
+				Type:        types.TypeString,
 				Description: "Name of the pair.",
 			}, {
 				Name:        "value",
-				Type:        internal.TypeString,
+				Type:        types.TypeString,
 				Description: "Value of the pair.",
 			}, {
 				Name:        "comment",
-				Type:        internal.TypeString,
+				Type:        types.TypeString,
 				Description: "A comment provided by the user or the application.",
-				Optional:    internal.Bool(true),
+				Optional:    types.Bool(true),
 			}},
 		},
 	}
 
-	// load remote definition
-	doc, err := goquery.NewDocument(specURL)
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(buf))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// loop over type definitions
@@ -105,15 +141,13 @@ func main() {
 		}
 
 		// generate the object ID
-		id := inflector.Singularize(internal.ForceCamel(n))
+		id := inflector.Singularize(snaker.ForceCamelIdentifier(n))
 		if strings.HasSuffix(id, "um") {
 			id = strings.TrimSuffix(id, "um") + "a"
 		}
 		if strings.HasSuffix(id, "Timing") {
 			id += "s"
 		}
-
-		log.Printf("processing '%s', id: '%s'", n, id)
 
 		// base selector
 		sel := fmt.Sprintf(".harType#%s", n)
@@ -127,13 +161,13 @@ func main() {
 		// grab properties and scan
 		props, err := scanProps(id, readPropText(sel, doc))
 		if err != nil {
-			log.Fatal(err)
+			panic(fmt.Sprintf("could not scan properties for %s (%s): %v", n, id, err))
 		}
 
 		// add to type map
-		typeMap[id] = internal.Type{
+		typeMap[id] = types.Type{
 			ID:          id,
-			Type:        internal.TypeObject,
+			Type:        types.TypeObject,
 			Description: desc,
 			Properties:  props,
 		}
@@ -143,11 +177,11 @@ func main() {
 	cacheDataPropText := readPropText(`p:contains("Both beforeRequest and afterRequest object share the following structure.")`, doc)
 	cacheDataProps, err := scanProps(cacheDataID, cacheDataPropText)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	typeMap[cacheDataID] = internal.Type{
+	typeMap[cacheDataID] = types.Type{
 		ID:          cacheDataID,
-		Type:        internal.TypeObject,
+		Type:        types.TypeObject,
 		Description: "Describes the cache data for beforeRequest and afterRequest.",
 		Properties:  cacheDataProps,
 	}
@@ -160,38 +194,26 @@ func main() {
 	sort.Strings(typeNames)
 
 	// add to type list
-	var types []*internal.Type
+	var typs []*types.Type
 	for _, n := range typeNames {
 		typ := typeMap[n]
-		types = append(types, &typ)
+		typs = append(typs, &typ)
 	}
 
 	// create the protocol info
-	def := internal.ProtocolInfo{
-		Version: &internal.Version{Major: "1", Minor: "2"},
-		Domains: []*internal.Domain{{
-			Domain:      internal.DomainType("HAR"),
+	return &types.ProtocolInfo{
+		Version: &types.Version{Major: "1", Minor: "2"},
+		Domains: []*types.Domain{{
+			Domain:      types.DomainType("HAR"),
 			Description: "HTTP Archive Format",
-			Types:       types,
+			Types:       typs,
 		}},
-	}
-
-	// json marshal
-	buf, err := json.MarshalIndent(def, "", "  ")
-	if err != nil {
-		log.Fatal(buf)
-	}
-
-	// write
-	err = ioutil.WriteFile(*flagOut, buf, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	}, nil
 }
 
-func scanProps(id string, propText string) ([]*internal.Type, error) {
+func scanProps(id string, propText string) ([]*types.Type, error) {
 	// scan properties
-	var props []*internal.Type
+	var props []*types.Type
 	scanner := bufio.NewScanner(strings.NewReader(propText))
 	i := 0
 	for scanner.Scan() {
@@ -206,41 +228,41 @@ func scanProps(id string, propText string) ([]*internal.Type, error) {
 		opts := strings.TrimSpace(line[strings.Index(line, "[")+1 : strings.Index(line, "]")])
 
 		// determine type
-		typ := internal.TypeEnum(opts)
+		typ := types.TypeEnum(opts)
 		if z := strings.Index(opts, ","); z != -1 {
-			typ = internal.TypeEnum(strings.TrimSpace(opts[:z]))
+			typ = types.TypeEnum(strings.TrimSpace(opts[:z]))
 		}
 
 		// convert some fields to integers
 		if strings.Contains(strings.ToLower(propName), "size") ||
 			propName == "compression" || propName == "status" ||
 			propName == "hitCount" {
-			typ = internal.TypeInteger
+			typ = types.TypeInteger
 		}
 
 		// fix object/array refs
 		var ref string
-		var items *internal.Type
+		var items *types.Type
 		fqPropName := fmt.Sprintf("%s.%s", id, propName)
 		switch typ {
-		case internal.TypeObject:
-			typ = internal.TypeEnum("")
+		case types.TypeObject:
+			typ = types.TypeEnum("")
 			ref = propRefMap[fqPropName]
 
-		case internal.TypeArray:
-			items = &internal.Type{
+		case types.TypeArray:
+			items = &types.Type{
 				Ref: propRefMap[fqPropName],
 			}
 		}
 
 		// add property
-		props = append(props, &internal.Type{
+		props = append(props, &types.Type{
 			Name:        propName,
 			Type:        typ,
 			Description: propDesc,
 			Ref:         ref,
 			Items:       items,
-			Optional:    internal.Bool(strings.Contains(opts, "optional")),
+			Optional:    types.Bool(strings.Contains(opts, "optional")),
 		})
 
 		i++

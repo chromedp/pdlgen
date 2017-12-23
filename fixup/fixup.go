@@ -37,40 +37,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/knq/snaker"
+
 	"github.com/chromedp/chromedp-gen/templates"
+	"github.com/chromedp/chromedp-gen/types"
 )
-
-func setup() {
-	types := map[string]bool{
-		"DOM.BackendNodeId":      true,
-		"DOM.BackendNode":        true,
-		"DOM.NodeId":             true,
-		"DOM.Node":               true,
-		"DOM.NodeType":           true,
-		"DOM.PseudoType":         true,
-		"DOM.RGBA":               true,
-		"DOM.ShadowRootType":     true,
-		"Inspector.ErrorType":    true,
-		"Inspector.MessageError": true,
-		"Inspector.Message":      true,
-		"Inspector.MethodType":   true,
-		"Network.LoaderId":       true,
-		"Network.MonotonicTime":  true,
-		"Network.TimeSinceEpoch": true,
-		"Page.FrameId":           true,
-		"Page.Frame":             true,
-	}
-
-	if *internal.FlagRedirect {
-		types["Network.Cookie"] = true
-		types["Network.CookieSameSite"] = true
-		types["Page.ResourceType"] = true
-	}
-
-	// set the cdp types
-	internal.SetCDPTypes(types)
-}
 
 // Specific type names to use for the applied fixes to the protocol domains.
 //
@@ -87,82 +58,76 @@ const (
 //
 // Please see package-level documentation for the list of changes made to the
 // various debugging protocol domains.
-func FixDomains(domains []*internal.Domain) {
-	// set up the internal types
-	setup()
-
+//
+// Returns the types common to all packages, based on redirect.
+func FixDomains(domains []*types.Domain, redirect bool) map[string]bool {
 	// method type
-	methodType := &internal.Type{
+	methodType := &types.Type{
 		ID:               "MethodType",
-		Type:             internal.TypeString,
+		Type:             types.TypeString,
 		Description:      "Chrome Debugging Protocol method type (ie, event and command names).",
 		EnumValueNameMap: make(map[string]string),
 		Extra:            templates.ExtraMethodTypeDomainDecoder(),
 	}
 
 	// message error type
-	messageErrorType := &internal.Type{
+	messageErrorType := &types.Type{
 		ID:          "MessageError",
-		Type:        internal.TypeObject,
+		Type:        types.TypeObject,
 		Description: "Message error type.",
-		Properties: []*internal.Type{
-			{
-				Name:        "code",
-				Type:        internal.TypeInteger,
-				Description: "Error code.",
-			},
-			{
-				Name:        "message",
-				Type:        internal.TypeString,
-				Description: "Error message.",
-			},
-		},
-		Extra: "// Error satisfies error interface.\nfunc (e *MessageError) Error() string {\nreturn fmt.Sprintf(\"%s (%d)\", e.Message, e.Code)\n}\n",
+		Properties: []*types.Type{{
+			Name:        "code",
+			Type:        types.TypeInteger,
+			Description: "Error code.",
+		}, {
+			Name:        "message",
+			Type:        types.TypeString,
+			Description: "Error message.",
+		}},
+		Extra: `// Error satisfies error interface.
+func (e *MessageError) Error() string {
+	return fmt.Sprintf("%s (%d)", e.Message, e.Code)
+}
+`,
 	}
 
 	// message type
-	messageType := &internal.Type{
+	messageType := &types.Type{
 		ID:          "Message",
-		Type:        internal.TypeObject,
+		Type:        types.TypeObject,
 		Description: "Chrome Debugging Protocol message sent to/read over websocket connection.",
-		Properties: []*internal.Type{
-			{
-				Name:        "id",
-				Type:        internal.TypeInteger,
-				Description: "Unique message identifier.",
-				Optional:    true,
-			},
-			{
-				Name:        "method",
-				Ref:         "Inspector.MethodType",
-				Description: "Event or command type.",
-				Optional:    true,
-			},
-			{
-				Name:        "params",
-				Type:        internal.TypeAny,
-				Description: "Event or command parameters.",
-				Optional:    true,
-			},
-			{
-				Name:        "result",
-				Type:        internal.TypeAny,
-				Description: "Command return values.",
-				Optional:    true,
-			},
-			{
-				Name:        "error",
-				Ref:         "MessageError",
-				Description: "Error message.",
-				Optional:    true,
-			},
-		},
+		Properties: []*types.Type{{
+			Name:        "id",
+			Type:        types.TypeInteger,
+			Description: "Unique message identifier.",
+			Optional:    true,
+		}, {
+			Name:        "method",
+			Ref:         "Inspector.MethodType",
+			Description: "Event or command type.",
+			Optional:    true,
+		}, {
+			Name:        "params",
+			Type:        types.TypeAny,
+			Description: "Event or command parameters.",
+			Optional:    true,
+		}, {
+			Name:        "result",
+			Type:        types.TypeAny,
+			Description: "Command return values.",
+			Optional:    true,
+		}, {
+			Name:        "error",
+			Ref:         "MessageError",
+			Description: "Error message.",
+			Optional:    true,
+		}},
 	}
 
 	// detach reason type
-	detachReasonType := &internal.Type{
+	detachReasonType := &types.Type{
 		ID:          "DetachReason",
-		Type:        internal.TypeString,
+		Type:        types.TypeString,
 		Enum:        []string{"target_closed", "canceled_by_user", "replaced_with_devtools", "Render process gone."},
 		Description: "Detach reason.",
 	}
@@ -171,11 +136,11 @@ func FixDomains(domains []*internal.Domain) {
 	errorValues := []string{"channel closed", "invalid result", "unknown result"}
 	errorValueNameMap := make(map[string]string)
 	for _, e := range errorValues {
-		errorValueNameMap[e] = "Err" + internal.ForceCamel(e)
+		errorValueNameMap[e] = "Err" + snaker.ForceCamelIdentifier(e)
 	}
-	errorType := &internal.Type{
+	errorType := &types.Type{
 		ID:               "ErrorType",
-		Type:             internal.TypeString,
+		Type:             types.TypeString,
 		Enum:             errorValues,
 		EnumValueNameMap: errorValueNameMap,
 		Description:      "Error type.",
@@ -183,19 +148,20 @@ func FixDomains(domains []*internal.Domain) {
 	}
 
 	// modifier type
-	modifierType := &internal.Type{
+	modifierType := &types.Type{
 		ID:          "Modifier",
-		Type:        internal.TypeInteger,
+		Type:        types.TypeInteger,
 		EnumBitMask: true,
 		Description: "Input key modifier type.",
 		Enum:        []string{"None", "Alt", "Ctrl", "Meta", "Shift"},
-		Extra:       "// ModifierCommand is an alias for ModifierMeta.\nconst ModifierCommand Modifier = ModifierMeta",
+		Extra: `// ModifierCommand is an alias for ModifierMeta.
+const ModifierCommand Modifier = ModifierMeta`,
 	}
 
 	// node type type -- see: https://developer.mozilla.org/en/docs/Web/API/Node/nodeType
-	nodeTypeType := &internal.Type{
+	nodeTypeType := &types.Type{
 		ID:          "NodeType",
-		Type:        internal.TypeInteger,
+		Type:        types.TypeInteger,
 		Description: "Node type.",
 		Enum: []string{
 			"Element", "Attribute", "Text", "CDATA", "EntityReference",
@@ -207,7 +173,7 @@ func FixDomains(domains []*internal.Domain) {
 	// process domains
 	for _, d := range domains {
 		switch d.Domain {
-		case internal.DomainInspector:
+		case "Inspector":
 			// add Inspector types
 			d.Types = append(d.Types, messageErrorType, messageType, methodType, detachReasonType, errorType)
 
@@ -217,7 +183,7 @@ func FixDomains(domains []*internal.Domain) {
 					for _, t := range e.Parameters {
 						if t.Name == "reason" {
 							t.Ref = "DetachReason"
-							t.Type = internal.TypeEnum("")
+							t.Type = types.TypeEnum("")
 							break
 						}
 					}
@@ -225,14 +191,14 @@ func FixDomains(domains []*internal.Domain) {
 				}
 			}
 
-		case internal.DomainCSS:
+		case "CSS":
 			for _, t := range d.Types {
 				if t.ID == "CSSComputedStyleProperty" {
 					t.ID = "ComputedProperty"
 				}
 			}
 
-		case internal.DomainInput:
+		case "Input":
 			// add Input types
 			d.Types = append(d.Types, modifierType)
 			for _, t := range d.Types {
@@ -241,45 +207,45 @@ func FixDomains(domains []*internal.Domain) {
 					t.ID = "GestureType"
 
 				case "TimeSinceEpoch":
-					t.Type = internal.TypeTimestamp
-					t.TimestampType = internal.TimestampTypeSecond
+					t.Type = types.TypeTimestamp
+					t.TimestampType = types.TimestampTypeSecond
 					t.Extra = templates.ExtraTimestampTemplate(t, d)
 				}
 			}
 
-		case internal.DomainDOM:
+		case "DOM":
 			// add DOM types
 			d.Types = append(d.Types, nodeTypeType)
 
 			for _, t := range d.Types {
 				switch t.ID {
 				case "NodeId", "BackendNodeId":
-					t.Extra += templates.ExtraFixStringUnmarshaler(internal.ForceCamel(t.ID), "ParseInt", ", 10, 64")
+					t.Extra += templates.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.ID), "ParseInt", ", 10, 64")
 
 				case "Node":
 					t.Properties = append(t.Properties,
-						&internal.Type{
+						&types.Type{
 							Name:        "Parent",
 							Ref:         domNodeRef,
 							Description: "Parent node.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&internal.Type{
+						&types.Type{
 							Name:        "Invalidated",
 							Ref:         "chan struct{}",
 							Description: "Invalidated channel.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&internal.Type{
+						&types.Type{
 							Name:        "State",
 							Ref:         "NodeState",
 							Description: "Node state.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&internal.Type{
+						&types.Type{
 							Name:        "",
 							Ref:         "sync.RWMutex",
 							Description: "Read write mutex.",
@@ -291,36 +257,36 @@ func FixDomains(domains []*internal.Domain) {
 				}
 			}
 
-		case internal.DomainPage:
+		case "Page":
 			for _, t := range d.Types {
 				switch t.ID {
 				case "FrameId":
-					t.Extra += templates.ExtraFixStringUnmarshaler(internal.ForceCamel(t.ID), "", "")
+					t.Extra += templates.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.ID), "", "")
 
 				case "Frame":
 					t.Properties = append(t.Properties,
-						&internal.Type{
+						&types.Type{
 							Name:        "State",
 							Ref:         "FrameState",
 							Description: "Frame state.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&internal.Type{
+						&types.Type{
 							Name:        "Root",
 							Ref:         domNodeRef,
 							Description: "Frame document root.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&internal.Type{
+						&types.Type{
 							Name:        "Nodes",
 							Ref:         "map[" + domNodeIDRef + "]" + domNodeRef,
 							Description: "Frame nodes.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&internal.Type{
+						&types.Type{
 							Name:        "",
 							Ref:         "sync.RWMutex",
 							Description: "Read write mutex.",
@@ -334,51 +300,51 @@ func FixDomains(domains []*internal.Domain) {
 					for _, p := range t.Properties {
 						if p.Name == "id" || p.Name == "parentId" {
 							p.Ref = "FrameId"
-							p.Type = internal.TypeEnum("")
+							p.Type = types.TypeEnum("")
 						}
 					}
 				}
 			}
 
-		case internal.DomainNetwork:
+		case "Network":
 			for _, t := range d.Types {
 				// change Monotonic to TypeTimestamp and add extra unmarshaling template
 				if t.ID == "TimeSinceEpoch" {
-					t.Type = internal.TypeTimestamp
-					t.TimestampType = internal.TimestampTypeSecond
+					t.Type = types.TypeTimestamp
+					t.TimestampType = types.TimestampTypeSecond
 					t.Extra = templates.ExtraTimestampTemplate(t, d)
 				}
 
 				// change Monotonic to TypeTimestamp and add extra unmarshaling template
 				if t.ID == "MonotonicTime" {
-					t.Type = internal.TypeTimestamp
-					t.TimestampType = internal.TimestampTypeMonotonic
+					t.Type = types.TypeTimestamp
+					t.TimestampType = types.TimestampTypeMonotonic
 					t.Extra = templates.ExtraTimestampTemplate(t, d)
 				}
 
 				// change Headers to be a map[string]interface{}
 				if t.ID == "Headers" {
-					t.Type = internal.TypeAny
+					t.Type = types.TypeAny
 					t.Ref = "map[string]interface{}"
 				}
 			}
 
-		case internal.DomainRuntime:
-			var types []*internal.Type
+		case "Runtime":
+			var typs []*types.Type
 			for _, t := range d.Types {
 				switch t.ID {
 				case "Timestamp":
-					t.Type = internal.TypeTimestamp
-					t.TimestampType = internal.TimestampTypeMillisecond
+					t.Type = types.TypeTimestamp
+					t.TimestampType = types.TimestampTypeMillisecond
 					t.Extra += templates.ExtraTimestampTemplate(t, d)
 
 				case "ExceptionDetails":
 					t.Extra += templates.ExtraExceptionDetailsTemplate()
 				}
 
-				types = append(types, t)
+				typs = append(typs, t)
 			}
-			d.Types = types
+			d.Types = typs
 		}
 
 		for _, t := range d.Types {
@@ -389,11 +355,11 @@ func FixDomains(domains []*internal.Domain) {
 		}
 
 		// process events and commands
-		processTypesWithParameters(methodType, d, d.Events, internal.EventMethodPrefix, internal.EventMethodSuffix)
-		processTypesWithParameters(methodType, d, d.Commands, internal.CommandMethodPrefix, internal.CommandMethodSuffix)
+		processTypesWithParameters(methodType, d, d.Events, types.EventMethodPrefix, types.EventMethodSuffix)
+		processTypesWithParameters(methodType, d, d.Commands, types.CommandMethodPrefix, types.CommandMethodSuffix)
 
 		// fix input enums
-		if d.Domain == internal.DomainInput {
+		if d.Domain == "Input" {
 			for _, t := range d.Types {
 				if t.Enum != nil && t.ID != "Modifier" {
 					t.EnumValueNameMap = make(map[string]string)
@@ -405,7 +371,7 @@ func FixDomains(domains []*internal.Domain) {
 						case "ButtonType":
 							prefix = "Button"
 						}
-						n := prefix + internal.ForceCamel(v)
+						n := prefix + snaker.ForceCamelIdentifier(v)
 						if t.ID == "KeyType" {
 							n = "Key" + strings.Replace(n, "Key", "", -1)
 						}
@@ -427,11 +393,39 @@ func FixDomains(domains []*internal.Domain) {
 			}
 		}
 	}
+
+	sharedTypes := map[string]bool{
+		"DOM.BackendNodeId":      true,
+		"DOM.BackendNode":        true,
+		"DOM.NodeId":             true,
+		"DOM.Node":               true,
+		"DOM.NodeType":           true,
+		"DOM.PseudoType":         true,
+		"DOM.RGBA":               true,
+		"DOM.ShadowRootType":     true,
+		"Inspector.ErrorType":    true,
+		"Inspector.MessageError": true,
+		"Inspector.Message":      true,
+		"Inspector.MethodType":   true,
+		"Network.LoaderId":       true,
+		"Network.MonotonicTime":  true,
+		"Network.TimeSinceEpoch": true,
+		"Page.FrameId":           true,
+		"Page.Frame":             true,
+	}
+
+	if redirect {
+		sharedTypes["Network.Cookie"] = true
+		sharedTypes["Network.CookieSameSite"] = true
+		sharedTypes["Page.ResourceType"] = true
+	}
+
+	return sharedTypes
 }
 
 // processTypesWithParameters adds the types to t's enum values, setting the
 // enum value map for m. Also, converts the Parameters and Returns properties.
-func processTypesWithParameters(m *internal.Type, d *internal.Domain, types []*internal.Type, prefix, suffix string) {
+func processTypesWithParameters(m *types.Type, d *types.Domain, types []*types.Type, prefix, suffix string) {
 	for _, t := range types {
 		n := t.ProtoName(d)
 		m.Enum = append(m.Enum, n)
@@ -445,24 +439,24 @@ func processTypesWithParameters(m *internal.Type, d *internal.Domain, types []*i
 }
 
 // convertObjectProperties converts object properties.
-func convertObjectProperties(params []*internal.Type, d *internal.Domain, name string) []*internal.Type {
-	r := make([]*internal.Type, 0)
+func convertObjectProperties(params []*types.Type, d *types.Domain, name string) []*types.Type {
+	r := make([]*types.Type, 0)
 	for _, p := range params {
 		switch {
 		case p.Items != nil:
-			r = append(r, &internal.Type{
+			r = append(r, &types.Type{
 				Name:        p.Name,
-				Type:        internal.TypeArray,
+				Type:        types.TypeArray,
 				Description: p.Description,
 				Optional:    p.Optional,
-				Items:       convertObjectProperties([]*internal.Type{p.Items}, d, name+"."+p.Name)[0],
+				Items:       convertObjectProperties([]*types.Type{p.Items}, d, name+"."+p.Name)[0],
 			})
 
 		case p.Enum != nil:
 			r = append(r, fixupEnumParameter(name, p, d))
 
 		case p.Name == "modifiers":
-			r = append(r, &internal.Type{
+			r = append(r, &types.Type{
 				Name:        p.Name,
 				Ref:         "Modifier",
 				Description: p.Description,
@@ -470,7 +464,7 @@ func convertObjectProperties(params []*internal.Type, d *internal.Domain, name s
 			})
 
 		case p.Name == "nodeType":
-			r = append(r, &internal.Type{
+			r = append(r, &types.Type{
 				Name:        p.Name,
 				Ref:         "DOM.NodeType",
 				Description: p.Description,
@@ -478,7 +472,7 @@ func convertObjectProperties(params []*internal.Type, d *internal.Domain, name s
 			})
 
 		case p.Ref == "GestureSourceType":
-			r = append(r, &internal.Type{
+			r = append(r, &types.Type{
 				Name:        p.Name,
 				Ref:         "GestureType",
 				Description: p.Description,
@@ -486,7 +480,7 @@ func convertObjectProperties(params []*internal.Type, d *internal.Domain, name s
 			})
 
 		case p.Ref == "CSSComputedStyleProperty":
-			r = append(r, &internal.Type{
+			r = append(r, &types.Type{
 				Name:        p.Name,
 				Ref:         "ComputedProperty",
 				Description: p.Description,
@@ -506,7 +500,7 @@ func convertObjectProperties(params []*internal.Type, d *internal.Domain, name s
 				z = p.Ref
 			}
 
-			r = append(r, &internal.Type{
+			r = append(r, &types.Type{
 				Name:        p.Name,
 				Ref:         z,
 				Description: p.Description,
@@ -522,9 +516,9 @@ func convertObjectProperties(params []*internal.Type, d *internal.Domain, name s
 }
 
 // addEnumValues adds orig.Enum values to type named n's Enum values in domain.
-func addEnumValues(d *internal.Domain, n string, p *internal.Type) {
+func addEnumValues(d *types.Domain, n string, p *types.Type) {
 	// find type
-	var typ *internal.Type
+	var typ *types.Type
 	for _, t := range d.Types {
 		if t.ID == n {
 			typ = t
@@ -532,9 +526,9 @@ func addEnumValues(d *internal.Domain, n string, p *internal.Type) {
 		}
 	}
 	if typ == nil {
-		typ = &internal.Type{
+		typ = &types.Type{
 			ID:          n,
-			Type:        internal.TypeString,
+			Type:        types.TypeString,
 			Description: p.Description,
 			Optional:    p.Optional,
 		}
@@ -595,9 +589,9 @@ var enumRefMap = map[string]string{
 
 // fixupEnumParameter takes an enum parameter, adds it to the domain and
 // returns a type suitable for use in place of the type.
-func fixupEnumParameter(typ string, p *internal.Type, d *internal.Domain) *internal.Type {
+func fixupEnumParameter(typ string, p *types.Type, d *types.Domain) *types.Type {
 	fqname := strings.TrimSuffix(fmt.Sprintf("%s.%s.%s", d.Domain, typ, p.Name), ".")
-	ref := internal.ForceCamel(typ + "." + p.Name)
+	ref := snaker.ForceCamelIdentifier(typ + "." + p.Name)
 	if n, ok := enumRefMap[fqname]; ok {
 		ref = n
 	}
@@ -605,7 +599,7 @@ func fixupEnumParameter(typ string, p *internal.Type, d *internal.Domain) *inter
 	// add enum values to type name
 	addEnumValues(d, ref, p)
 
-	return &internal.Type{
+	return &types.Type{
 		Name:        p.Name,
 		Ref:         ref,
 		Description: p.Description,

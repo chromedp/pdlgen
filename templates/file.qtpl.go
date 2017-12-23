@@ -8,7 +8,7 @@ package templates
 import (
 	"sort"
 
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 )
 
 // FileHeader is the file header template.
@@ -27,7 +27,7 @@ var (
 )
 
 //line templates/file.qtpl:8
-func StreamFileHeader(qw422016 *qt422016.Writer, pkgName string, d *internal.Domain) {
+func StreamFileHeader(qw422016 *qt422016.Writer, pkgName string, d *types.Domain) {
 	//line templates/file.qtpl:8
 	qw422016.N().S(`
 `)
@@ -80,7 +80,7 @@ package `)
 }
 
 //line templates/file.qtpl:18
-func WriteFileHeader(qq422016 qtio422016.Writer, pkgName string, d *internal.Domain) {
+func WriteFileHeader(qq422016 qtio422016.Writer, pkgName string, d *types.Domain) {
 	//line templates/file.qtpl:18
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/file.qtpl:18
@@ -91,7 +91,7 @@ func WriteFileHeader(qq422016 qtio422016.Writer, pkgName string, d *internal.Dom
 }
 
 //line templates/file.qtpl:18
-func FileHeader(pkgName string, d *internal.Domain) string {
+func FileHeader(pkgName string, d *types.Domain) string {
 	//line templates/file.qtpl:18
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/file.qtpl:18

@@ -1,11 +1,11 @@
 {% import (
 	"sort"
 
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 ) %}
 
 // FileHeader is the file header template.
-{% func FileHeader(pkgName string, d *internal.Domain) %}
+{% func FileHeader(pkgName string, d *types.Domain) %}
 {% if d != nil %}// Package {%s= d.PackageName() %} provides the Chrome Debugging Protocol
 // commands, types, and events for the {%s= d.String() %} domain.
 // {% if desc := d.Description; desc != "" %}

@@ -1,14 +1,14 @@
 {% import (
-	"github.com/chromedp/chromedp-gen/internal"
+	"github.com/chromedp/chromedp-gen/types"
 ) %}
 
 // ExtraTimestampTemplate is a special template for the Timestamp type that
 // defines its JSON unmarshaling.
-{% func ExtraTimestampTemplate(t *internal.Type, d *internal.Domain) %}{%code
+{% func ExtraTimestampTemplate(t *types.Type, d *types.Domain) %}{%code
 	typ := t.IDorName()
-	monotonic := t.TimestampType == internal.TimestampTypeMonotonic
+	monotonic := t.TimestampType == types.TimestampTypeMonotonic
 	timeRes := "time.Millisecond"
-	if t.TimestampType != internal.TimestampTypeMillisecond {
+	if t.TimestampType != types.TimestampTypeMillisecond {
 		timeRes = "time.Second"
 	}
 %}
@@ -276,7 +276,7 @@ type Handler interface {
 {% endfunc %}
 
 // ExtraUtilTemplate generates the decode func for the Message type.
-{% func ExtraUtilTemplate(domains []*internal.Domain) %}
+{% func ExtraUtilTemplate(domains []*types.Domain) %}
 type empty struct{}
 var emptyVal = &empty{}
 
