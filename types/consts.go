@@ -1,9 +1,7 @@
 package types
 
 // Prefix and suffix values.
-var (
-	DomainTypePrefix     = ""
-	DomainTypeSuffix     = ""
+const (
 	TypePrefix           = ""
 	TypeSuffix           = ""
 	EventMethodPrefix    = "Event"

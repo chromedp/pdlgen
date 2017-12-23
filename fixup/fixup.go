@@ -353,8 +353,8 @@ const ModifierCommand Modifier = ModifierMeta`,
 		}
 
 		// process events and commands
-		processTypesWithParameters(methodType, d, d.Events, types.EventMethodPrefix, types.EventMethodSuffix)
-		processTypesWithParameters(methodType, d, d.Commands, types.CommandMethodPrefix, types.CommandMethodSuffix)
+		processParameters(d, d.Events)
+		processParameters(d, d.Commands)
 
 		// fix input enums
 		if d.Domain == "Input" {
@@ -394,14 +394,9 @@ const ModifierCommand Modifier = ModifierMeta`,
 
 }
 
-// processTypesWithParameters adds the types to t's enum values, setting the
-// enum value map for m. Also, converts the Parameters and Returns properties.
-func processTypesWithParameters(m *types.Type, d *types.Domain, types []*types.Type, prefix, suffix string) {
-	for _, t := range types {
-		n := t.ProtoName(d)
-		m.Enum = append(m.Enum, n)
-		m.EnumValueNameMap[n] = t.TypeName(prefix+d.String(), suffix)
-
+// processParameters the Parameters and Returns properties.
+func processParameters(d *types.Domain, typs []*types.Type) {
+	for _, t := range typs {
 		t.Parameters = convertObjectProperties(t.Parameters, d, t.Name)
 		if t.Returns != nil {
 			t.Returns = convertObjectProperties(t.Returns, d, t.Name)

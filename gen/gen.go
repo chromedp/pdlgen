@@ -5,9 +5,8 @@ package gen
 import (
 	"bytes"
 	"path"
+	"path/filepath"
 
-	"github.com/gedex/inflector"
-	"github.com/knq/snaker"
 	qtpl "github.com/valyala/quicktemplate"
 
 	"github.com/chromedp/chromedp-gen/templates"
@@ -49,33 +48,30 @@ func GenerateDomains(domains []*types.Domain, basePkg string, redirect bool) map
 
 	var w *qtpl.Writer
 
-	// determine base (also used for the domains manager type name)
-	pkgBase := path.Base(basePkg)
-	types.DomainTypeSuffix = inflector.Singularize(snaker.ForceCamelIdentifier(pkgBase))
-
 	// generate internal types
-	fb.generateCDPTypes(domains, sharedFunc, basePkg)
+	fb.generateSharedTypes(domains, sharedFunc, basePkg)
 
 	// generate util package
-	fb.generateUtilPackage(domains, basePkg)
+	fb.generateRootPackage(domains, basePkg)
 
-	// do individual domain templates
+	// generate individual domains
 	for _, d := range domains {
 		pkgName := d.PackageName()
-		pkgOut := pkgName + "/" + pkgName + ".go"
+		pkgOut := filepath.Join(pkgName, pkgName+".go")
 
 		// do command template
 		w = fb.get(pkgOut, pkgName, d)
-		templates.StreamDomainTemplate(w, d, domains, sharedFunc, basePkg)
+		templates.StreamDomainTemplate(w, d, domains, sharedFunc, map[string]string{
+			basePkg + "/cdp": "cdp",
+		})
 		fb.release(w)
 
 		// generate domain types
 		if len(d.Types) != 0 {
 			fb.generateTypes(
-				pkgName+"/types.go",
+				filepath.Join(pkgName, "types.go"),
 				d.Types, types.TypePrefix, types.TypeSuffix,
 				d, domains, sharedFunc,
-				"", "", "", "", "",
 				basePkg,
 			)
 		}
@@ -83,11 +79,9 @@ func GenerateDomains(domains []*types.Domain, basePkg string, redirect bool) map
 		// generate domain event types
 		if len(d.Events) != 0 {
 			fb.generateTypes(
-				pkgName+"/events.go",
+				filepath.Join(pkgName, "events.go"),
 				d.Events, types.EventTypePrefix, types.EventTypeSuffix,
 				d, domains, sharedFunc,
-				"EventTypes", "cdp.MethodType", "cdp."+types.EventMethodPrefix+d.String(), types.EventMethodSuffix,
-				"All event types in the domain.",
 				basePkg,
 			)
 		}
@@ -99,12 +93,11 @@ func GenerateDomains(domains []*types.Domain, basePkg string, redirect bool) map
 // fileBuffers is a type to manage buffers for file data.
 type fileBuffers map[string]*bytes.Buffer
 
-// generateCDPTypes generates the common shared types for domain d.
+// generateSharedTypes generates the common shared types for domains.
 //
 // Because there are circular package dependencies, some types need to be moved
-// to eliminate the circular dependencies. Please see the fixup package for a
-// list of the "shared" CDP types.
-func (fb fileBuffers) generateCDPTypes(domains []*types.Domain, sharedFunc func(string, string) bool, basePkg string) {
+// to eliminate the circular dependencies.
+func (fb fileBuffers) generateSharedTypes(domains []*types.Domain, sharedFunc func(string, string) bool, basePkg string) {
 	var typs []*types.Type
 	for _, d := range domains {
 		// process internal types
@@ -121,8 +114,7 @@ func (fb fileBuffers) generateCDPTypes(domains []*types.Domain, sharedFunc func(
 	}
 	doms := append(domains, cdpDomain)
 
-	n := path.Base(basePkg)
-	w := fb.get(n+".go", n, nil)
+	w := fb.get("cdp/cdp.go", "cdp", nil)
 	for _, t := range typs {
 		templates.StreamTypeTemplate(
 			w, t, types.TypePrefix, types.TypeSuffix,
@@ -133,20 +125,21 @@ func (fb fileBuffers) generateCDPTypes(domains []*types.Domain, sharedFunc func(
 	fb.release(w)
 }
 
-// generateUtilPackage generates the util package.
+// generateRootPackage generates the util package.
 //
 // Currently only contains the low-level message unmarshaler -- if this wasn't
 // in a separate package, then there would be circular dependencies.
-func (fb fileBuffers) generateUtilPackage(domains []*types.Domain, basePkg string) {
+func (fb fileBuffers) generateRootPackage(domains []*types.Domain, basePkg string) {
 	// generate import map data
 	importMap := map[string]string{
-		basePkg: "cdp",
+		basePkg + "/cdp": "cdp",
 	}
 	for _, d := range domains {
 		importMap[basePkg+"/"+d.PackageName()] = d.PackageImportAlias()
 	}
 
-	w := fb.get("cdputil/cdputil.go", "cdputil", nil)
+	n := path.Base(basePkg)
+	w := fb.get(n+".go", n, nil)
 	templates.StreamFileImportTemplate(w, importMap)
 	templates.StreamExtraUtilTemplate(w, domains)
 	fb.release(w)
@@ -157,16 +150,16 @@ func (fb fileBuffers) generateTypes(
 	path string,
 	types []*types.Type, prefix, suffix string,
 	d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool,
-	emit, emitType, emitPrefix, emitSuffix, emitDesc string,
 	basePkg string,
 ) {
 	w := fb.get(path, d.PackageName(), d)
 
 	// add internal import
-	templates.StreamFileImportTemplate(w, map[string]string{basePkg: "cdp"})
+	templates.StreamFileImportTemplate(w, map[string]string{
+		basePkg + "/cdp": "cdp",
+	})
 
 	// process type list
-	var names []string
 	for _, t := range types {
 		if sharedFunc(d.Domain.String(), t.IDorName()) {
 			continue
@@ -176,17 +169,6 @@ func (fb fileBuffers) generateTypes(
 			d, domains, sharedFunc,
 			nil, false, true,
 		)
-		names = append(names, t.TypeName(emitPrefix, emitSuffix))
-	}
-
-	// emit var
-	if emit != "" {
-		s := "[]" + emitType + "{"
-		for _, n := range names {
-			s += "\n" + n + ","
-		}
-		s += "\n}"
-		templates.StreamFileVarTemplate(w, emit, s, emitDesc)
 	}
 
 	fb.release(w)

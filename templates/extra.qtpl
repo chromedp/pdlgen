@@ -247,32 +247,6 @@ func (e *ExceptionDetails) Error() string {
 func (t ErrorType) Error() string {
 	return string(t)
 }
-
-// Handler is the common interface for a Chrome Debugging Protocol target.
-type Handler interface {
-	// SetActive changes the top level frame id.
-	SetActive(context.Context, FrameID) error
-
-	// GetRoot returns the root document node for the top level frame.
-	GetRoot(context.Context) (*Node, error)
-
-	// WaitFrame waits for a frame to be available.
-	WaitFrame(context.Context, FrameID) (*Frame, error)
-
-	// WaitNode waits for a node to be available.
-	WaitNode(context.Context, *Frame, NodeID) (*Node, error)
-
-	// Execute executes the specified command using the supplied context and
-	// parameters.
-	Execute(context.Context, MethodType, easyjson.Marshaler, easyjson.Unmarshaler) error
-
-	// Listen creates a channel that will receive an event for the types
-	// specified.
-	Listen(...MethodType) <-chan interface{}
-
-	// Release releases a channel returned from Listen.
-	Release(<-chan interface{})
-}
 {% endfunc %}
 
 // ExtraUtilTemplate generates the decode func for the Message type.

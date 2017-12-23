@@ -53,7 +53,7 @@ var (
 	flagPkg   = flag.String("pkg", "github.com/chromedp/cdproto", "out base package")
 	flagOut   = flag.String("out", "", "out directory")
 
-	flagCleanWl = flag.String("wl", "LICENSE,README.md", "comma-separated list of files to not remove from out directory")
+	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol.json,easyjson.go", "comma-separated list of files to not remove from out directory")
 	flagNoClean = flag.Bool("noclean", false, "toggle not cleaning (removing) existing directories")
 	flagNoCopy  = flag.Bool("nocopy", false, "toggle not copying combined protocol.json to out directory")
 	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR domain")
@@ -97,31 +97,8 @@ func run() error {
 		return err
 	}
 
-	// clean up files
-	if !*flagNoClean {
-		logf("CLEANING: %s", *flagOut)
-		wl := splitToMap(*flagCleanWl, ",")
-		outpath := *flagOut + string(filepath.Separator)
-		err = filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
-			switch {
-			case os.IsNotExist(err):
-				return nil
-			case err != nil:
-				return err
-			}
-			if fn := fi.Name(); n == outpath || filepath.Dir(n) != *flagOut || fn == "" || strings.HasPrefix(fn, ".") || wl[fn] {
-				return nil
-			}
-			logf("REMOVING: %s", n)
-			return os.RemoveAll(n)
-		})
-		if err != nil {
-			return err
-		}
-	}
-
 	// determine what to process
-	pkgs := []string{""}
+	pkgs := []string{"cdp"}
 	var processed []*types.Domain
 	for _, d := range protoInfo.Domains {
 		// skip if not processing
@@ -135,7 +112,7 @@ func run() error {
 				extra = append(extra, "experimental")
 			}
 
-			logf("SKIPPING(domain): %s %v", d, extra)
+			logf("SKIPPING(%s): %s %v", pad("domain", 7), d, extra)
 			continue
 		}
 
@@ -153,10 +130,48 @@ func run() error {
 	// generate
 	files := gen.GenerateDomains(processed, *flagPkg, *flagRedirect)
 
+	// clean up files
+	if !*flagNoClean {
+		logf("CLEANING: %s", *flagOut)
+		wl := splitToMap(*flagCleanWl, ",")
+		outpath := *flagOut + string(filepath.Separator)
+		err = filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
+			switch {
+			case os.IsNotExist(err):
+				return nil
+			case err != nil:
+				return err
+			}
+
+			fn, sn := n[len(outpath):], fi.Name()
+			if n == outpath || fn == "" || strings.HasPrefix(fn, ".") || strings.HasPrefix(sn, ".") || wl[fn] || wl[sn] || contains(files, fn) {
+				return nil
+			}
+			logf("REMOVING: %s", n)
+			return os.RemoveAll(n)
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	// write
 	err = write(files)
 	if err != nil {
 		return err
+	}
+
+	// write generate protocol info
+	if !*flagNoCopy {
+		logf("WRITING: protocol.json")
+		buf, err := json.MarshalIndent(protoInfo, "", "  ")
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(filepath.Join(*flagOut, "protocol.json"), buf, 0644)
+		if err != nil {
+			return err
+		}
 	}
 
 	// goimports
@@ -222,16 +237,21 @@ func loadProtocolInfo() (*types.ProtocolInfo, error) {
 		return nil, err
 	}
 
-	// grab har definition
-	harBuf, err := har.LoadProto(&fileCacher{
-		path: filepath.Join(*flagCache, "har"),
-		ttl:  *flagHarTtl,
-	})
-	if err != nil {
-		return nil, err
+	protos := [][]byte{browserBuf, jsBuf}
+
+	// grab and add har definition
+	if !*flagNoHar {
+		harBuf, err := har.LoadProto(&fileCacher{
+			path: filepath.Join(*flagCache, "har"),
+			ttl:  *flagHarTtl,
+		})
+		if err != nil {
+			return nil, err
+		}
+		protos = append(protos, harBuf)
 	}
 
-	return combineProtoInfos(browserBuf, jsBuf, harBuf)
+	return combineProtoInfos(protos...)
 }
 
 // cleanupTypes removes deprecated types.
@@ -241,25 +261,25 @@ func cleanupTypes(n string, dtyp string, typs []*types.Type) []*types.Type {
 	for _, t := range typs {
 		typ := dtyp + "." + t.IDorName()
 		if !*flagDep && t.Deprecated.Bool() {
-			logf("SKIPPING(%s): %s [deprecated]", n, typ)
+			logf("SKIPPING(%s): %s [deprecated]", pad(n, 7), typ)
 			continue
 		}
 
 		if !*flagRedirect && string(t.Redirect) != "" {
-			logf("SKIPPING(%s): %s [redirect:%s]", n, typ, t.Redirect)
+			logf("SKIPPING(%s): %s [redirect:%s]", pad(n, 7), typ, t.Redirect)
 			continue
 		}
 
 		if t.Properties != nil {
-			t.Properties = cleanupTypes(n+" property", typ, t.Properties)
+			t.Properties = cleanupTypes(n[0:1]+" property", typ, t.Properties)
 		}
 
 		if t.Parameters != nil {
-			t.Parameters = cleanupTypes(n+" param", typ, t.Parameters)
+			t.Parameters = cleanupTypes(n[0:1]+" param", typ, t.Parameters)
 		}
 
 		if t.Returns != nil {
-			t.Returns = cleanupTypes(n+" return param", typ, t.Returns)
+			t.Returns = cleanupTypes(n[0:1]+" return param", typ, t.Returns)
 		}
 
 		ret = append(ret, t)
@@ -510,4 +530,21 @@ func splitToMap(s string, sep string) map[string]bool {
 		m[v] = true
 	}
 	return m
+}
+
+// contains determines if any key in m is equal to n or starts with the path
+// prefix equal to n.
+func contains(m map[string]*bytes.Buffer, n string) bool {
+	d := n + string(filepath.Separator)
+	for k := range m {
+		if n == k || strings.HasPrefix(k, d) {
+			return true
+		}
+	}
+	return false
+}
+
+// pad pads a string.
+func pad(s string, n int) string {
+	return s + strings.Repeat(" ", n-len(s))
 }

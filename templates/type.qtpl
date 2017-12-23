@@ -54,7 +54,7 @@ const ({% for i, e := range ev %}{% code
 func (t {%s= typ %}) String() string {
 	switch t {{% for _, e := range t.EnumValues() %}
 	case {%s= t.EnumValueName(e) %}:
-		return "{%s= e %}"{% endfor %}
+		return {%q= e %}{% endfor %}
 	}
 
 	return fmt.Sprintf("{%s= typ %}(%d)", t)

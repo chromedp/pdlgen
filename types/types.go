@@ -67,11 +67,6 @@ func (d *Domain) PackageName() string {
 	return strings.ToLower(d.String())
 }
 
-// DomainType returns the name of the type to use for the domain.
-func (d *Domain) DomainType() string {
-	return DomainTypePrefix + d.String() + DomainTypeSuffix
-}
-
 // PackageImportAlias returns the Go import package name alias to use for the
 // domain, or the empty string.
 func (d *Domain) PackageImportAlias() string {
@@ -587,7 +582,11 @@ func (t *Type) CamelName() string {
 
 // ProtoName returns the protocol name of the type.
 func (t *Type) ProtoName(d *Domain) string {
-	return d.String() + "." + t.Name
+	var prefix string
+	if d != nil {
+		prefix = d.String() + "."
+	}
+	return prefix + t.Name
 }
 
 // EventMethodType returns the method type of the event.

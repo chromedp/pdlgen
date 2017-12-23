@@ -176,11 +176,9 @@ func (t `)
 				qw422016.N().S(t.EnumValueName(e))
 				//line templates/type.qtpl:56
 				qw422016.N().S(`:
-		return "`)
+		return `)
 				//line templates/type.qtpl:57
-				qw422016.N().S(e)
-				//line templates/type.qtpl:57
-				qw422016.N().S(`"`)
+				qw422016.N().Q(e)
 				//line templates/type.qtpl:57
 			}
 			//line templates/type.qtpl:57

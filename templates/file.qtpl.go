@@ -108,10 +108,10 @@ func FileHeader(pkgName string, d *types.Domain) string {
 // FileImportTemplate is a general import template.
 
 //line templates/file.qtpl:21
-func StreamFileImportTemplate(qw422016 *qt422016.Writer, m map[string]string) {
+func StreamFileImportTemplate(qw422016 *qt422016.Writer, importMap map[string]string) {
 	//line templates/file.qtpl:22
 	var keys []string
-	for k := range m {
+	for k := range importMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -122,7 +122,7 @@ import (`)
 	//line templates/file.qtpl:28
 	for _, k := range keys {
 		//line templates/file.qtpl:29
-		v := m[k]
+		v := importMap[k]
 
 		//line templates/file.qtpl:30
 		qw422016.N().S(`
@@ -136,11 +136,7 @@ import (`)
 			//line templates/file.qtpl:31
 		}
 		//line templates/file.qtpl:31
-		qw422016.N().S(`"`)
-		//line templates/file.qtpl:31
-		qw422016.N().S(k)
-		//line templates/file.qtpl:31
-		qw422016.N().S(`"`)
+		qw422016.N().Q(k)
 		//line templates/file.qtpl:31
 	}
 	//line templates/file.qtpl:31
@@ -151,22 +147,22 @@ import (`)
 }
 
 //line templates/file.qtpl:33
-func WriteFileImportTemplate(qq422016 qtio422016.Writer, m map[string]string) {
+func WriteFileImportTemplate(qq422016 qtio422016.Writer, importMap map[string]string) {
 	//line templates/file.qtpl:33
 	qw422016 := qt422016.AcquireWriter(qq422016)
 	//line templates/file.qtpl:33
-	StreamFileImportTemplate(qw422016, m)
+	StreamFileImportTemplate(qw422016, importMap)
 	//line templates/file.qtpl:33
 	qt422016.ReleaseWriter(qw422016)
 //line templates/file.qtpl:33
 }
 
 //line templates/file.qtpl:33
-func FileImportTemplate(m map[string]string) string {
+func FileImportTemplate(importMap map[string]string) string {
 	//line templates/file.qtpl:33
 	qb422016 := qt422016.AcquireByteBuffer()
 	//line templates/file.qtpl:33
-	WriteFileImportTemplate(qb422016, m)
+	WriteFileImportTemplate(qb422016, importMap)
 	//line templates/file.qtpl:33
 	qs422016 := string(qb422016.B)
 	//line templates/file.qtpl:33
@@ -174,54 +170,4 @@ func FileImportTemplate(m map[string]string) string {
 	//line templates/file.qtpl:33
 	return qs422016
 //line templates/file.qtpl:33
-}
-
-// FileVarTemplate is a template for a single variable declaration.
-
-//line templates/file.qtpl:36
-func StreamFileVarTemplate(qw422016 *qt422016.Writer, name, value, desc string) {
-	//line templates/file.qtpl:36
-	qw422016.N().S(`
-`)
-	//line templates/file.qtpl:37
-	qw422016.N().S(formatComment(desc, "", name+" "))
-	//line templates/file.qtpl:37
-	qw422016.N().S(`
-var `)
-	//line templates/file.qtpl:38
-	qw422016.N().S(name)
-	//line templates/file.qtpl:38
-	qw422016.N().S(` = `)
-	//line templates/file.qtpl:38
-	qw422016.N().S(value)
-	//line templates/file.qtpl:38
-	qw422016.N().S(`
-`)
-//line templates/file.qtpl:39
-}
-
-//line templates/file.qtpl:39
-func WriteFileVarTemplate(qq422016 qtio422016.Writer, name, value, desc string) {
-	//line templates/file.qtpl:39
-	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/file.qtpl:39
-	StreamFileVarTemplate(qw422016, name, value, desc)
-	//line templates/file.qtpl:39
-	qt422016.ReleaseWriter(qw422016)
-//line templates/file.qtpl:39
-}
-
-//line templates/file.qtpl:39
-func FileVarTemplate(name, value, desc string) string {
-	//line templates/file.qtpl:39
-	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/file.qtpl:39
-	WriteFileVarTemplate(qb422016, name, value, desc)
-	//line templates/file.qtpl:39
-	qs422016 := string(qb422016.B)
-	//line templates/file.qtpl:39
-	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/file.qtpl:39
-	return qs422016
-//line templates/file.qtpl:39
 }

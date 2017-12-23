@@ -3,13 +3,24 @@
 ) %}
 
 // DomainTemplate is the template for a single domain.
-{% func DomainTemplate(d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, pkgName string) %}
-{%s= FileImportTemplate(map[string]string{
-	pkgName: "cdp",
-}) %}
+{% func DomainTemplate(d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, importMap map[string]string) %}
+{%s= FileImportTemplate(importMap) %}
+{% if len(d.Commands) != 0 %}
+// Executor is the common interface for executing a command.
+type Executor interface {
+	// Execute executes the command.
+	Execute(context.Context, string, json.Marshaler, json.Unmarshaler) error
+}
+{% endif %}
 {% for _, c := range d.Commands %}
 {%s= CommandTemplate(c, d, domains, sharedFunc) %}
 {% endfor %}
+{% if len(d.Commands) > 0 %}
+// Command names.
+const (
+{% for _, c := range d.Commands %}
+	{%s= c.CommandMethodType(nil) %} = {%q= c.ProtoName(d) %}{% endfor %})
+{% endif %}
 {% endfunc %}
 
 // CommandTemplate is the general command template.
@@ -108,16 +119,15 @@ func (p {%s= typ %}) {%s= optName %}({%s= v %} {%s= t.GoType(d, domains, sharedF
 		pval = "nil"
 	}
 %}
-// Do executes {%s= c.ProtoName(d) %} against the provided context and
-// target handler.{% if !hasEmptyRet %}
+// Do executes {%s= c.ProtoName(d) %} against the provided context.{% if !hasEmptyRet %}
 //
 // returns:{% for _, p := range c.Returns %}{% if p.Name == types.Base64EncodedParamName %}{% continue %}{% endif %}
 //   {%s= p.String() %}{% endfor %}{% endif %}
-func (p *{%s= typ %}) Do(ctxt context.Context, h cdp.Handler) ({%s= retTypeList %}err error) {{% if hasEmptyRet %}
-	return h.Execute(ctxt, cdp.{%s= c.CommandMethodType(d) %}, {%s= pval %}, nil){% else %}
+func (p *{%s= typ %}) Do(ctxt context.Context, h Executor) ({%s= retTypeList %}err error) {{% if hasEmptyRet %}
+	return h.Execute(ctxt, {%s= c.CommandMethodType(nil) %}, {%s= pval %}, nil){% else %}
 	// execute
 	var res {%s= c.CommandReturnsType() %}
-	err = h.Execute(ctxt, cdp.{%s= c.CommandMethodType(d) %}, {%s= pval %}, &res)
+	err = h.Execute(ctxt, {%s= c.CommandMethodType(nil) %}, {%s= pval %}, &res)
 	if err != nil {
 		return {%s= emptyRet %}err
 	}

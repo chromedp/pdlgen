@@ -18,22 +18,16 @@ package {%s= pkgName %}
 {% endfunc %}
 
 // FileImportTemplate is a general import template.
-{% func FileImportTemplate(m map[string]string) %}{% code
+{% func FileImportTemplate(importMap map[string]string) %}{% code
 	var keys []string
-	for k, _ := range m {
+	for k, _ := range importMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 %}
 import ({% for _, k := range keys %}{% code
-	v := m[k]
+	v := importMap[k]
 %}
-	{% if k != v %}{%s= v %} {% endif %}"{%s= k %}"{% endfor %}
+	{% if k != v %}{%s= v %} {% endif %}{%q= k %}{% endfor %}
 )
-{% endfunc %}
-
-// FileVarTemplate is a template for a single variable declaration.
-{% func FileVarTemplate(name, value, desc string) %}
-{%s= formatComment(desc, "", name+" ") %}
-var {%s= name %} = {%s= value %}
 {% endfunc %}
