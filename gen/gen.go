@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/knq/snaker"
 	qtpl "github.com/valyala/quicktemplate"
 
 	"github.com/chromedp/chromedp-gen/templates"
@@ -27,10 +28,6 @@ func GenerateDomains(domains []*types.Domain, basePkg string, redirect bool) map
 		"DOM.PseudoType":         true,
 		"DOM.RGBA":               true,
 		"DOM.ShadowRootType":     true,
-		"Inspector.ErrorType":    true,
-		"Inspector.MessageError": true,
-		"Inspector.Message":      true,
-		"Inspector.MethodType":   true,
 		"Network.LoaderId":       true,
 		"Network.MonotonicTime":  true,
 		"Network.TimeSinceEpoch": true,
@@ -48,7 +45,7 @@ func GenerateDomains(domains []*types.Domain, basePkg string, redirect bool) map
 
 	var w *qtpl.Writer
 
-	// generate internal types
+	// generate shared types
 	fb.generateSharedTypes(domains, sharedFunc, basePkg)
 
 	// generate util package
@@ -96,11 +93,11 @@ type fileBuffers map[string]*bytes.Buffer
 // generateSharedTypes generates the common shared types for domains.
 //
 // Because there are circular package dependencies, some types need to be moved
-// to eliminate the circular dependencies.
+// to eliminate circular dependencies.
 func (fb fileBuffers) generateSharedTypes(domains []*types.Domain, sharedFunc func(string, string) bool, basePkg string) {
+	// determine shared types
 	var typs []*types.Type
 	for _, d := range domains {
-		// process internal types
 		for _, t := range d.Types {
 			if sharedFunc(d.Domain.String(), t.IDorName()) {
 				typs = append(typs, t)
@@ -114,7 +111,10 @@ func (fb fileBuffers) generateSharedTypes(domains []*types.Domain, sharedFunc fu
 	}
 	doms := append(domains, cdpDomain)
 
-	w := fb.get("cdp/cdp.go", "cdp", nil)
+	w := fb.get("cdp/types.go", "cdp", &types.Domain{
+		Domain:      types.DomainType("CDP"),
+		Description: "Shared Chrome Debugging Protocol Domain types.",
+	})
 	for _, t := range typs {
 		templates.StreamTypeTemplate(
 			w, t, types.TypePrefix, types.TypeSuffix,
@@ -139,9 +139,22 @@ func (fb fileBuffers) generateRootPackage(domains []*types.Domain, basePkg strin
 	}
 
 	n := path.Base(basePkg)
-	w := fb.get(n+".go", n, nil)
+
+	d := &types.Domain{
+		Domain:      types.DomainType(n),
+		Description: "Chrome Debugging Protocol types.",
+	}
+	w := fb.get(n+".go", n, d)
 	templates.StreamFileImportTemplate(w, importMap)
-	templates.StreamExtraUtilTemplate(w, domains)
+
+	typs := rootPackageTypes(domains)
+	for _, t := range typs {
+		templates.StreamTypeTemplate(
+			w, t, "", "",
+			d, domains, func(string, string) bool { return false },
+			nil, false, true,
+		)
+	}
 	fb.release(w)
 }
 
@@ -200,4 +213,71 @@ func (fb fileBuffers) get(s string, pkgName string, d *types.Domain) *qtpl.Write
 // release releases a template writer.
 func (fb fileBuffers) release(w *qtpl.Writer) {
 	qtpl.ReleaseWriter(w)
+}
+
+// rootPackageTypes returns the root package types.
+func rootPackageTypes(domains []*types.Domain) []*types.Type {
+	errorValues := []string{"channel closed", "invalid result", "unknown result"}
+	errorValueNameMap := make(map[string]string)
+	for _, e := range errorValues {
+		errorValueNameMap[e] = "Err" + snaker.ForceCamelIdentifier(e)
+	}
+
+	return []*types.Type{{
+		ID:               "MethodType",
+		Type:             types.TypeString,
+		Description:      "Chrome Debugging Protocol method type (ie, event and command names).",
+		EnumValueNameMap: make(map[string]string),
+		Extra:            templates.ExtraMethodTypeTemplate(domains),
+	}, {
+		ID:          "Error",
+		Type:        types.TypeObject,
+		Description: "Error type.",
+		Properties: []*types.Type{{
+			Name:        "code",
+			Type:        types.TypeInteger,
+			Description: "Error code.",
+		}, {
+			Name:        "message",
+			Type:        types.TypeString,
+			Description: "Error message.",
+		}},
+		Extra: `// Error satisfies error interface.
+func (e *Error) Error() string {
+	return fmt.Sprintf("%s (%d)", e.Message, e.Code)
+}`,
+	}, {
+		ID:          "Message",
+		Type:        types.TypeObject,
+		Description: "Chrome Debugging Protocol message sent to/read over websocket connection.",
+		Properties: []*types.Type{{
+			Name:        "id",
+			Type:        types.TypeInteger,
+			Description: "Unique message identifier.",
+			Optional:    true,
+		}, {
+			Name:        "method",
+			Ref:         "MethodType",
+			Description: "Event or command type.",
+			Optional:    true,
+			NoResolve:   true,
+		}, {
+			Name:        "params",
+			Type:        types.TypeAny,
+			Description: "Event or command parameters.",
+			Optional:    true,
+		}, {
+			Name:        "result",
+			Type:        types.TypeAny,
+			Description: "Command return values.",
+			Optional:    true,
+		}, {
+			Name:        "error",
+			Ref:         "*Error",
+			Description: "Error message.",
+			Optional:    true,
+			NoResolve:   true,
+		}},
+		Extra: templates.ExtraMessageTemplate(domains),
+	}}
 }

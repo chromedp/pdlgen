@@ -98,7 +98,7 @@ func run() error {
 	}
 
 	// determine what to process
-	pkgs := []string{"cdp"}
+	pkgs := []string{"", "cdp"}
 	var processed []*types.Domain
 	for _, d := range protoInfo.Domains {
 		// skip if not processing

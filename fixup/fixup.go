@@ -6,12 +6,8 @@
 // code from the existing Chrome domain definitions, and is wrapped up in one
 // high-level func, FixDomains.
 //
-// Currently, FixDomains will do the following:
-//  - add 'Inspector.MethodType' type as a string enumeration of all the event/command names.
-//  - add 'Inspector.MessageError' type as a object with code (integer), and message (string).
-//  - add 'Inspector.Message' type as a object with id (integer), method (MethodType), params (interface{}), error (MessageError).
+// Currently, FixDomains does the following:
 //  - add 'Inspector.DetachReason' type and change event 'Inspector.detached''s parameter reason's type.
-//  - add 'Inspector.ErrorType' type.
 //  - change type of Network.TimeSinceEpoch, Network.MonotonicTime, and
 //    Runtime.Timestamp to internal Timestamp type.
 //  - convert object properties and event/command parameters that are enums into independent types.
@@ -20,7 +16,7 @@
 //  - change Page.Frame.id/parentID to FrameID type.
 //  - add additional properties to 'Page.Frame' and 'DOM.Node' for use by higher level packages.
 //  - add special unmarshaler to NodeId, BackendNodeId, FrameId to handle
-//    values from older (v1.1) protocol versions. -- NOTE: this might need to be
+//    unquoted values from older (v1.1) protocol versions. -- NOTE: this might need to be
 //    applied to more types, such as network.LoaderId
 //  - rename 'Input.GestureSourceType' -> 'Input.GestureType'.
 //  - rename CSS.CSS* types.
@@ -59,136 +55,9 @@ const (
 // Please see package-level documentation for the list of changes made to the
 // various debugging protocol domains.
 func FixDomains(domains []*types.Domain) {
-	// method type
-	methodType := &types.Type{
-		ID:               "MethodType",
-		Type:             types.TypeString,
-		Description:      "Chrome Debugging Protocol method type (ie, event and command names).",
-		EnumValueNameMap: make(map[string]string),
-		Extra:            templates.ExtraMethodTypeDomainDecoder(),
-	}
-
-	// message error type
-	messageErrorType := &types.Type{
-		ID:          "MessageError",
-		Type:        types.TypeObject,
-		Description: "Message error type.",
-		Properties: []*types.Type{{
-			Name:        "code",
-			Type:        types.TypeInteger,
-			Description: "Error code.",
-		}, {
-			Name:        "message",
-			Type:        types.TypeString,
-			Description: "Error message.",
-		}},
-		Extra: `// Error satisfies error interface.
-func (e *MessageError) Error() string {
-	return fmt.Sprintf("%s (%d)", e.Message, e.Code)
-}
-`,
-	}
-
-	// message type
-	messageType := &types.Type{
-		ID:          "Message",
-		Type:        types.TypeObject,
-		Description: "Chrome Debugging Protocol message sent to/read over websocket connection.",
-		Properties: []*types.Type{{
-			Name:        "id",
-			Type:        types.TypeInteger,
-			Description: "Unique message identifier.",
-			Optional:    true,
-		}, {
-			Name:        "method",
-			Ref:         "Inspector.MethodType",
-			Description: "Event or command type.",
-			Optional:    true,
-		}, {
-			Name:        "params",
-			Type:        types.TypeAny,
-			Description: "Event or command parameters.",
-			Optional:    true,
-		}, {
-			Name:        "result",
-			Type:        types.TypeAny,
-			Description: "Command return values.",
-			Optional:    true,
-		}, {
-			Name:        "error",
-			Ref:         "MessageError",
-			Description: "Error message.",
-			Optional:    true,
-		}},
-	}
-
-	// detach reason type
-	detachReasonType := &types.Type{
-		ID:          "DetachReason",
-		Type:        types.TypeString,
-		Enum:        []string{"target_closed", "canceled_by_user", "replaced_with_devtools", "Render process gone."},
-		Description: "Detach reason.",
-	}
-
-	// cdp error types
-	errorValues := []string{"channel closed", "invalid result", "unknown result"}
-	errorValueNameMap := make(map[string]string)
-	for _, e := range errorValues {
-		errorValueNameMap[e] = "Err" + snaker.ForceCamelIdentifier(e)
-	}
-	errorType := &types.Type{
-		ID:               "ErrorType",
-		Type:             types.TypeString,
-		Enum:             errorValues,
-		EnumValueNameMap: errorValueNameMap,
-		Description:      "Error type.",
-		Extra:            templates.ExtraCDPTypes(),
-	}
-
-	// modifier type
-	modifierType := &types.Type{
-		ID:          "Modifier",
-		Type:        types.TypeInteger,
-		EnumBitMask: true,
-		Description: "Input key modifier type.",
-		Enum:        []string{"None", "Alt", "Ctrl", "Meta", "Shift"},
-		Extra: `// ModifierCommand is an alias for ModifierMeta.
-const ModifierCommand Modifier = ModifierMeta`,
-	}
-
-	// node type type -- see: https://developer.mozilla.org/en/docs/Web/API/Node/nodeType
-	nodeTypeType := &types.Type{
-		ID:          "NodeType",
-		Type:        types.TypeInteger,
-		Description: "Node type.",
-		Enum: []string{
-			"Element", "Attribute", "Text", "CDATA", "EntityReference",
-			"Entity", "ProcessingInstruction", "Comment", "Document",
-			"DocumentType", "DocumentFragment", "Notation",
-		},
-	}
-
 	// process domains
 	for _, d := range domains {
 		switch d.Domain {
-		case "Inspector":
-			// add Inspector types
-			d.Types = append(d.Types, messageErrorType, messageType, methodType, detachReasonType, errorType)
-
-			// find detached event's reason parameter and change type
-			for _, e := range d.Events {
-				if e.Name == "detached" {
-					for _, t := range e.Parameters {
-						if t.Name == "reason" {
-							t.Ref = "DetachReason"
-							t.Type = types.TypeEnum("")
-							break
-						}
-					}
-					break
-				}
-			}
-
 		case "CSS":
 			for _, t := range d.Types {
 				if t.ID == "CSSComputedStyleProperty" {
@@ -196,24 +65,19 @@ const ModifierCommand Modifier = ModifierMeta`,
 				}
 			}
 
-		case "Input":
-			// add Input types
-			d.Types = append(d.Types, modifierType)
-			for _, t := range d.Types {
-				switch t.ID {
-				case "GestureSourceType":
-					t.ID = "GestureType"
-
-				case "TimeSinceEpoch":
-					t.Type = types.TypeTimestamp
-					t.TimestampType = types.TimestampTypeSecond
-					t.Extra = templates.ExtraTimestampTemplate(t, d)
-				}
-			}
-
 		case "DOM":
 			// add DOM types
-			d.Types = append(d.Types, nodeTypeType)
+			d.Types = append(d.Types, &types.Type{
+				// see: https://developer.mozilla.org/en/docs/Web/API/Node/nodeType
+				ID:          "NodeType",
+				Type:        types.TypeInteger,
+				Description: "Node type.",
+				Enum: []string{
+					"Element", "Attribute", "Text", "CDATA", "EntityReference",
+					"Entity", "ProcessingInstruction", "Comment", "Document",
+					"DocumentType", "DocumentFragment", "Notation",
+				},
+			})
 
 			for _, t := range d.Types {
 				switch t.ID {
@@ -252,6 +116,77 @@ const ModifierCommand Modifier = ModifierMeta`,
 						},
 					)
 					t.Extra += templates.ExtraNodeTemplate()
+				}
+			}
+
+		case "Input":
+			// add Input types
+			d.Types = append(d.Types, &types.Type{
+				ID:          "Modifier",
+				Type:        types.TypeInteger,
+				EnumBitMask: true,
+				Description: "Input key modifier type.",
+				Enum:        []string{"None", "Alt", "Ctrl", "Meta", "Shift"},
+				Extra: `// ModifierCommand is an alias for ModifierMeta.
+const ModifierCommand Modifier = ModifierMeta
+`,
+			})
+
+			for _, t := range d.Types {
+				switch t.ID {
+				case "GestureSourceType":
+					t.ID = "GestureType"
+
+				case "TimeSinceEpoch":
+					t.Type = types.TypeTimestamp
+					t.TimestampType = types.TimestampTypeSecond
+					t.Extra += templates.ExtraTimestampTemplate(t, d)
+				}
+			}
+
+		case "Inspector":
+			// add Inspector types
+			d.Types = append(d.Types, &types.Type{
+				ID:          "DetachReason",
+				Type:        types.TypeString,
+				Enum:        []string{"target_closed", "canceled_by_user", "replaced_with_devtools", "Render process gone."},
+				Description: "Detach reason.",
+			})
+
+			// find detached event's reason parameter and change type
+			for _, e := range d.Events {
+				if e.Name == "detached" {
+					for _, t := range e.Parameters {
+						if t.Name == "reason" {
+							t.Ref = "DetachReason"
+							t.Type = types.TypeEnum("")
+							break
+						}
+					}
+					break
+				}
+			}
+
+		case "Network":
+			for _, t := range d.Types {
+				// change Monotonic to TypeTimestamp and add extra unmarshaling template
+				if t.ID == "TimeSinceEpoch" {
+					t.Type = types.TypeTimestamp
+					t.TimestampType = types.TimestampTypeSecond
+					t.Extra += templates.ExtraTimestampTemplate(t, d)
+				}
+
+				// change Monotonic to TypeTimestamp and add extra unmarshaling template
+				if t.ID == "MonotonicTime" {
+					t.Type = types.TypeTimestamp
+					t.TimestampType = types.TimestampTypeMonotonic
+					t.Extra += templates.ExtraTimestampTemplate(t, d)
+				}
+
+				// change Headers to be a map[string]interface{}
+				if t.ID == "Headers" {
+					t.Type = types.TypeAny
+					t.Ref = "map[string]interface{}"
 				}
 			}
 
@@ -304,29 +239,6 @@ const ModifierCommand Modifier = ModifierMeta`,
 				}
 			}
 
-		case "Network":
-			for _, t := range d.Types {
-				// change Monotonic to TypeTimestamp and add extra unmarshaling template
-				if t.ID == "TimeSinceEpoch" {
-					t.Type = types.TypeTimestamp
-					t.TimestampType = types.TimestampTypeSecond
-					t.Extra = templates.ExtraTimestampTemplate(t, d)
-				}
-
-				// change Monotonic to TypeTimestamp and add extra unmarshaling template
-				if t.ID == "MonotonicTime" {
-					t.Type = types.TypeTimestamp
-					t.TimestampType = types.TimestampTypeMonotonic
-					t.Extra = templates.ExtraTimestampTemplate(t, d)
-				}
-
-				// change Headers to be a map[string]interface{}
-				if t.ID == "Headers" {
-					t.Type = types.TypeAny
-					t.Ref = "map[string]interface{}"
-				}
-			}
-
 		case "Runtime":
 			var typs []*types.Type
 			for _, t := range d.Types {
@@ -337,7 +249,13 @@ const ModifierCommand Modifier = ModifierMeta`,
 					t.Extra += templates.ExtraTimestampTemplate(t, d)
 
 				case "ExceptionDetails":
-					t.Extra += templates.ExtraExceptionDetailsTemplate()
+					t.Extra += `// Error satisfies the error interface.
+func (e *ExceptionDetails) Error() string {
+	// TODO: watch script parsed events and match the ExceptionDetails.ScriptID
+	// to the name/location of the actual code and display here
+	return fmt.Sprintf("encountered exception '%s' (%d:%d)", e.Text, e.LineNumber, e.ColumnNumber)
+}
+`
 				}
 
 				typs = append(typs, t)
@@ -353,8 +271,8 @@ const ModifierCommand Modifier = ModifierMeta`,
 		}
 
 		// process events and commands
-		processParameters(d, d.Events)
-		processParameters(d, d.Commands)
+		convertObjects(d, d.Events)
+		convertObjects(d, d.Commands)
 
 		// fix input enums
 		if d.Domain == "Input" {
@@ -379,23 +297,22 @@ const ModifierCommand Modifier = ModifierMeta`,
 			}
 		}
 
+		// fix type stuttering
 		for _, t := range d.Types {
-			// fix type stuttering
 			if !t.NoExpose && !t.NoResolve {
 				id := strings.TrimPrefix(t.ID, d.Domain.String())
 				if id == "" {
 					continue
 				}
-
 				t.ID = id
 			}
 		}
 	}
-
 }
 
-// processParameters the Parameters and Returns properties.
-func processParameters(d *types.Domain, typs []*types.Type) {
+// convertObjects converts the Parameters and Returns properties of the object
+// types.
+func convertObjects(d *types.Domain, typs []*types.Type) {
 	for _, t := range typs {
 		t.Parameters = convertObjectProperties(t.Parameters, d, t.Name)
 		if t.Returns != nil {

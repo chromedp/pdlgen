@@ -521,164 +521,158 @@ func ExtraFixStringUnmarshaler(typ, parseFunc, extra string) string {
 //line templates/extra.qtpl:229
 }
 
-// ExtraExceptionDetailsTemplate is a special template for the Runtime.ExceptionDetails type that
-// defines the standard error interface.
+// ExtraMethodTypeTemplate generates the additional MethodType funcs and consts.
 
-//line templates/extra.qtpl:233
-func StreamExtraExceptionDetailsTemplate(qw422016 *qt422016.Writer) {
-	//line templates/extra.qtpl:233
+//line templates/extra.qtpl:232
+func StreamExtraMethodTypeTemplate(qw422016 *qt422016.Writer, domains []*types.Domain) {
+	//line templates/extra.qtpl:232
 	qw422016.N().S(`
-// Error satisfies the error interface.
-func (e *ExceptionDetails) Error() string {
-	// TODO: watch script parsed events and match the ExceptionDetails.ScriptID
-	// to the name/location of the actual code and display here
-	return fmt.Sprintf("encountered exception '%s' (%d:%d)", e.Text, e.LineNumber, e.ColumnNumber)
+// Domain returns the Chrome Debugging Protocol domain of the event or command.
+func (t MethodType) Domain() string {
+	return string(t[:strings.IndexByte(string(t), '.')])
 }
+
+// MethodType values.
+const (`)
+	//line templates/extra.qtpl:239
+	for _, d := range domains {
+		//line templates/extra.qtpl:239
+		for _, c := range d.Commands {
+			//line templates/extra.qtpl:239
+			qw422016.N().S(`
+	`)
+			//line templates/extra.qtpl:240
+			qw422016.N().S(c.CommandMethodType(d))
+			//line templates/extra.qtpl:240
+			qw422016.N().S(` = `)
+			//line templates/extra.qtpl:240
+			qw422016.N().S(d.PackageRefName())
+			//line templates/extra.qtpl:240
+			qw422016.N().S(`.`)
+			//line templates/extra.qtpl:240
+			qw422016.N().S(c.CommandMethodType(nil))
+			//line templates/extra.qtpl:240
+		}
+		//line templates/extra.qtpl:240
+		for _, e := range d.Events {
+			//line templates/extra.qtpl:240
+			qw422016.N().S(`
+	`)
+			//line templates/extra.qtpl:241
+			qw422016.N().S(e.EventMethodType(d))
+			//line templates/extra.qtpl:241
+			qw422016.N().S(` = `)
+			//line templates/extra.qtpl:241
+			qw422016.N().Q(e.ProtoName(d))
+			//line templates/extra.qtpl:241
+		}
+		//line templates/extra.qtpl:241
+	}
+	//line templates/extra.qtpl:241
+	qw422016.N().S(`)
 `)
-//line templates/extra.qtpl:240
+//line templates/extra.qtpl:242
 }
 
-//line templates/extra.qtpl:240
-func WriteExtraExceptionDetailsTemplate(qq422016 qtio422016.Writer) {
-	//line templates/extra.qtpl:240
+//line templates/extra.qtpl:242
+func WriteExtraMethodTypeTemplate(qq422016 qtio422016.Writer, domains []*types.Domain) {
+	//line templates/extra.qtpl:242
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/extra.qtpl:240
-	StreamExtraExceptionDetailsTemplate(qw422016)
-	//line templates/extra.qtpl:240
+	//line templates/extra.qtpl:242
+	StreamExtraMethodTypeTemplate(qw422016, domains)
+	//line templates/extra.qtpl:242
 	qt422016.ReleaseWriter(qw422016)
-//line templates/extra.qtpl:240
+//line templates/extra.qtpl:242
 }
 
-//line templates/extra.qtpl:240
-func ExtraExceptionDetailsTemplate() string {
-	//line templates/extra.qtpl:240
+//line templates/extra.qtpl:242
+func ExtraMethodTypeTemplate(domains []*types.Domain) string {
+	//line templates/extra.qtpl:242
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/extra.qtpl:240
-	WriteExtraExceptionDetailsTemplate(qb422016)
-	//line templates/extra.qtpl:240
+	//line templates/extra.qtpl:242
+	WriteExtraMethodTypeTemplate(qb422016, domains)
+	//line templates/extra.qtpl:242
 	qs422016 := string(qb422016.B)
-	//line templates/extra.qtpl:240
+	//line templates/extra.qtpl:242
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/extra.qtpl:240
+	//line templates/extra.qtpl:242
 	return qs422016
-//line templates/extra.qtpl:240
+//line templates/extra.qtpl:242
 }
 
-// ExtraCDPTypes is the template for additional internal type
-// declarations.
+// ExtraMessageTemplate generates the additional Message funcs.
 
-//line templates/extra.qtpl:244
-func StreamExtraCDPTypes(qw422016 *qt422016.Writer) {
-	//line templates/extra.qtpl:244
-	qw422016.N().S(`
-
-// Error satisfies the error interface.
-func (t ErrorType) Error() string {
-	return string(t)
-}
-`)
-//line templates/extra.qtpl:250
-}
-
-//line templates/extra.qtpl:250
-func WriteExtraCDPTypes(qq422016 qtio422016.Writer) {
-	//line templates/extra.qtpl:250
-	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/extra.qtpl:250
-	StreamExtraCDPTypes(qw422016)
-	//line templates/extra.qtpl:250
-	qt422016.ReleaseWriter(qw422016)
-//line templates/extra.qtpl:250
-}
-
-//line templates/extra.qtpl:250
-func ExtraCDPTypes() string {
-	//line templates/extra.qtpl:250
-	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/extra.qtpl:250
-	WriteExtraCDPTypes(qb422016)
-	//line templates/extra.qtpl:250
-	qs422016 := string(qb422016.B)
-	//line templates/extra.qtpl:250
-	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/extra.qtpl:250
-	return qs422016
-//line templates/extra.qtpl:250
-}
-
-// ExtraUtilTemplate generates the decode func for the Message type.
-
-//line templates/extra.qtpl:253
-func StreamExtraUtilTemplate(qw422016 *qt422016.Writer, domains []*types.Domain) {
-	//line templates/extra.qtpl:253
+//line templates/extra.qtpl:245
+func StreamExtraMessageTemplate(qw422016 *qt422016.Writer, domains []*types.Domain) {
+	//line templates/extra.qtpl:245
 	qw422016.N().S(`
 type empty struct{}
 var emptyVal = &empty{}
 
 // UnmarshalMessage unmarshals the message result or params.
-func UnmarshalMessage(msg *cdp.Message) (interface{}, error) {
+func UnmarshalMessage(msg *Message) (interface{}, error) {
 	var v easyjson.Unmarshaler
 	switch msg.Method {`)
-	//line templates/extra.qtpl:260
+	//line templates/extra.qtpl:252
 	for _, d := range domains {
-		//line templates/extra.qtpl:260
+		//line templates/extra.qtpl:252
 		for _, c := range d.Commands {
-			//line templates/extra.qtpl:260
+			//line templates/extra.qtpl:252
 			qw422016.N().S(`
-	case cdp.`)
-			//line templates/extra.qtpl:261
+	case `)
+			//line templates/extra.qtpl:253
 			qw422016.N().S(c.CommandMethodType(d))
-			//line templates/extra.qtpl:261
+			//line templates/extra.qtpl:253
 			qw422016.N().S(`:`)
-			//line templates/extra.qtpl:261
+			//line templates/extra.qtpl:253
 			if len(c.Returns) == 0 {
-				//line templates/extra.qtpl:261
+				//line templates/extra.qtpl:253
 				qw422016.N().S(`
 		return emptyVal, nil`)
-				//line templates/extra.qtpl:262
+				//line templates/extra.qtpl:254
 			} else {
-				//line templates/extra.qtpl:262
+				//line templates/extra.qtpl:254
 				qw422016.N().S(`
 		v = new(`)
-				//line templates/extra.qtpl:263
+				//line templates/extra.qtpl:255
 				qw422016.N().S(d.PackageRefName())
-				//line templates/extra.qtpl:263
+				//line templates/extra.qtpl:255
 				qw422016.N().S(`.`)
-				//line templates/extra.qtpl:263
+				//line templates/extra.qtpl:255
 				qw422016.N().S(c.CommandReturnsType())
-				//line templates/extra.qtpl:263
+				//line templates/extra.qtpl:255
 				qw422016.N().S(`)`)
-				//line templates/extra.qtpl:263
+				//line templates/extra.qtpl:255
 			}
-			//line templates/extra.qtpl:263
+			//line templates/extra.qtpl:255
 			qw422016.N().S(`
 	`)
-			//line templates/extra.qtpl:264
+			//line templates/extra.qtpl:256
 		}
-		//line templates/extra.qtpl:264
+		//line templates/extra.qtpl:256
 		for _, e := range d.Events {
-			//line templates/extra.qtpl:264
+			//line templates/extra.qtpl:256
 			qw422016.N().S(`
-	case cdp.`)
-			//line templates/extra.qtpl:265
+	case `)
+			//line templates/extra.qtpl:257
 			qw422016.N().S(e.EventMethodType(d))
-			//line templates/extra.qtpl:265
+			//line templates/extra.qtpl:257
 			qw422016.N().S(`:
 		v = new(`)
-			//line templates/extra.qtpl:266
+			//line templates/extra.qtpl:258
 			qw422016.N().S(d.PackageRefName())
-			//line templates/extra.qtpl:266
+			//line templates/extra.qtpl:258
 			qw422016.N().S(`.`)
-			//line templates/extra.qtpl:266
+			//line templates/extra.qtpl:258
 			qw422016.N().S(e.EventType())
-			//line templates/extra.qtpl:266
+			//line templates/extra.qtpl:258
 			qw422016.N().S(`)
 	`)
-			//line templates/extra.qtpl:267
+			//line templates/extra.qtpl:259
 		}
-		//line templates/extra.qtpl:267
+		//line templates/extra.qtpl:259
 	}
-	//line templates/extra.qtpl:267
+	//line templates/extra.qtpl:259
 	qw422016.N().S(`}
 
 	var buf easyjson.RawMessage
@@ -701,69 +695,31 @@ func UnmarshalMessage(msg *cdp.Message) (interface{}, error) {
 	return v, nil
 }
 `)
-//line templates/extra.qtpl:288
+//line templates/extra.qtpl:280
 }
 
-//line templates/extra.qtpl:288
-func WriteExtraUtilTemplate(qq422016 qtio422016.Writer, domains []*types.Domain) {
-	//line templates/extra.qtpl:288
+//line templates/extra.qtpl:280
+func WriteExtraMessageTemplate(qq422016 qtio422016.Writer, domains []*types.Domain) {
+	//line templates/extra.qtpl:280
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/extra.qtpl:288
-	StreamExtraUtilTemplate(qw422016, domains)
-	//line templates/extra.qtpl:288
+	//line templates/extra.qtpl:280
+	StreamExtraMessageTemplate(qw422016, domains)
+	//line templates/extra.qtpl:280
 	qt422016.ReleaseWriter(qw422016)
-//line templates/extra.qtpl:288
+//line templates/extra.qtpl:280
 }
 
-//line templates/extra.qtpl:288
-func ExtraUtilTemplate(domains []*types.Domain) string {
-	//line templates/extra.qtpl:288
+//line templates/extra.qtpl:280
+func ExtraMessageTemplate(domains []*types.Domain) string {
+	//line templates/extra.qtpl:280
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/extra.qtpl:288
-	WriteExtraUtilTemplate(qb422016, domains)
-	//line templates/extra.qtpl:288
+	//line templates/extra.qtpl:280
+	WriteExtraMessageTemplate(qb422016, domains)
+	//line templates/extra.qtpl:280
 	qs422016 := string(qb422016.B)
-	//line templates/extra.qtpl:288
+	//line templates/extra.qtpl:280
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/extra.qtpl:288
+	//line templates/extra.qtpl:280
 	return qs422016
-//line templates/extra.qtpl:288
-}
-
-//line templates/extra.qtpl:290
-func StreamExtraMethodTypeDomainDecoder(qw422016 *qt422016.Writer) {
-	//line templates/extra.qtpl:290
-	qw422016.N().S(`
-// Domain returns the Chrome Debugging Protocol domain of the event or command.
-func (t MethodType) Domain() string {
-	return string(t[:strings.IndexByte(string(t), '.')])
-}
-`)
-//line templates/extra.qtpl:295
-}
-
-//line templates/extra.qtpl:295
-func WriteExtraMethodTypeDomainDecoder(qq422016 qtio422016.Writer) {
-	//line templates/extra.qtpl:295
-	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/extra.qtpl:295
-	StreamExtraMethodTypeDomainDecoder(qw422016)
-	//line templates/extra.qtpl:295
-	qt422016.ReleaseWriter(qw422016)
-//line templates/extra.qtpl:295
-}
-
-//line templates/extra.qtpl:295
-func ExtraMethodTypeDomainDecoder() string {
-	//line templates/extra.qtpl:295
-	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/extra.qtpl:295
-	WriteExtraMethodTypeDomainDecoder(qb422016)
-	//line templates/extra.qtpl:295
-	qs422016 := string(qb422016.B)
-	//line templates/extra.qtpl:295
-	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/extra.qtpl:295
-	return qs422016
-//line templates/extra.qtpl:295
+//line templates/extra.qtpl:280
 }
