@@ -47,16 +47,16 @@ var (
 	flagBrowser = flag.String("browser", "master", "browser protocol version to use")
 	flagJS      = flag.String("js", "master", "js protocol version to use")
 	flagTtl     = flag.Duration("ttl", 24*time.Hour, "browser and js protocol cache ttl")
-	flagHarTtl  = flag.Duration("harTtl", 0, "har cache ttl")
+	flagTtlHar  = flag.Duration("ttlHar", 0, "har cache ttl")
 
 	flagCache = flag.String("cache", filepath.Join(os.Getenv("GOPATH"), "pkg", "chromedp-gen"), "protocol cache directory")
 	flagPkg   = flag.String("pkg", "github.com/chromedp/cdproto", "out base package")
 	flagOut   = flag.String("out", "", "out directory")
 
-	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol.json,easyjson.go", "comma-separated list of files to not remove from out directory")
 	flagNoClean = flag.Bool("noclean", false, "toggle not cleaning (removing) existing directories")
 	flagNoCopy  = flag.Bool("nocopy", false, "toggle not copying combined protocol.json to out directory")
-	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR domain")
+	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR protocol and domain")
+	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol.json,easyjson.go", "comma-separated list of files to whitelist/ignore during clean")
 
 	flagDep      = flag.Bool("dep", false, "toggle generation for deprecated APIs")
 	flagExp      = flag.Bool("exp", true, "toggle generation for experimental APIs")
@@ -243,7 +243,7 @@ func loadProtocolInfo() (*types.ProtocolInfo, error) {
 	if !*flagNoHar {
 		harBuf, err := har.LoadProto(&fileCacher{
 			path: filepath.Join(*flagCache, "har"),
-			ttl:  *flagHarTtl,
+			ttl:  *flagTtlHar,
 		})
 		if err != nil {
 			return nil, err
