@@ -1,15 +1,20 @@
 # About chromedp-gen
 
-`chromedp-gen` is a standalone tool for the [chromedp](https://github.com/chromedp)
-project that generates the commands, events, and types for the
-[Chrome Debugging Protocol domains](https://chromedevtools.github.io/devtools-protocol/)
-defined by the `browser_protocol.json` and `js_protocol.json` protocol
-definitions found in the Chromium source tree.
+`chromedp-gen` is a standalone tool, built for the [chromedp][1] project, that
+generates the commands, events, and types for the [Chrome Debugging Protocol
+domains][2].
+
+`chromedp-gen` works by applying [Go code templates](/templates) to the CDP
+domains defined in the [`browser_protocol.json`][3] and [`js_protocol.json`][4]
+files available in the Chromium source tree, generating (by default) the
+[`github.com/chromedp/cdproto`][5] package and sub-packages.
+
+Please note that any Issues or Pull Requests for the `cdproto` project should
+instead be created on this project, and **NOT** on the `cdproto` project.
 
 ## Installing
 
-`chromedp-gen` uses the [qtc](https://github.com/valyala/quicktemplate),
-[easyjson](https://github.com/mailru/easyjson), and [goimports](https://golang.org/x/tools/cmd/goimports)
+`chromedp-gen` uses the [qtc][6], [easyjson][7], and [goimports][8]
 tools, for generating the templated CDP-domain code, generating fast JSON
 marshaler/unmarshalers, and fixing missing imports in the generated code,
 respectively.
@@ -89,8 +94,8 @@ $ chromedp-gen
 command-line option for generating the commands, events, and types for the
 Chromium Debugging Protocol domains. If the `-proto` option is not specified
 (the default behavior), then the `browser_protocol.json` and `js_protocol.json`
-protocol definition files will be retrieved from the [Chromium source
-tree](https://chromium.googlesource.com/chromium/src.git) and cached locally.
+protocol definition files will be retrieved from the [Chromium source tree][9]
+and cached locally.
 
 The revisions of `browser_protocol.json` and `js_protocol.json` that are
 retrieved/cached can be controlled using the `-browser` and `-js` command-line
@@ -103,11 +108,10 @@ A `-ttl=0` forces retrieving and caching the files immediately. By default, the
 `-ttl` option has a value of 24 hours.
 
 Additionally, a meta-protocol definition file containing the virtual `HAR`
-domain is generated [from the HAR spec](http://www.softwareishard.com/blog/har-12-spec/)
-and cached (similarly to the above) as `har.json`. However, since the HAR
-definition is frozen, the retrieval and caching is controlled separately by the
-command-line option `-ttlHar`. A `-ttlHar=0` indicates never to regenerate the
-`har.json` (the default value).
+domain is generated [from the HAR spec][10] and cached (similarly to the above)
+as `har.json`. However, since the HAR definition is frozen, the retrieval and
+caching is controlled separately by the command-line option `-ttlHar`. A
+`-ttlHar=0` indicates never to regenerate the `har.json` (the default value).
 
 The `browser_protocol.json`, `js_protocol.json`, and `har.json` files are
 cached in the `$GOPATH/pkg/chromedp-gen` directory by default, and can be
@@ -152,3 +156,14 @@ Usage of ./chromedp-gen:
   -workers int
     	number of workers (default 9)
 ```
+
+[1]: https://github.com/chromedp
+[2]: https://chromedevtools.github.io/devtools-protocol/
+[3]: https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json
+[4]: https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json
+[5]: https://github.com/chromedp/cdproto
+[6]: https://github.com/valyala/quicktemplate
+[7]: https://github.com/mailru/easyjson
+[8]: https://golang.org/x/tools/cmd/goimports
+[9]: https://chromium.googlesource.com/chromium/src.git
+[10]: http://www.softwareishard.com/blog/har-12-spec/
