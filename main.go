@@ -46,8 +46,8 @@ var (
 	flagProto   = flag.String("proto", "", "protocol.json path")
 	flagBrowser = flag.String("browser", "master", "browser protocol version to use")
 	flagJS      = flag.String("js", "master", "js protocol version to use")
-	flagTtl     = flag.Duration("ttl", 24*time.Hour, "browser and js protocol cache ttl")
-	flagTtlHar  = flag.Duration("ttlHar", 0, "har cache ttl")
+	flagTTL     = flag.Duration("ttl", 24*time.Hour, "browser and js protocol cache ttl")
+	flagTTLHar  = flag.Duration("ttlHar", 0, "har cache ttl")
 
 	flagCache = flag.String("cache", filepath.Join(os.Getenv("GOPATH"), "pkg", "chromedp-gen"), "protocol cache directory")
 	flagPkg   = flag.String("pkg", "github.com/chromedp/cdproto", "out base package")
@@ -201,7 +201,10 @@ func run() error {
 // files. Unless -nohar is specified, the virtual "HAR" domain will be
 // generated as well and added to the specification.
 func loadProtocolInfo() (*types.ProtocolInfo, error) {
+	var err error
+
 	if *flagProto != "" {
+		logf("PROTOCOL: %s", *flagProto)
 		buf, err := ioutil.ReadFile(*flagProto)
 		if err != nil {
 			return nil, err
@@ -216,34 +219,36 @@ func loadProtocolInfo() (*types.ProtocolInfo, error) {
 		return protoInfo, nil
 	}
 
-	logf("BROWSER: %s", *flagBrowser)
-	logf("JS:      %s", *flagJS)
+	var protos [][]byte
+	load := func(typ, ver, urlstr string) error {
+		urlstr = fmt.Sprintf(urlstr, ver)
+		logf("%s: %s", pad(strings.ToUpper(typ), 7), urlstr)
+		buf, err := fileCacher{
+			path: filepath.Join(*flagCache, typ, ver),
+			ttl:  *flagTTL,
+		}.Get(urlstr, true, typ+"_protocol.json")
+		if err != nil {
+			return err
+		}
+		protos = append(protos, buf)
+		return nil
+	}
 
-	// grab browser definition
-	browserBuf, err := fileCacher{
-		path: filepath.Join(*flagCache, "browser", *flagBrowser),
-		ttl:  *flagTtl,
-	}.Get(fmt.Sprintf(browserURL, *flagBrowser), true, "browser_protocol.json")
+	// grab browser + js definitions
+	err = load("browser", *flagBrowser, browserURL)
 	if err != nil {
 		return nil, err
 	}
-
-	// grab js definition
-	jsBuf, err := fileCacher{
-		path: filepath.Join(*flagCache, "js", *flagJS),
-		ttl:  *flagTtl,
-	}.Get(fmt.Sprintf(jsURL, *flagJS), true, "js_protocol.json")
+	err = load("js", *flagJS, jsURL)
 	if err != nil {
 		return nil, err
 	}
-
-	protos := [][]byte{browserBuf, jsBuf}
 
 	// grab and add har definition
 	if !*flagNoHar {
 		harBuf, err := har.LoadProto(&fileCacher{
 			path: filepath.Join(*flagCache, "har"),
-			ttl:  *flagTtlHar,
+			ttl:  *flagTTLHar,
 		})
 		if err != nil {
 			return nil, err
@@ -434,6 +439,7 @@ func (fc fileCacher) Load(names ...string) ([]byte, error) {
 
 // Cache writes buf to the fileCacher path joined with names.
 func (fc fileCacher) Cache(buf []byte, names ...string) error {
+	logf("WRITING: %s", pathJoin(fc.path, names...))
 	return ioutil.WriteFile(pathJoin(fc.path, names...), buf, 0644)
 }
 
@@ -486,8 +492,6 @@ func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte
 	if err != nil {
 		return nil, err
 	}
-
-	logf("WROTE: %s", pathJoin(fc.path, names...))
 
 	return buf, nil
 }
