@@ -4,26 +4,28 @@
 [Chrome Debugging Protocol][1] and is a core component of the [`chromedp`][2]
 project. While `chromedp-gen`'s development is primarily driven by the needs of
 the `chromedp` project, the aim of this project is to generate [type-safe,
-fast, efficient, idiomatic Go code][3] usable by any Go application wishing to
+fast, efficient, idiomatic Go code][3] usable by any Go application needing to
 drive Chrome through the CDP.
+
+**NOTE:** Any Issue or Pull Request intended for the `cdproto` project should
+be created here, and **NOT** on the `cdproto` project.
 
 ### Protocol Definition Retrieval and Caching
 
-`chromedp-gen` downloads the [`browser_protocol.json`][4] and [`js_protocol.json`][5]
-files directly from the [Chromium source tree][6] and generates a `har.json`
-protocol defintion [from the HAR spec][7]. By default, these files are cached
-in the `$GOPATH/pkg/chromedp-gen` directory and periodically updated (see below).
+`chromedp-gen` retrieves the [`browser_protocol.json`][4] and [`js_protocol.json`][5]
+files from the [Chromium source tree][6] and generates a `har.json` protocol
+defintion [from the HAR spec][7]. By default, these files are cached in the
+`$GOPATH/pkg/chromedp-gen` directory and periodically updated (see below).
 
 ### Code Generation
 
-`chromedp-gen` works by applying [code templates][8] to the CDP domains, defined
-in `browser_protocol.json` and `js_protocol.json`. Additionally, a [number of
-"fixups" (such as spelling mistake corrections)][9] are applied to the CDP
-domain definitions so that generated code can be [Go-idiomatic][10].
-
-`chromedp-gen` generates the [`github.com/chromedp/cdproto`][11] package and
-constituent domain subpackages. As such, any Issue or Pull Request for the
-`cdproto` project should be created here, and **NOT** on the `cdproto` project.
+`chromedp-gen` works by applying [templates][8] and ["fixups"][9] (such as
+spelling corrections that assist with generating [idiomatic Go][10]) to the CDP
+domains defined in `browser_protocol.json` and `js_protocol.json`. From the
+protocol definitions, `chromedp-gen` generates the [`github.com/chromedp/cdproto`][11]
+package and a `github.com/chromedp/cdproto/<domain>` subpackage for each
+domain. Domain types that have circular dependencies are placed in the
+`github.com/chromedp/cdproto/cdp` package.
 
 ## Installing
 
