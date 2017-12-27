@@ -10,16 +10,16 @@ drive Chrome through the CDP.
 ### Protocol Definition Retrieval and Caching
 
 `chromedp-gen` downloads the [`browser_protocol.json`][4] and [`js_protocol.json`][5]
-files directly from the [Chromium source tree][6], and generates a `har.json`
+files directly from the [Chromium source tree][6] and generates a `har.json`
 protocol defintion [from the HAR spec][7]. By default, these files are cached
 in the `$GOPATH/pkg/chromedp-gen` directory and periodically updated (see below).
 
 ### Code Generation
 
-`chromedp-gen` works by applying [code templates][8] to the CDP domains,
-commands, events, and types defined in `browser_protocol.json` and `js_protocol.json`.
-A [number of "fixups" (such as correcting spelling mistakes)][9] are applied to
-the CDP domain definitions so that generated code can be [Go-idiomatic][10].
+`chromedp-gen` works by applying [code templates][8] to the CDP domains, defined
+in `browser_protocol.json` and `js_protocol.json`. Additionally, a [number of
+"fixups" (such as spelling mistake corrections)][9] are applied to the CDP
+domain definitions so that generated code can be [Go-idiomatic][10].
 
 `chromedp-gen` generates the [`github.com/chromedp/cdproto`][11] package and
 constituent domain subpackages. As such, any Issue or Pull Request for the
@@ -29,22 +29,19 @@ constituent domain subpackages. As such, any Issue or Pull Request for the
 
 `chromedp-gen` uses the [`qtc`][12], [`easyjson`][13], and [`goimports`][14]
 tools to generate the templated CDP-domain code, fast JSON marshaler/unmarshalers,
-and to fix missing imports in the generated code, respectively.
+and to fix missing imports in the generated code. `chromedp-gen` expects these
+tools and the Go build toolchain to be available on `$PATH`.
 
-`chromedp-gen` expects these tools to be somewhere on your `$PATH`. Please
-ensure that `$GOPATH/bin` is on your `$PATH`, and then install these tools and
-their associated dependencies in the usual Go way:
+Please install these tools and `chromedp-gen` in the usual Go way:
 
 ```sh
+# install tool dependencies
 $ go get -u \
     github.com/valyala/quicktemplate/qtc \
     github.com/mailru/easyjson/easyjson \
     golang.org/x/tools/cmd/goimports
-```
 
-`chromedp-gen` can then be installed in the usual Go fashion:
-
-```sh
+# install chromedp-gen
 $ go get -u github.com/chromedp/chromedp-gen
 ```
 
@@ -75,7 +72,7 @@ $ chromedp-gen
 2017/12/25 12:14:09 done.
 ```
 
-### Command-line Options
+### Command-line options
 
 `chromedp-gen` can be passed a single, combined protocol file via the `-proto`
 command-line option for generating the commands, events, and types for the
@@ -104,7 +101,7 @@ The `browser_protocol.json`, `js_protocol.json`, and `har.json` files are
 cached in the `$GOPATH/pkg/chromedp-gen` directory by default, and can be
 changed by specifying the `-cache` option.
 
-The following command-line options are available:
+Additional command-line options are also available:
 
 ```sh
 $ chromedp-gen --help
