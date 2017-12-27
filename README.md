@@ -7,21 +7,27 @@ the `chromedp` project, the aim of this project is to generate [type-safe,
 fast, efficient, idiomatic Go code][3] usable by any Go application wishing to
 drive Chrome through the CDP.
 
-### Code Generation Overview
+### Protocol Definition Retrieval and Caching
 
-`chromedp-gen` works by applying [code templates][4] to the CDP domains,
-commands, events, and types defined in the [`browser_protocol.json`][5] and
-[`js_protocol.json`][6] files taken from the [Chromium source tree][7]. A
-[number of "fixups" (such as correcting spelling mistakes)][8] are applied to
-the CDP domain definitions so that generated code can be [Go-idiomatic][9].
+`chromedp-gen` downloads the [`browser_protocol.json`][4] and [`js_protocol.json`][5]
+files directly from the [Chromium source tree][6], and generates a `har.json`
+protocol defintion [from the HAR spec][7]. By default, these files are cached
+in the `$GOPATH/pkg/chromedp-gen` directory and periodically updated (see below).
 
-`chromedp-gen` generates the [`github.com/chromedp/cdproto`][10] package and
+### Code Generation
+
+`chromedp-gen` works by applying [code templates][8] to the CDP domains,
+commands, events, and types defined in `browser_protocol.json` and `js_protocol.json`.
+A [number of "fixups" (such as correcting spelling mistakes)][9] are applied to
+the CDP domain definitions so that generated code can be [Go-idiomatic][10].
+
+`chromedp-gen` generates the [`github.com/chromedp/cdproto`][11] package and
 constituent domain subpackages. As such, any Issue or Pull Request for the
 `cdproto` project should be created here, and **NOT** on the `cdproto` project.
 
 ## Installing
 
-`chromedp-gen` uses the [`qtc`][11], [`easyjson`][12], and [`goimports`][13]
+`chromedp-gen` uses the [`qtc`][12], [`easyjson`][13], and [`goimports`][14]
 tools to generate the templated CDP-domain code, fast JSON marshaler/unmarshalers,
 and to fix missing imports in the generated code, respectively.
 
@@ -68,13 +74,6 @@ $ chromedp-gen
 2017/12/25 12:14:09 RUNNING: gofmt
 2017/12/25 12:14:09 done.
 ```
-
-### Protocol Definition Retrieval and Caching
-
-`chromedp-gen` downloads the `browser_protocol.json` and `js_protocol.json`
-files directly from the [Chromium source tree][7], and generates a `har.json`
-protocol defintion [from the HAR spec][14]. By default, these files are cached
-in the `$GOPATH/pkg/chromedp-gen` directory and periodically updated.
 
 ### Command-line Options
 
@@ -146,15 +145,15 @@ Usage of ./chromedp-gen:
 ```
 [1]: https://chromedevtools.github.io/devtools-protocol/
 [2]: https://github.com/chromedp
-[3]: https://godoc.org/github.com/chromedp/cdproto
-[4]: /templates
-[5]: https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json
-[6]: https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json
-[7]: https://chromium.googlesource.com/chromium/src.git
-[8]: /fixup
-[9]: https://golang.org/doc/effective_go.html
-[10]: https://github.com/chromedp/cdproto
-[11]: https://github.com/valyala/quicktemplate
-[12]: https://github.com/mailru/easyjson
-[13]: https://golang.org/x/tools/cmd/goimports
-[14]: http://www.softwareishard.com/blog/har-12-spec/
+[3]: https://github.com/chromedp/cdproto
+[4]: https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json
+[5]: https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json
+[6]: https://chromium.googlesource.com/chromium/src.git
+[7]: http://www.softwareishard.com/blog/har-12-spec/
+[8]: /templates
+[9]: /fixup
+[10]: https://golang.org/doc/effective_go.html
+[11]: https://godoc.org/github.com/chromedp/cdproto
+[12]: https://github.com/valyala/quicktemplate
+[13]: https://github.com/mailru/easyjson
+[14]: https://golang.org/x/tools/cmd/goimports
