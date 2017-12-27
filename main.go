@@ -20,12 +20,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/mailru/easyjson/bootstrap"
+	"github.com/mailru/easyjson/parser"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/tools/imports"
 
 	"github.com/chromedp/chromedp-gen/fixup"
 	"github.com/chromedp/chromedp-gen/gen"
@@ -41,7 +43,7 @@ const (
 
 var (
 	flagVerbose = flag.Bool("v", true, "toggle verbose")
-	flagWorkers = flag.Int("workers", runtime.NumCPU()+1, "number of workers")
+	flagDebug   = flag.Bool("debug", false, "toggle debug (writes generated files to disk without post-processing)")
 
 	flagProto   = flag.String("proto", "", "protocol.json path")
 	flagBrowser = flag.String("browser", "master", "browser protocol version to use")
@@ -155,14 +157,8 @@ func run() error {
 		}
 	}
 
-	// write
-	err = write(files)
-	if err != nil {
-		return err
-	}
-
-	// write generate protocol info
-	if !*flagNoCopy {
+	// write protocol.json
+	if !*flagNoCopy || *flagDebug {
 		logf("WRITING: protocol.json")
 		buf, err := json.MarshalIndent(protoInfo, "", "  ")
 		if err != nil {
@@ -174,7 +170,12 @@ func run() error {
 		}
 	}
 
-	// goimports
+	// dump files and exit
+	if *flagDebug {
+		return write(files)
+	}
+
+	// goimports (also writes to disk)
 	err = goimports(files)
 	if err != nil {
 		return err
@@ -187,7 +188,7 @@ func run() error {
 	}
 
 	// gofmt
-	err = gofmt(files)
+	err = gofmt(pkgs)
 	if err != nil {
 		return err
 	}
@@ -340,16 +341,16 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 	}
 	sort.Strings(keys)
 
-	eg, ctxt := errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, k := range keys {
 		eg.Go(func(n string) func() error {
-			n = filepath.Join(*flagOut, n)
 			return func() error {
-				buf, err := exec.CommandContext(ctxt, "goimports", "-w", n).CombinedOutput()
+				fn := filepath.Join(*flagOut, n)
+				buf, err := imports.Process(fn, fileBuffers[n].Bytes(), nil)
 				if err != nil {
-					return fmt.Errorf("could not format %s, got:\n%s", n, string(buf))
+					return err
 				}
-				return nil
+				return ioutil.WriteFile(fn, buf, 0644)
 			}
 		}(k))
 	}
@@ -358,42 +359,25 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 
 // easyjson runs easy json on the list of packages.
 func easyjson(pkgs []string) error {
-	params := []string{"-pkg", "-all", "-output_filename", "easyjson.go"}
-
-	// generate easyjson stubs
-	logf("RUNNING: easyjson (stubs)")
-	eg, ctxt := errgroup.WithContext(context.Background())
-	for _, k := range pkgs {
-		eg.Go(func(n string) func() error {
-			return func() error {
-				cmd := exec.CommandContext(ctxt, "easyjson", append(params, "-stubs")...)
-				cmd.Dir = filepath.Join(*flagOut, n)
-				buf, err := cmd.CombinedOutput()
-				if err != nil {
-					return fmt.Errorf("could not generate easyjson stubs for %s, got:\n%s", cmd.Dir, string(buf))
-				}
-				return nil
-			}
-		}(k))
-	}
-	err := eg.Wait()
-	if err != nil {
-		return err
-	}
-
-	// generate actual easyjson types
 	logf("RUNNING: easyjson")
-	eg, ctxt = errgroup.WithContext(context.Background())
+	eg, _ := errgroup.WithContext(context.Background())
 	for _, k := range pkgs {
 		eg.Go(func(n string) func() error {
 			return func() error {
-				cmd := exec.CommandContext(ctxt, "easyjson", params...)
-				cmd.Dir = filepath.Join(*flagOut, n)
-				buf, err := cmd.CombinedOutput()
+				n = filepath.Join(*flagOut, n)
+				p := parser.Parser{AllStructs: true}
+				err := p.Parse(n, true)
 				if err != nil {
-					return fmt.Errorf("could not easyjson %s, got:\n%s", cmd.Dir, string(buf))
+					return err
 				}
-				return nil
+				g := bootstrap.Generator{
+					OutName:  filepath.Join(n, "easyjson.go"),
+					PkgPath:  p.PkgPath,
+					PkgName:  p.PkgName,
+					Types:    p.StructNames,
+					NoFormat: true,
+				}
+				return g.Run()
 			}
 		}(k))
 	}
@@ -401,29 +385,20 @@ func easyjson(pkgs []string) error {
 }
 
 // gofmt formats all the output file buffers on disk using gofmt.
-func gofmt(fileBuffers map[string]*bytes.Buffer) error {
+func gofmt(pkgs []string) error {
 	logf("RUNNING: gofmt")
 
 	var keys []string
-	for k := range fileBuffers {
-		keys = append(keys, k)
+	for _, k := range pkgs {
+		if k == "" {
+			continue
+		}
+		keys = append(keys, "./"+k)
 	}
-	sort.Strings(keys)
 
-	eg, ctxt := errgroup.WithContext(context.Background())
-	for _, k := range keys {
-		eg.Go(func(n string) func() error {
-			n = filepath.Join(*flagOut, n)
-			return func() error {
-				buf, err := exec.CommandContext(ctxt, "gofmt", "-w", "-s", n).CombinedOutput()
-				if err != nil {
-					return fmt.Errorf("could not format %s, got:\n%s", n, string(buf))
-				}
-				return nil
-			}
-		}(k))
-	}
-	return eg.Wait()
+	cmd := exec.Command("gofmt", append([]string{"-w", "-s", "."}, keys...)...)
+	cmd.Dir = *flagOut
+	return cmd.Run()
 }
 
 // fileCacher handles caching files to a path with a ttl.

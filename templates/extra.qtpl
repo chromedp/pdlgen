@@ -247,7 +247,7 @@ func (t MethodType) Domain() string {
 
 // MethodType values.
 const ({% for _, d := range domains %}{% for _, c := range d.Commands %}
-	{%s= c.CommandMethodType(d) %} = {%s= d.PackageRefName() %}.{%s= c.CommandMethodType(nil) %}{% endfor %}{% for _, e := range d.Events %}
+	{%s= c.CommandMethodType(d) %} = {%s= d.PackageName() %}.{%s= c.CommandMethodType(nil) %}{% endfor %}{% for _, e := range d.Events %}
 	{%s= e.EventMethodType(d) %} = {%q= e.ProtoName(d) %}{%endfor %}{% endfor %})
 {% endfunc %}
 
@@ -262,10 +262,10 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 	switch msg.Method {{% for _, d := range domains %}{% for _, c := range d.Commands %}
 	case {%s= c.CommandMethodType(d) %}:{% if len(c.Returns) == 0 %}
 		return emptyVal, nil{% else %}
-		v = new({%s= d.PackageRefName() %}.{%s= c.CommandReturnsType() %}){% endif %}
+		v = new({%s= d.PackageName() %}.{%s= c.CommandReturnsType() %}){% endif %}
 	{% endfor %}{% for _, e := range d.Events %}
 	case {%s= e.EventMethodType(d) %}:
-		v = new({%s= d.PackageRefName() %}.{%s= e.EventType() %})
+		v = new({%s= d.PackageName() %}.{%s= e.EventType() %})
 	{% endfor %}{% endfor %}}
 
 	var buf easyjson.RawMessage

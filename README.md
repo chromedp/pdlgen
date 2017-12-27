@@ -29,21 +29,9 @@ domain. CDP types that have circular dependencies are placed in the
 
 ## Installing
 
-`chromedp-gen` uses the [`qtc`][12], [`easyjson`][13], and [`goimports`][14]
-tools to generate the templated CDP-domain code, fast JSON marshaler/unmarshalers,
-and to fix missing imports in the generated code. `chromedp-gen` expects these
-tools and the Go build toolchain to be available on `$PATH`.
-
-Please install these tools and `chromedp-gen` in the usual Go way:
+`chromedp-gen` is installed in the usual Go way:
 
 ```sh
-# install tool dependencies
-$ go get -u \
-    github.com/valyala/quicktemplate/qtc \
-    github.com/mailru/easyjson/easyjson \
-    golang.org/x/tools/cmd/goimports
-
-# install chromedp-gen
 $ go get -u github.com/chromedp/chromedp-gen
 ```
 
@@ -56,22 +44,16 @@ out-of-the-box:
 
 ```sh
 $ chromedp-gen
-2017/12/25 12:14:01 BROWSER: master
-2017/12/25 12:14:01 JS:      master
-2017/12/25 12:14:01 RETRIEVING: https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=TEXT
-2017/12/25 12:14:01 WROTE: /home/ken/src/go/pkg/chromedp-gen/browser/master/browser_protocol.json
-2017/12/25 12:14:01 RETRIEVING: https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json?format=TEXT
-2017/12/25 12:14:01 WROTE: /home/ken/src/go/pkg/chromedp-gen/js/master/js_protocol.json
-2017/12/25 12:14:01 SKIPPING(domain ): Console [deprecated]
+2017/12/28 07:40:03 BROWSER: https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=TEXT
+2017/12/28 07:40:03 JS     : https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json?format=TEXT
+2017/12/28 07:40:03 SKIPPING(domain ): Console [deprecated]
 ...
-2017/12/25 12:14:01 CLEANING: /home/ken/src/go/src/github.com/chromedp/cdproto
-2017/12/25 12:14:01 WRITING: 101 files
-2017/12/25 12:14:01 WRITING: protocol.json
-2017/12/25 12:14:01 RUNNING: goimports
-2017/12/25 12:14:03 RUNNING: easyjson (stubs)
-2017/12/25 12:14:03 RUNNING: easyjson
-2017/12/25 12:14:09 RUNNING: gofmt
-2017/12/25 12:14:09 done.
+2017/12/28 07:40:03 CLEANING: /home/ken/src/go/src/github.com/chromedp/cdproto
+2017/12/28 07:40:03 WRITING: protocol.json
+2017/12/28 07:40:03 RUNNING: goimports
+2017/12/28 07:40:03 RUNNING: easyjson
+2017/12/28 07:40:09 RUNNING: gofmt
+2017/12/28 07:40:10 done.
 ```
 
 ### Command-line options
@@ -112,6 +94,8 @@ Usage of ./chromedp-gen:
     	browser protocol version to use (default "master")
   -cache string
     	protocol cache directory (default "/home/ken/src/go/pkg/chromedp-gen")
+  -debug
+    	toggle debug (writes generated files to disk without post-processing)
   -dep
     	toggle generation for deprecated APIs
   -exp
@@ -139,9 +123,45 @@ Usage of ./chromedp-gen:
   -v	toggle verbose (default true)
   -wl string
     	comma-separated list of files to whitelist/ignore during clean (default "LICENSE,README.md,protocol.json,easyjson.go")
-  -workers int
-    	number of workers (default 9)
 ```
+
+## Working with Templates
+
+`chromedp-gen`'s code generation makes use of  [`quicktemplate`][12] templates.
+As such, in order to modify the templates, the `qtc` template compiler needs to
+be available on `$PATH`.
+
+`qtc` can be installed in the usual Go fashion:
+
+```sh
+$ go get -u github.com/valyala/quicktemplate/qtc
+```
+
+After modifying the `templates/*.qtpl` files, `qtc` needs to be run. Simply run
+`go generate` in the `$GOPATH/src/github.com/chromedp/chromedp-gen` directory,
+and rebuild/run `chromedp-gen`:
+
+```sh
+$ cd $GOPATH/src/github.com/chromedp/chromedp-gen
+$ go generate && go build && ./chromedp-gen
+qtc: 2017/12/28 07:40:02 Compiling *.qtpl template files in directory "templates"
+qtc: 2017/12/28 07:40:02 Compiling "templates/domain.qtpl" to "templates/domain.qtpl.go"...
+qtc: 2017/12/28 07:40:02 Compiling "templates/extra.qtpl" to "templates/extra.qtpl.go"...
+qtc: 2017/12/28 07:40:02 Compiling "templates/file.qtpl" to "templates/file.qtpl.go"...
+qtc: 2017/12/28 07:40:02 Compiling "templates/type.qtpl" to "templates/type.qtpl.go"...
+qtc: 2017/12/28 07:40:02 Total files compiled: 4
+2017/12/28 07:40:03 BROWSER: https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=TEXT
+2017/12/28 07:40:03 JS     : https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json?format=TEXT
+2017/12/28 07:40:03 SKIPPING(domain ): Console [deprecated]
+...
+2017/12/28 07:40:03 CLEANING: /home/ken/src/go/src/github.com/chromedp/cdproto
+2017/12/28 07:40:03 WRITING: protocol.json
+2017/12/28 07:40:03 RUNNING: goimports
+2017/12/28 07:40:03 RUNNING: easyjson
+2017/12/28 07:40:09 RUNNING: gofmt
+2017/12/28 07:40:10 done.
+```
+
 [1]: https://chromedevtools.github.io/devtools-protocol/
 [2]: https://github.com/chromedp
 [3]: https://github.com/chromedp/cdproto
@@ -154,5 +174,3 @@ Usage of ./chromedp-gen:
 [10]: https://golang.org/doc/effective_go.html
 [11]: https://godoc.org/github.com/chromedp/cdproto
 [12]: https://github.com/valyala/quicktemplate
-[13]: https://github.com/mailru/easyjson
-[14]: https://golang.org/x/tools/cmd/goimports

@@ -56,10 +56,8 @@ func GenerateDomains(domains []*types.Domain, basePkg string, redirect bool) map
 		pkgOut := filepath.Join(pkgName, pkgName+".go")
 
 		// do command template
-		w = fb.get(pkgOut, pkgName, d)
-		templates.StreamDomainTemplate(w, d, domains, sharedFunc, map[string]string{
-			basePkg + "/cdp": "cdp",
-		})
+		w = fb.get(pkgOut, pkgName, d, domains, basePkg)
+		templates.StreamDomainTemplate(w, d, domains, sharedFunc)
 		fb.release(w)
 
 		// generate domain types
@@ -104,14 +102,13 @@ func (fb fileBuffers) generateSharedTypes(domains []*types.Domain, sharedFunc fu
 		}
 	}
 
-	// create domain
 	d := &types.Domain{
 		Domain:      types.DomainType("cdp"),
 		Types:       typs,
 		Description: "Shared Chrome Debugging Protocol Domain types.",
 	}
 
-	w := fb.get("cdp/types.go", "cdp", d)
+	w := fb.get("cdp/types.go", "cdp", d, domains, basePkg)
 
 	// add executor
 	templates.StreamExtraExecutorTemplate(w)
@@ -133,25 +130,13 @@ func (fb fileBuffers) generateSharedTypes(domains []*types.Domain, sharedFunc fu
 // Currently only contains the low-level message unmarshaler -- if this wasn't
 // in a separate package, then there would be circular dependencies.
 func (fb fileBuffers) generateRootPackage(domains []*types.Domain, basePkg string) {
-	// generate import map data
-	importMap := map[string]string{
-		basePkg + "/cdp": "cdp",
-	}
-	for _, d := range domains {
-		importMap[basePkg+"/"+d.PackageName()] = d.PackageImportAlias()
-	}
-
 	n := path.Base(basePkg)
-
 	d := &types.Domain{
 		Domain:      types.DomainType(n),
 		Description: "Chrome Debugging Protocol types.",
 	}
-	w := fb.get(n+".go", n, d)
-	templates.StreamFileImportTemplate(w, importMap)
-
-	typs := rootPackageTypes(domains)
-	for _, t := range typs {
+	w := fb.get(n+".go", n, d, domains, basePkg)
+	for _, t := range rootPackageTypes(domains) {
 		templates.StreamTypeTemplate(
 			w, t, "", "",
 			d, domains, func(string, string) bool { return false },
@@ -168,12 +153,7 @@ func (fb fileBuffers) generateTypes(
 	d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool,
 	basePkg string,
 ) {
-	w := fb.get(path, d.PackageName(), d)
-
-	// add internal import
-	templates.StreamFileImportTemplate(w, map[string]string{
-		basePkg + "/cdp": "cdp",
-	})
+	w := fb.get(path, d.PackageName(), d, domains, basePkg)
 
 	// process type list
 	for _, t := range types {
@@ -191,7 +171,7 @@ func (fb fileBuffers) generateTypes(
 }
 
 // get retrieves the file buffer for s, or creates it if it is not yet available.
-func (fb fileBuffers) get(s string, pkgName string, d *types.Domain) *qtpl.Writer {
+func (fb fileBuffers) get(s string, pkgName string, d *types.Domain, domains []*types.Domain, basePkg string) *qtpl.Writer {
 	// check if it already exists
 	if b, ok := fb[s]; ok {
 		return qtpl.AcquireWriter(b)
@@ -209,6 +189,19 @@ func (fb fileBuffers) get(s string, pkgName string, d *types.Domain) *qtpl.Write
 
 	// add package header
 	templates.StreamFileHeader(w, pkgName, v)
+
+	// add import map
+	importMap := map[string]string{
+		"encoding/json":                      "",
+		basePkg + "/cdp":                     "",
+		"github.com/mailru/easyjson":         "",
+		"github.com/mailru/easyjson/jlexer":  "",
+		"github.com/mailru/easyjson/jwriter": "",
+	}
+	for _, d := range domains {
+		importMap[basePkg+"/"+d.PackageName()] = ""
+	}
+	templates.StreamFileImportTemplate(w, importMap)
 
 	return w
 }

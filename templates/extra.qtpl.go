@@ -588,7 +588,7 @@ const (`)
 			//line templates/extra.qtpl:250
 			qw422016.N().S(` = `)
 			//line templates/extra.qtpl:250
-			qw422016.N().S(d.PackageRefName())
+			qw422016.N().S(d.PackageName())
 			//line templates/extra.qtpl:250
 			qw422016.N().S(`.`)
 			//line templates/extra.qtpl:250
@@ -677,7 +677,7 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 				qw422016.N().S(`
 		v = new(`)
 				//line templates/extra.qtpl:265
-				qw422016.N().S(d.PackageRefName())
+				qw422016.N().S(d.PackageName())
 				//line templates/extra.qtpl:265
 				qw422016.N().S(`.`)
 				//line templates/extra.qtpl:265
@@ -702,7 +702,7 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 			qw422016.N().S(`:
 		v = new(`)
 			//line templates/extra.qtpl:268
-			qw422016.N().S(d.PackageRefName())
+			qw422016.N().S(d.PackageName())
 			//line templates/extra.qtpl:268
 			qw422016.N().S(`.`)
 			//line templates/extra.qtpl:268

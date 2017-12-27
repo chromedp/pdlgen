@@ -67,30 +67,6 @@ func (d *Domain) PackageName() string {
 	return strings.ToLower(d.String())
 }
 
-// PackageImportAlias returns the Go import package name alias to use for the
-// domain, or the empty string.
-func (d *Domain) PackageImportAlias() string {
-	switch d.PackageName() {
-	case "io":
-		return "iodom"
-
-	case "log":
-		return "logdom"
-	}
-
-	return ""
-}
-
-// PackageRefName returns the Go package name to use for the domain.
-func (d *Domain) PackageRefName() string {
-	pkgAlias := d.PackageImportAlias()
-	if pkgAlias == "" {
-		return d.PackageName()
-	}
-
-	return pkgAlias
-}
-
 // DomainType is the Chrome domain type.
 type DomainType string
 

@@ -3,8 +3,7 @@
 ) %}
 
 // DomainTemplate is the template for a single domain.
-{% func DomainTemplate(d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, importMap map[string]string) %}
-{%s= FileImportTemplate(importMap) %}
+{% func DomainTemplate(d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) %}
 {% for _, c := range d.Commands %}
 {%s= CommandTemplate(c, d, domains, sharedFunc) %}
 {% endfor %}
