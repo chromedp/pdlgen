@@ -24,7 +24,7 @@ spelling corrections that assist with generating [idiomatic Go][10]) to the CDP
 domains defined in `browser_protocol.json` and `js_protocol.json`. From the
 protocol definitions, `chromedp-gen` generates the [`github.com/chromedp/cdproto`][11]
 package and a `github.com/chromedp/cdproto/<domain>` subpackage for each
-domain. Domain types that have circular dependencies are placed in the
+domain. CDP types that have circular dependencies are placed in the
 `github.com/chromedp/cdproto/cdp` package.
 
 ## Installing
