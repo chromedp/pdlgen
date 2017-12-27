@@ -50,7 +50,7 @@ $ go get -u github.com/chromedp/chromedp-gen
 
 ## Using
 
-By default, `chromdep-gen` generates the [`github.com/chromedp/cdproto`][6]
+By default, `chromdep-gen` generates the [`github.com/chromedp/cdproto`][11]
 package and a `github.com/chromedp/cdproto/<domain>` package for each CDP
 domain. The tool has sensible default options, and should be usable
 out-of-the-box:
@@ -81,13 +81,13 @@ $ chromedp-gen
 command-line option for generating the commands, events, and types for the
 Chromium Debugging Protocol domains. If the `-proto` option is not specified
 (the default behavior), then the `browser_protocol.json` and `js_protocol.json`
-protocol definition files will be retrieved from the [Chromium source tree][7]
+protocol definition files will be retrieved from the [Chromium source tree][6]
 and cached locally.
 
 The revisions of `browser_protocol.json` and `js_protocol.json` that are
 retrieved/cached can be controlled using the `-browser` and `-js` command-line
 options, respectively, and can be any Git ref, branch, or tag in the [Chromium
-source tree][7]. Both default to `master`.
+source tree][6]. Both default to `master`.
 
 Both `browser_protocol.json` and `js_protocol.json` will be updated
 periodically after the cached files have "expired", based on the `-ttl` option.
@@ -95,7 +95,7 @@ Specifying `-ttl=0` forces retrieving and caching the files immediately. By
 default, the `-ttl` option has a value of 24 hours.
 
 The meta-protocol definition file containing the virtual `HAR` domain is
-generated from [the HAR spec][14] and cached (similarly to the above) as
+generated from [the HAR spec][7] and cached (similarly to the above) as
 `har.json`. Since the HAR definition is frozen, the retrieval and caching is
 controlled separately with the command-line option `-ttlHar`. A `-ttlHar=0`
 indicates never to regenerate the `har.json` and is the default value.
