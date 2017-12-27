@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -90,6 +91,8 @@ func LoadProto(cacher Cacher) ([]byte, error) {
 	return harBuf, nil
 }
 
+var descCleanRE = regexp.MustCompile(`(?i)^this\s*objects?\s+`)
+
 // generateDomain generates a HAR domain definition using the supplied cacher
 // mechanism.
 func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
@@ -157,6 +160,8 @@ func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
 		if desc == "" {
 			panic(fmt.Sprintf("%s (%s) has no description", n, id))
 		}
+		desc = descCleanRE.ReplaceAllString(desc, "")
+		desc = strings.ToUpper(desc[0:1]) + desc[1:]
 
 		// grab properties and scan
 		props, err := scanProps(id, readPropText(sel, doc))
