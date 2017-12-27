@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/knq/snaker"
 	qtpl "github.com/valyala/quicktemplate"
 
 	"github.com/chromedp/chromedp-gen/templates"
@@ -105,23 +104,27 @@ func (fb fileBuffers) generateSharedTypes(domains []*types.Domain, sharedFunc fu
 		}
 	}
 
-	cdpDomain := &types.Domain{
-		Domain: types.DomainType("cdp"),
-		Types:  typs,
-	}
-	doms := append(domains, cdpDomain)
-
-	w := fb.get("cdp/types.go", "cdp", &types.Domain{
-		Domain:      types.DomainType("CDP"),
+	// create domain
+	d := &types.Domain{
+		Domain:      types.DomainType("cdp"),
+		Types:       typs,
 		Description: "Shared Chrome Debugging Protocol Domain types.",
-	})
+	}
+
+	w := fb.get("cdp/types.go", "cdp", d)
+
+	// add executor
+	templates.StreamExtraExecutorTemplate(w)
+
+	// add types
 	for _, t := range typs {
 		templates.StreamTypeTemplate(
 			w, t, types.TypePrefix, types.TypeSuffix,
-			cdpDomain, doms, sharedFunc,
+			d, append(domains, d), sharedFunc,
 			nil, false, true,
 		)
 	}
+
 	fb.release(w)
 }
 
@@ -217,11 +220,11 @@ func (fb fileBuffers) release(w *qtpl.Writer) {
 
 // rootPackageTypes returns the root package types.
 func rootPackageTypes(domains []*types.Domain) []*types.Type {
-	errorValues := []string{"channel closed", "invalid result", "unknown result"}
+	/*errorValues := []string{"channel closed", "invalid result", "unknown result"}
 	errorValueNameMap := make(map[string]string)
 	for _, e := range errorValues {
 		errorValueNameMap[e] = "Err" + snaker.ForceCamelIdentifier(e)
-	}
+	}*/
 
 	return []*types.Type{{
 		ID:               "MethodType",

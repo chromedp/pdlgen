@@ -228,6 +228,16 @@ func (t *{%s= typ %}) UnmarshalJSON(buf []byte) error {
 }
 {% endfunc %}
 
+// ExtraExecutorTemplate is the additional shared executor interface for all
+// the domains. 
+{% func ExtraExecutorTemplate() %}
+// Executor is the common interface for executing a command.
+type Executor interface {
+	// Execute executes the command.
+	Execute(context.Context, string, json.Marshaler, json.Unmarshaler) error
+}
+{% endfunc %}
+
 // ExtraMethodTypeTemplate generates the additional MethodType funcs and consts.
 {% func ExtraMethodTypeTemplate(domains []*types.Domain) %}
 // Domain returns the Chrome Debugging Protocol domain of the event or command.

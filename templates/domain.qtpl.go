@@ -35,421 +35,406 @@ func StreamDomainTemplate(qw422016 *qt422016.Writer, d *types.Domain, domains []
 	qw422016.N().S(`
 `)
 	//line templates/domain.qtpl:8
-	if len(d.Commands) != 0 {
+	for _, c := range d.Commands {
 		//line templates/domain.qtpl:8
 		qw422016.N().S(`
-// Executor is the common interface for executing a command.
-type Executor interface {
-	// Execute executes the command.
-	Execute(context.Context, string, json.Marshaler, json.Unmarshaler) error
-}
 `)
-		//line templates/domain.qtpl:14
-	}
-	//line templates/domain.qtpl:14
-	qw422016.N().S(`
-`)
-	//line templates/domain.qtpl:15
-	for _, c := range d.Commands {
-		//line templates/domain.qtpl:15
-		qw422016.N().S(`
-`)
-		//line templates/domain.qtpl:16
+		//line templates/domain.qtpl:9
 		qw422016.N().S(CommandTemplate(c, d, domains, sharedFunc))
-		//line templates/domain.qtpl:16
+		//line templates/domain.qtpl:9
 		qw422016.N().S(`
 `)
-		//line templates/domain.qtpl:17
+		//line templates/domain.qtpl:10
 	}
-	//line templates/domain.qtpl:17
+	//line templates/domain.qtpl:10
 	qw422016.N().S(`
 `)
-	//line templates/domain.qtpl:18
+	//line templates/domain.qtpl:11
 	if len(d.Commands) > 0 {
-		//line templates/domain.qtpl:18
+		//line templates/domain.qtpl:11
 		qw422016.N().S(`
 // Command names.
 const (
 `)
-		//line templates/domain.qtpl:21
+		//line templates/domain.qtpl:14
 		for _, c := range d.Commands {
-			//line templates/domain.qtpl:21
+			//line templates/domain.qtpl:14
 			qw422016.N().S(`
 	`)
-			//line templates/domain.qtpl:22
+			//line templates/domain.qtpl:15
 			qw422016.N().S(c.CommandMethodType(nil))
-			//line templates/domain.qtpl:22
+			//line templates/domain.qtpl:15
 			qw422016.N().S(` = `)
-			//line templates/domain.qtpl:22
+			//line templates/domain.qtpl:15
 			qw422016.N().Q(c.ProtoName(d))
-			//line templates/domain.qtpl:22
+			//line templates/domain.qtpl:15
 		}
-		//line templates/domain.qtpl:22
+		//line templates/domain.qtpl:15
 		qw422016.N().S(`)
 `)
-		//line templates/domain.qtpl:23
+		//line templates/domain.qtpl:16
 	}
-	//line templates/domain.qtpl:23
+	//line templates/domain.qtpl:16
 	qw422016.N().S(`
 `)
-//line templates/domain.qtpl:24
+//line templates/domain.qtpl:17
 }
 
-//line templates/domain.qtpl:24
+//line templates/domain.qtpl:17
 func WriteDomainTemplate(qq422016 qtio422016.Writer, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, importMap map[string]string) {
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	StreamDomainTemplate(qw422016, d, domains, sharedFunc, importMap)
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	qt422016.ReleaseWriter(qw422016)
-//line templates/domain.qtpl:24
+//line templates/domain.qtpl:17
 }
 
-//line templates/domain.qtpl:24
+//line templates/domain.qtpl:17
 func DomainTemplate(d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, importMap map[string]string) string {
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	WriteDomainTemplate(qb422016, d, domains, sharedFunc, importMap)
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	qs422016 := string(qb422016.B)
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/domain.qtpl:24
+	//line templates/domain.qtpl:17
 	return qs422016
-//line templates/domain.qtpl:24
+//line templates/domain.qtpl:17
 }
 
 // CommandTemplate is the general command template.
 
-//line templates/domain.qtpl:27
+//line templates/domain.qtpl:20
 func StreamCommandTemplate(qw422016 *qt422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
+	//line templates/domain.qtpl:20
+	qw422016.N().S(`
+`)
+	//line templates/domain.qtpl:21
+	/* add *Param type */
+
+	//line templates/domain.qtpl:21
+	qw422016.N().S(`
+`)
+	//line templates/domain.qtpl:22
+	qw422016.N().S(TypeTemplate(c, types.CommandTypePrefix, types.CommandTypeSuffix, d, domains, sharedFunc, nil, false, true))
+	//line templates/domain.qtpl:22
+	qw422016.N().S(`
+
+`)
+	//line templates/domain.qtpl:24
+	/* add Command func */
+
+	//line templates/domain.qtpl:24
+	qw422016.N().S(`
+`)
+	//line templates/domain.qtpl:25
+	qw422016.N().S(CommandFuncTemplate(c, d, domains, sharedFunc))
+	//line templates/domain.qtpl:25
+	qw422016.N().S(`
+
+`)
+	//line templates/domain.qtpl:27
+	/* add param funcs (only if it has parameters and a returns). */
+
 	//line templates/domain.qtpl:27
 	qw422016.N().S(`
 `)
 	//line templates/domain.qtpl:28
-	/* add *Param type */
-
-	//line templates/domain.qtpl:28
-	qw422016.N().S(`
-`)
-	//line templates/domain.qtpl:29
-	qw422016.N().S(TypeTemplate(c, types.CommandTypePrefix, types.CommandTypeSuffix, d, domains, sharedFunc, nil, false, true))
-	//line templates/domain.qtpl:29
-	qw422016.N().S(`
-
-`)
-	//line templates/domain.qtpl:31
-	/* add Command func */
-
-	//line templates/domain.qtpl:31
-	qw422016.N().S(`
-`)
-	//line templates/domain.qtpl:32
-	qw422016.N().S(CommandFuncTemplate(c, d, domains, sharedFunc))
-	//line templates/domain.qtpl:32
-	qw422016.N().S(`
-
-`)
-	//line templates/domain.qtpl:34
-	/* add param funcs (only if it has parameters and a returns). */
-
-	//line templates/domain.qtpl:34
-	qw422016.N().S(`
-`)
-	//line templates/domain.qtpl:35
 	if len(c.Parameters) != 0 {
-		//line templates/domain.qtpl:35
+		//line templates/domain.qtpl:28
 		for _, p := range c.Parameters {
-			//line templates/domain.qtpl:35
+			//line templates/domain.qtpl:28
 			if !p.Optional {
-				//line templates/domain.qtpl:35
+				//line templates/domain.qtpl:28
 				continue
-				//line templates/domain.qtpl:35
+				//line templates/domain.qtpl:28
 			}
-			//line templates/domain.qtpl:35
+			//line templates/domain.qtpl:28
 			qw422016.N().S(`
 `)
-			//line templates/domain.qtpl:36
+			//line templates/domain.qtpl:29
 			qw422016.N().S(CommandOptionFuncTemplate(p, c, d, domains, sharedFunc))
-			//line templates/domain.qtpl:36
+			//line templates/domain.qtpl:29
 			qw422016.N().S(`
 `)
-			//line templates/domain.qtpl:37
+			//line templates/domain.qtpl:30
 		}
-		//line templates/domain.qtpl:37
+		//line templates/domain.qtpl:30
 	}
-	//line templates/domain.qtpl:37
+	//line templates/domain.qtpl:30
 	qw422016.N().S(`
 
 `)
-	//line templates/domain.qtpl:39
+	//line templates/domain.qtpl:32
 	/* add *Returns type */
 
-	//line templates/domain.qtpl:39
+	//line templates/domain.qtpl:32
 	qw422016.N().S(`
 `)
-	//line templates/domain.qtpl:40
+	//line templates/domain.qtpl:33
 	if len(c.Returns) != 0 {
-		//line templates/domain.qtpl:40
+		//line templates/domain.qtpl:33
 		qw422016.N().S(`
 `)
-		//line templates/domain.qtpl:41
+		//line templates/domain.qtpl:34
 		qw422016.N().S(TypeTemplate(&types.Type{
 			ID:          c.Name,
 			Type:        types.TypeObject,
 			Description: "Return values.",
 			Properties:  c.Returns,
 		}, types.CommandReturnsPrefix, types.CommandReturnsSuffix, d, domains, sharedFunc, nil, false, false))
-		//line templates/domain.qtpl:46
+		//line templates/domain.qtpl:39
 		qw422016.N().S(`
 `)
-		//line templates/domain.qtpl:47
+		//line templates/domain.qtpl:40
 	}
-	//line templates/domain.qtpl:47
+	//line templates/domain.qtpl:40
 	qw422016.N().S(`
 
 `)
-	//line templates/domain.qtpl:49
+	//line templates/domain.qtpl:42
 	/* add CommandParams.Do func */
 
-	//line templates/domain.qtpl:49
+	//line templates/domain.qtpl:42
 	qw422016.N().S(`
 `)
-	//line templates/domain.qtpl:50
+	//line templates/domain.qtpl:43
 	qw422016.N().S(CommandDoFuncTemplate(c, d, domains, sharedFunc))
-	//line templates/domain.qtpl:50
+	//line templates/domain.qtpl:43
 	qw422016.N().S(`
 `)
-//line templates/domain.qtpl:51
+//line templates/domain.qtpl:44
 }
 
-//line templates/domain.qtpl:51
+//line templates/domain.qtpl:44
 func WriteCommandTemplate(qq422016 qtio422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	StreamCommandTemplate(qw422016, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	qt422016.ReleaseWriter(qw422016)
-//line templates/domain.qtpl:51
+//line templates/domain.qtpl:44
 }
 
-//line templates/domain.qtpl:51
+//line templates/domain.qtpl:44
 func CommandTemplate(c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	WriteCommandTemplate(qb422016, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	qs422016 := string(qb422016.B)
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/domain.qtpl:51
+	//line templates/domain.qtpl:44
 	return qs422016
-//line templates/domain.qtpl:51
+//line templates/domain.qtpl:44
 }
 
 // CommandFuncTemplate is the command func template.
 
-//line templates/domain.qtpl:54
+//line templates/domain.qtpl:47
 func StreamCommandFuncTemplate(qw422016 *qt422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
-	//line templates/domain.qtpl:55
+	//line templates/domain.qtpl:48
 	cmdName := c.CamelName()
 	typ := c.CommandType()
 
-	//line templates/domain.qtpl:57
+	//line templates/domain.qtpl:50
 	qw422016.N().S(`
 `)
-	//line templates/domain.qtpl:58
+	//line templates/domain.qtpl:51
 	qw422016.N().S(formatComment(c.GetDescription(), "", cmdName+" "))
-	//line templates/domain.qtpl:58
+	//line templates/domain.qtpl:51
 	if len(c.Parameters) > 0 {
-		//line templates/domain.qtpl:58
+		//line templates/domain.qtpl:51
 		qw422016.N().S(`
 //
 // parameters:`)
-		//line templates/domain.qtpl:60
+		//line templates/domain.qtpl:53
 		for _, p := range c.Parameters {
-			//line templates/domain.qtpl:60
+			//line templates/domain.qtpl:53
 			if p.Optional {
-				//line templates/domain.qtpl:60
+				//line templates/domain.qtpl:53
 				continue
-				//line templates/domain.qtpl:60
+				//line templates/domain.qtpl:53
 			}
-			//line templates/domain.qtpl:60
+			//line templates/domain.qtpl:53
 			qw422016.N().S(`
 //   `)
-			//line templates/domain.qtpl:61
+			//line templates/domain.qtpl:54
 			qw422016.N().S(p.String())
-			//line templates/domain.qtpl:61
+			//line templates/domain.qtpl:54
 			if p.Optional {
-				//line templates/domain.qtpl:61
+				//line templates/domain.qtpl:54
 				qw422016.N().S(` (optional)`)
-				//line templates/domain.qtpl:61
+				//line templates/domain.qtpl:54
 			}
-			//line templates/domain.qtpl:61
+			//line templates/domain.qtpl:54
 		}
-		//line templates/domain.qtpl:61
+		//line templates/domain.qtpl:54
 	}
-	//line templates/domain.qtpl:61
+	//line templates/domain.qtpl:54
 	qw422016.N().S(`
 func `)
-	//line templates/domain.qtpl:62
+	//line templates/domain.qtpl:55
 	qw422016.N().S(cmdName)
-	//line templates/domain.qtpl:62
+	//line templates/domain.qtpl:55
 	qw422016.N().S(`(`)
-	//line templates/domain.qtpl:62
+	//line templates/domain.qtpl:55
 	qw422016.N().S(c.ParamList(d, domains, sharedFunc, false))
-	//line templates/domain.qtpl:62
+	//line templates/domain.qtpl:55
 	qw422016.N().S(`) *`)
-	//line templates/domain.qtpl:62
+	//line templates/domain.qtpl:55
 	qw422016.N().S(typ)
-	//line templates/domain.qtpl:62
+	//line templates/domain.qtpl:55
 	qw422016.N().S(`{
 	return &`)
-	//line templates/domain.qtpl:63
+	//line templates/domain.qtpl:56
 	qw422016.N().S(typ)
-	//line templates/domain.qtpl:63
+	//line templates/domain.qtpl:56
 	qw422016.N().S(`{`)
-	//line templates/domain.qtpl:63
+	//line templates/domain.qtpl:56
 	for _, t := range c.Parameters {
-		//line templates/domain.qtpl:63
+		//line templates/domain.qtpl:56
 		if !t.Optional {
-			//line templates/domain.qtpl:63
+			//line templates/domain.qtpl:56
 			qw422016.N().S(`
 		`)
-			//line templates/domain.qtpl:64
+			//line templates/domain.qtpl:57
 			qw422016.N().S(t.GoName(false))
-			//line templates/domain.qtpl:64
+			//line templates/domain.qtpl:57
 			qw422016.N().S(`: `)
-			//line templates/domain.qtpl:64
+			//line templates/domain.qtpl:57
 			qw422016.N().S(t.GoName(true))
-			//line templates/domain.qtpl:64
+			//line templates/domain.qtpl:57
 			qw422016.N().S(`,`)
-			//line templates/domain.qtpl:64
+			//line templates/domain.qtpl:57
 		}
-		//line templates/domain.qtpl:64
+		//line templates/domain.qtpl:57
 	}
-	//line templates/domain.qtpl:64
+	//line templates/domain.qtpl:57
 	qw422016.N().S(`
 	}
 }
 `)
-//line templates/domain.qtpl:67
+//line templates/domain.qtpl:60
 }
 
-//line templates/domain.qtpl:67
+//line templates/domain.qtpl:60
 func WriteCommandFuncTemplate(qq422016 qtio422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	StreamCommandFuncTemplate(qw422016, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	qt422016.ReleaseWriter(qw422016)
-//line templates/domain.qtpl:67
+//line templates/domain.qtpl:60
 }
 
-//line templates/domain.qtpl:67
+//line templates/domain.qtpl:60
 func CommandFuncTemplate(c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	WriteCommandFuncTemplate(qb422016, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	qs422016 := string(qb422016.B)
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/domain.qtpl:67
+	//line templates/domain.qtpl:60
 	return qs422016
-//line templates/domain.qtpl:67
+//line templates/domain.qtpl:60
 }
 
 // CommandOptionFuncTemplate is the command option func template.
 
-//line templates/domain.qtpl:70
+//line templates/domain.qtpl:63
 func StreamCommandOptionFuncTemplate(qw422016 *qt422016.Writer, t *types.Type, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
-	//line templates/domain.qtpl:71
+	//line templates/domain.qtpl:64
 	n := t.GoName(false)
 	optName := types.OptionFuncPrefix + n + types.OptionFuncSuffix
 	typ := c.CommandType()
 	v := t.GoName(true)
 
-	//line templates/domain.qtpl:75
+	//line templates/domain.qtpl:68
 	qw422016.N().S(`
 `)
-	//line templates/domain.qtpl:76
+	//line templates/domain.qtpl:69
 	qw422016.N().S(formatComment(t.GetDescription(), "", optName+" "))
-	//line templates/domain.qtpl:76
+	//line templates/domain.qtpl:69
 	qw422016.N().S(`
 func (p `)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(typ)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(`) `)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(optName)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(`(`)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(v)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(` `)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(t.GoType(d, domains, sharedFunc))
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(`) *`)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(typ)
-	//line templates/domain.qtpl:77
+	//line templates/domain.qtpl:70
 	qw422016.N().S(`{
 	p.`)
-	//line templates/domain.qtpl:78
+	//line templates/domain.qtpl:71
 	qw422016.N().S(n)
-	//line templates/domain.qtpl:78
+	//line templates/domain.qtpl:71
 	qw422016.N().S(` = `)
-	//line templates/domain.qtpl:78
+	//line templates/domain.qtpl:71
 	qw422016.N().S(v)
-	//line templates/domain.qtpl:78
+	//line templates/domain.qtpl:71
 	qw422016.N().S(`
 	return &p
 }
 `)
-//line templates/domain.qtpl:81
+//line templates/domain.qtpl:74
 }
 
-//line templates/domain.qtpl:81
+//line templates/domain.qtpl:74
 func WriteCommandOptionFuncTemplate(qq422016 qtio422016.Writer, t *types.Type, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	StreamCommandOptionFuncTemplate(qw422016, t, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	qt422016.ReleaseWriter(qw422016)
-//line templates/domain.qtpl:81
+//line templates/domain.qtpl:74
 }
 
-//line templates/domain.qtpl:81
+//line templates/domain.qtpl:74
 func CommandOptionFuncTemplate(t *types.Type, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	WriteCommandOptionFuncTemplate(qb422016, t, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	qs422016 := string(qb422016.B)
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/domain.qtpl:81
+	//line templates/domain.qtpl:74
 	return qs422016
-//line templates/domain.qtpl:81
+//line templates/domain.qtpl:74
 }
 
 // CommandDoFuncTemplate is the command do func template.
 
-//line templates/domain.qtpl:84
+//line templates/domain.qtpl:77
 func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
-	//line templates/domain.qtpl:85
+	//line templates/domain.qtpl:78
 	typ := c.CommandType()
 
 	hasEmptyParams := len(c.Parameters) == 0
@@ -487,167 +472,167 @@ func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *types.Type, d *ty
 		pval = "nil"
 	}
 
-	//line templates/domain.qtpl:121
+	//line templates/domain.qtpl:114
 	qw422016.N().S(`
 // Do executes `)
-	//line templates/domain.qtpl:122
+	//line templates/domain.qtpl:115
 	qw422016.N().S(c.ProtoName(d))
-	//line templates/domain.qtpl:122
+	//line templates/domain.qtpl:115
 	qw422016.N().S(` against the provided context.`)
-	//line templates/domain.qtpl:122
+	//line templates/domain.qtpl:115
 	if !hasEmptyRet {
-		//line templates/domain.qtpl:122
+		//line templates/domain.qtpl:115
 		qw422016.N().S(`
 //
 // returns:`)
-		//line templates/domain.qtpl:124
+		//line templates/domain.qtpl:117
 		for _, p := range c.Returns {
-			//line templates/domain.qtpl:124
+			//line templates/domain.qtpl:117
 			if p.Name == types.Base64EncodedParamName {
-				//line templates/domain.qtpl:124
+				//line templates/domain.qtpl:117
 				continue
-				//line templates/domain.qtpl:124
+				//line templates/domain.qtpl:117
 			}
-			//line templates/domain.qtpl:124
+			//line templates/domain.qtpl:117
 			qw422016.N().S(`
 //   `)
-			//line templates/domain.qtpl:125
+			//line templates/domain.qtpl:118
 			qw422016.N().S(p.String())
-			//line templates/domain.qtpl:125
+			//line templates/domain.qtpl:118
 		}
-		//line templates/domain.qtpl:125
+		//line templates/domain.qtpl:118
 	}
-	//line templates/domain.qtpl:125
+	//line templates/domain.qtpl:118
 	qw422016.N().S(`
 func (p *`)
-	//line templates/domain.qtpl:126
+	//line templates/domain.qtpl:119
 	qw422016.N().S(typ)
-	//line templates/domain.qtpl:126
-	qw422016.N().S(`) Do(ctxt context.Context, h Executor) (`)
-	//line templates/domain.qtpl:126
+	//line templates/domain.qtpl:119
+	qw422016.N().S(`) Do(ctxt context.Context, h cdp.Executor) (`)
+	//line templates/domain.qtpl:119
 	qw422016.N().S(retTypeList)
-	//line templates/domain.qtpl:126
+	//line templates/domain.qtpl:119
 	qw422016.N().S(`err error) {`)
-	//line templates/domain.qtpl:126
+	//line templates/domain.qtpl:119
 	if hasEmptyRet {
-		//line templates/domain.qtpl:126
+		//line templates/domain.qtpl:119
 		qw422016.N().S(`
 	return h.Execute(ctxt, `)
-		//line templates/domain.qtpl:127
+		//line templates/domain.qtpl:120
 		qw422016.N().S(c.CommandMethodType(nil))
-		//line templates/domain.qtpl:127
+		//line templates/domain.qtpl:120
 		qw422016.N().S(`, `)
-		//line templates/domain.qtpl:127
+		//line templates/domain.qtpl:120
 		qw422016.N().S(pval)
-		//line templates/domain.qtpl:127
+		//line templates/domain.qtpl:120
 		qw422016.N().S(`, nil)`)
-		//line templates/domain.qtpl:127
+		//line templates/domain.qtpl:120
 	} else {
-		//line templates/domain.qtpl:127
+		//line templates/domain.qtpl:120
 		qw422016.N().S(`
 	// execute
 	var res `)
-		//line templates/domain.qtpl:129
+		//line templates/domain.qtpl:122
 		qw422016.N().S(c.CommandReturnsType())
-		//line templates/domain.qtpl:129
+		//line templates/domain.qtpl:122
 		qw422016.N().S(`
 	err = h.Execute(ctxt, `)
-		//line templates/domain.qtpl:130
+		//line templates/domain.qtpl:123
 		qw422016.N().S(c.CommandMethodType(nil))
-		//line templates/domain.qtpl:130
+		//line templates/domain.qtpl:123
 		qw422016.N().S(`, `)
-		//line templates/domain.qtpl:130
+		//line templates/domain.qtpl:123
 		qw422016.N().S(pval)
-		//line templates/domain.qtpl:130
+		//line templates/domain.qtpl:123
 		qw422016.N().S(`, &res)
 	if err != nil {
 		return `)
-		//line templates/domain.qtpl:132
+		//line templates/domain.qtpl:125
 		qw422016.N().S(emptyRet)
-		//line templates/domain.qtpl:132
+		//line templates/domain.qtpl:125
 		qw422016.N().S(`err
 	}
 	`)
-		//line templates/domain.qtpl:134
+		//line templates/domain.qtpl:127
 		if b64ret != nil {
-			//line templates/domain.qtpl:134
+			//line templates/domain.qtpl:127
 			qw422016.N().S(`
 	// decode
 	var dec []byte`)
-			//line templates/domain.qtpl:136
+			//line templates/domain.qtpl:129
 			if b64cond {
-				//line templates/domain.qtpl:136
+				//line templates/domain.qtpl:129
 				qw422016.N().S(`
 	if res.Base64encoded {`)
-				//line templates/domain.qtpl:137
+				//line templates/domain.qtpl:130
 			}
-			//line templates/domain.qtpl:137
+			//line templates/domain.qtpl:130
 			qw422016.N().S(`
 		dec, err = base64.StdEncoding.DecodeString(res.`)
-			//line templates/domain.qtpl:138
+			//line templates/domain.qtpl:131
 			qw422016.N().S(b64ret.GoName(false))
-			//line templates/domain.qtpl:138
+			//line templates/domain.qtpl:131
 			qw422016.N().S(`)
 		if err != nil {
 			return `)
-			//line templates/domain.qtpl:140
+			//line templates/domain.qtpl:133
 			qw422016.N().S(emptyRet)
-			//line templates/domain.qtpl:140
+			//line templates/domain.qtpl:133
 			qw422016.N().S(`err
 		}`)
-			//line templates/domain.qtpl:141
+			//line templates/domain.qtpl:134
 			if b64cond {
-				//line templates/domain.qtpl:141
+				//line templates/domain.qtpl:134
 				qw422016.N().S(`
 	} else {
 		dec = []byte(res.`)
-				//line templates/domain.qtpl:143
+				//line templates/domain.qtpl:136
 				qw422016.N().S(b64ret.GoName(false))
-				//line templates/domain.qtpl:143
+				//line templates/domain.qtpl:136
 				qw422016.N().S(`)
 	}`)
-				//line templates/domain.qtpl:144
+				//line templates/domain.qtpl:137
 			}
-			//line templates/domain.qtpl:144
+			//line templates/domain.qtpl:137
 		}
-		//line templates/domain.qtpl:144
+		//line templates/domain.qtpl:137
 		qw422016.N().S(`
 	return `)
-		//line templates/domain.qtpl:145
+		//line templates/domain.qtpl:138
 		qw422016.N().S(retValueList)
-		//line templates/domain.qtpl:145
+		//line templates/domain.qtpl:138
 		qw422016.N().S(`nil`)
-		//line templates/domain.qtpl:145
+		//line templates/domain.qtpl:138
 	}
-	//line templates/domain.qtpl:145
+	//line templates/domain.qtpl:138
 	qw422016.N().S(`
 }
 `)
-//line templates/domain.qtpl:147
+//line templates/domain.qtpl:140
 }
 
-//line templates/domain.qtpl:147
+//line templates/domain.qtpl:140
 func WriteCommandDoFuncTemplate(qq422016 qtio422016.Writer, c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) {
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	StreamCommandDoFuncTemplate(qw422016, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	qt422016.ReleaseWriter(qw422016)
-//line templates/domain.qtpl:147
+//line templates/domain.qtpl:140
 }
 
-//line templates/domain.qtpl:147
+//line templates/domain.qtpl:140
 func CommandDoFuncTemplate(c *types.Type, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool) string {
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	WriteCommandDoFuncTemplate(qb422016, c, d, domains, sharedFunc)
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	qs422016 := string(qb422016.B)
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line templates/domain.qtpl:147
+	//line templates/domain.qtpl:140
 	return qs422016
-//line templates/domain.qtpl:147
+//line templates/domain.qtpl:140
 }
