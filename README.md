@@ -14,7 +14,7 @@ be created here, and **NOT** on the `cdproto` project.
 
 `chromedp-gen` retrieves the [`browser_protocol.json`][4] and [`js_protocol.json`][5]
 files from the [Chromium source tree][6] and generates a `har.json` protocol
-defintion [from the HAR spec][7]. By default, these files are cached in the
+definition [from the HAR spec][7]. By default, these files are cached in the
 `$GOPATH/pkg/chromedp-gen` directory and periodically updated (see below).
 
 ### Code Generation
