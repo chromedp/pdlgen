@@ -26,6 +26,7 @@ import (
 
 	"github.com/mailru/easyjson/bootstrap"
 	"github.com/mailru/easyjson/parser"
+	glob "github.com/ryanuber/go-glob"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/imports"
 
@@ -58,7 +59,7 @@ var (
 	flagNoClean = flag.Bool("noclean", false, "toggle not cleaning (removing) existing directories")
 	flagNoCopy  = flag.Bool("nocopy", false, "toggle not copying combined protocol.json to out directory")
 	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR protocol and domain")
-	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol.json,easyjson.go", "comma-separated list of files to whitelist/ignore during clean")
+	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol*.json,easyjson.go", "comma-separated list of files to whitelist/ignore during clean")
 
 	flagDep      = flag.Bool("dep", false, "toggle generation for deprecated APIs")
 	flagExp      = flag.Bool("exp", true, "toggle generation for experimental APIs")
@@ -135,7 +136,6 @@ func run() error {
 	// clean up files
 	if !*flagNoClean {
 		logf("CLEANING: %s", *flagOut)
-		wl := splitToMap(*flagCleanWl, ",")
 		outpath := *flagOut + string(filepath.Separator)
 		err = filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
 			switch {
@@ -146,7 +146,7 @@ func run() error {
 			}
 
 			fn, sn := n[len(outpath):], fi.Name()
-			if n == outpath || fn == "" || strings.HasPrefix(fn, ".") || strings.HasPrefix(sn, ".") || wl[fn] || wl[sn] || contains(files, fn) {
+			if n == outpath || fn == "" || strings.HasPrefix(fn, ".") || strings.HasPrefix(sn, ".") || whitelisted(sn) || contains(files, fn) {
 				return nil
 			}
 			logf("REMOVING: %s", n)
@@ -159,12 +159,14 @@ func run() error {
 
 	// write protocol.json
 	if !*flagNoCopy || *flagDebug {
-		logf("WRITING: protocol.json")
+		protoFile := fmt.Sprintf("protocol-%s_%s-%s.json", *flagBrowser, *flagJS, time.Now().Format("20060102"))
+
+		logf("WRITING: %s", protoFile)
 		buf, err := json.MarshalIndent(protoInfo, "", "  ")
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(filepath.Join(*flagOut, "protocol.json"), buf, 0644)
+		err = ioutil.WriteFile(filepath.Join(*flagOut, protoFile), buf, 0644)
 		if err != nil {
 			return err
 		}
@@ -501,16 +503,6 @@ func logf(s string, v ...interface{}) {
 	}
 }
 
-// splitToMap splits a string to a map.
-func splitToMap(s string, sep string) map[string]bool {
-	z := strings.Split(s, sep)
-	m := make(map[string]bool, len(z))
-	for _, v := range z {
-		m[v] = true
-	}
-	return m
-}
-
 // contains determines if any key in m is equal to n or starts with the path
 // prefix equal to n.
 func contains(m map[string]*bytes.Buffer, n string) bool {
@@ -526,4 +518,14 @@ func contains(m map[string]*bytes.Buffer, n string) bool {
 // pad pads a string.
 func pad(s string, n int) string {
 	return s + strings.Repeat(" ", n-len(s))
+}
+
+// whitelisted checks if n is a whitelisted file.
+func whitelisted(n string) bool {
+	for _, z := range strings.Split(*flagCleanWl, ",") {
+		if z == n || glob.Glob(z, n) {
+			return true
+		}
+	}
+	return false
 }
