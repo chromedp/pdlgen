@@ -13,7 +13,7 @@ import (
 	"github.com/gedex/inflector"
 	"github.com/knq/snaker"
 
-	"github.com/chromedp/chromedp-gen/types"
+	"github.com/chromedp/cdproto-gen/types"
 )
 
 const (

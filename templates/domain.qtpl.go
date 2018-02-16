@@ -6,7 +6,7 @@ package templates
 
 //line templates/domain.qtpl:1
 import (
-	"github.com/chromedp/chromedp-gen/types"
+	"github.com/chromedp/cdproto-gen/types"
 )
 
 // DomainTemplate is the template for a single domain.

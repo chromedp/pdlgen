@@ -1,4 +1,4 @@
-// chromedp-gen is a tool to generate the low-level Chrome Debugging Protocol
+// cdproto-gen is a tool to generate the low-level Chrome Debugging Protocol
 // implementation types used by chromedp, based off Chrome's protocol.json.
 //
 // Please see README.md for more information on using this tool.
@@ -30,10 +30,10 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/imports"
 
-	"github.com/chromedp/chromedp-gen/fixup"
-	"github.com/chromedp/chromedp-gen/gen"
-	"github.com/chromedp/chromedp-gen/har"
-	"github.com/chromedp/chromedp-gen/types"
+	"github.com/chromedp/cdproto-gen/fixup"
+	"github.com/chromedp/cdproto-gen/gen"
+	"github.com/chromedp/cdproto-gen/har"
+	"github.com/chromedp/cdproto-gen/types"
 )
 
 const (
@@ -52,7 +52,7 @@ var (
 	flagTTL     = flag.Duration("ttl", 24*time.Hour, "browser and js protocol cache ttl")
 	flagTTLHar  = flag.Duration("ttlHar", 0, "har cache ttl")
 
-	flagCache = flag.String("cache", filepath.Join(os.Getenv("GOPATH"), "pkg", "chromedp-gen"), "protocol cache directory")
+	flagCache = flag.String("cache", filepath.Join(os.Getenv("GOPATH"), "pkg", "cdproto-gen"), "protocol cache directory")
 	flagPkg   = flag.String("pkg", "github.com/chromedp/cdproto", "out base package")
 	flagOut   = flag.String("out", "", "out directory")
 

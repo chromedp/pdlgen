@@ -43,8 +43,8 @@ import (
 
 	"github.com/knq/snaker"
 
-	"github.com/chromedp/chromedp-gen/templates"
-	"github.com/chromedp/chromedp-gen/types"
+	"github.com/chromedp/cdproto-gen/templates"
+	"github.com/chromedp/cdproto-gen/types"
 )
 
 // Specific type names to use for the applied fixes to the protocol domains.

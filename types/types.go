@@ -1,4 +1,4 @@
-// Package types contains the types used by the the chromedp-gen command.
+// Package types contains the types used by the the cdproto-gen command.
 package types
 
 import (

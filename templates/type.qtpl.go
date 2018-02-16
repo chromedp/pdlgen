@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/chromedp/chromedp-gen/types"
+	"github.com/chromedp/cdproto-gen/types"
 )
 
 // TypeTemplate is a template for a Typable type.

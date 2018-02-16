@@ -1,8 +1,8 @@
-# chromedp-gen
+# cdproto-gen
 
-`chromedp-gen` generates Go code for the commands, events, and types for the
+`cdproto-gen` generates Go code for the commands, events, and types for the
 [Chrome Debugging Protocol][1] and is a core component of the [`chromedp`][2]
-project. While `chromedp-gen`'s development is primarily driven by the needs of
+project. While `cdproto-gen`'s development is primarily driven by the needs of
 the `chromedp` project, the aim of this project is to generate [type-safe,
 fast, efficient, idiomatic Go code][3] usable by any Go application needing to
 drive Chrome through the CDP.
@@ -12,27 +12,27 @@ be created here, and **NOT** on the `cdproto` project.
 
 ### Protocol Definition Retrieval and Caching
 
-`chromedp-gen` retrieves the [`browser_protocol.json`][4] and [`js_protocol.json`][5]
+`cdproto-gen` retrieves the [`browser_protocol.json`][4] and [`js_protocol.json`][5]
 files from the [Chromium source tree][6] and generates a `har.json` protocol
 definition [from the HAR spec][7]. By default, these files are cached in the
-`$GOPATH/pkg/chromedp-gen` directory and periodically updated (see below).
+`$GOPATH/pkg/cdproto-gen` directory and periodically updated (see below).
 
 ### Code Generation
 
-`chromedp-gen` works by applying [templates][8] and ["fixups"][9] (such as
+`cdproto-gen` works by applying [templates][8] and ["fixups"][9] (such as
 spelling corrections that assist with generating [idiomatic Go][10]) to the CDP
 domains defined in `browser_protocol.json` and `js_protocol.json`. From the
-protocol definitions, `chromedp-gen` generates the [`github.com/chromedp/cdproto`][11]
+protocol definitions, `cdproto-gen` generates the [`github.com/chromedp/cdproto`][11]
 package and a `github.com/chromedp/cdproto/<domain>` subpackage for each
 domain. CDP types that have circular dependencies are placed in the
 `github.com/chromedp/cdproto/cdp` package.
 
 ## Installing
 
-`chromedp-gen` is installed in the usual Go way:
+`cdproto-gen` is installed in the usual Go way:
 
 ```sh
-$ go get -u github.com/chromedp/chromedp-gen
+$ go get -u github.com/chromedp/cdproto-gen
 ```
 
 ## Using
@@ -43,7 +43,7 @@ domain. The tool has sensible default options, and should be usable
 out-of-the-box:
 
 ```sh
-$ chromedp-gen
+$ cdproto-gen
 2017/12/28 07:40:03 BROWSER: https://chromium.googlesource.com/chromium/src/+/master/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=TEXT
 2017/12/28 07:40:03 JS     : https://chromium.googlesource.com/v8/v8/+/master/src/inspector/js_protocol.json?format=TEXT
 2017/12/28 07:40:03 SKIPPING(domain ): Console [deprecated]
@@ -58,7 +58,7 @@ $ chromedp-gen
 
 ### Command-line options
 
-`chromedp-gen` can be passed a single, combined protocol file via the `-proto`
+`cdproto-gen` can be passed a single, combined protocol file via the `-proto`
 command-line option for generating the commands, events, and types for the
 Chromium Debugging Protocol domains. If the `-proto` option is not specified
 (the default behavior), then the `browser_protocol.json` and `js_protocol.json`
@@ -82,18 +82,18 @@ controlled separately with the command-line option `-ttlHar`. A `-ttlHar=0`
 indicates never to regenerate the `har.json` and is the default value.
 
 The `browser_protocol.json`, `js_protocol.json`, and `har.json` files are
-cached in the `$GOPATH/pkg/chromedp-gen` directory by default, and can be
+cached in the `$GOPATH/pkg/cdproto-gen` directory by default, and can be
 changed by specifying the `-cache` option.
 
 Additional command-line options are also available:
 
 ```sh
-$ chromedp-gen --help
-Usage of ./chromedp-gen:
+$ cdproto-gen --help
+Usage of ./cdproto-gen:
   -browser string
     	browser protocol version to use (default "master")
   -cache string
-    	protocol cache directory (default "/home/ken/src/go/pkg/chromedp-gen")
+    	protocol cache directory (default "/home/ken/src/go/pkg/cdproto-gen")
   -debug
     	toggle debug (writes generated files to disk without post-processing)
   -dep
@@ -127,7 +127,7 @@ Usage of ./chromedp-gen:
 
 ## Working with Templates
 
-`chromedp-gen`'s code generation makes use of  [`quicktemplate`][12] templates.
+`cdproto-gen`'s code generation makes use of  [`quicktemplate`][12] templates.
 As such, in order to modify the templates, the `qtc` template compiler needs to
 be available on `$PATH`.
 
@@ -138,12 +138,12 @@ $ go get -u github.com/valyala/quicktemplate/qtc
 ```
 
 After modifying the `templates/*.qtpl` files, `qtc` needs to be run. Simply run
-`go generate` in the `$GOPATH/src/github.com/chromedp/chromedp-gen` directory,
-and rebuild/run `chromedp-gen`:
+`go generate` in the `$GOPATH/src/github.com/chromedp/cdproto-gen` directory,
+and rebuild/run `cdproto-gen`:
 
 ```sh
-$ cd $GOPATH/src/github.com/chromedp/chromedp-gen
-$ go generate && go build && ./chromedp-gen
+$ cd $GOPATH/src/github.com/chromedp/cdproto-gen
+$ go generate && go build && ./cdproto-gen
 qtc: 2017/12/28 07:40:02 Compiling *.qtpl template files in directory "templates"
 qtc: 2017/12/28 07:40:02 Compiling "templates/domain.qtpl" to "templates/domain.qtpl.go"...
 qtc: 2017/12/28 07:40:02 Compiling "templates/extra.qtpl" to "templates/extra.qtpl.go"...

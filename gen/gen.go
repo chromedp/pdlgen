@@ -9,8 +9,8 @@ import (
 
 	qtpl "github.com/valyala/quicktemplate"
 
-	"github.com/chromedp/chromedp-gen/templates"
-	"github.com/chromedp/chromedp-gen/types"
+	"github.com/chromedp/cdproto-gen/templates"
+	"github.com/chromedp/cdproto-gen/types"
 )
 
 // GenerateDomains generates domains for the Chrome Debugging Protocol domain

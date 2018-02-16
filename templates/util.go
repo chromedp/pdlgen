@@ -1,5 +1,5 @@
 // Package templates contains the valyala/quicktemplate based code generation
-// templates used by chromedp-gen.
+// templates used by cdproto-gen.
 package templates
 
 import (
@@ -8,7 +8,7 @@ import (
 
 	"github.com/knq/snaker"
 
-	"github.com/chromedp/chromedp-gen/types"
+	"github.com/chromedp/cdproto-gen/types"
 )
 
 const (
