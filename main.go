@@ -14,11 +14,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"go/format"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -40,6 +40,7 @@ const (
 	chromiumSrc = "https://chromium.googlesource.com/"
 	browserURL  = chromiumSrc + "chromium/src/+/%s/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=TEXT"
 	jsURL       = chromiumSrc + "v8/v8/+/%s/src/inspector/js_protocol.json?format=TEXT"
+	easyjsonGo  = "easyjson.go"
 )
 
 var (
@@ -59,7 +60,7 @@ var (
 	flagNoClean = flag.Bool("noclean", false, "toggle not cleaning (removing) existing directories")
 	flagNoCopy  = flag.Bool("nocopy", false, "toggle not copying combined protocol.json to out directory")
 	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR protocol and domain")
-	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol*.json,easyjson.go", "comma-separated list of files to whitelist/ignore during clean")
+	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol*.json,"+easyjsonGo, "comma-separated list of files to whitelist (ignore) during clean")
 
 	flagDep      = flag.Bool("dep", false, "toggle generation for deprecated APIs")
 	flagExp      = flag.Bool("exp", true, "toggle generation for experimental APIs")
@@ -190,7 +191,7 @@ func run() error {
 	}
 
 	// gofmt
-	err = gofmt(pkgs)
+	err = gofmt(fmtFiles(files, pkgs))
 	if err != nil {
 		return err
 	}
@@ -373,7 +374,7 @@ func easyjson(pkgs []string) error {
 					return err
 				}
 				g := bootstrap.Generator{
-					OutName:  filepath.Join(n, "easyjson.go"),
+					OutName:  filepath.Join(n, easyjsonGo),
 					PkgPath:  p.PkgPath,
 					PkgName:  p.PkgName,
 					Types:    p.StructNames,
@@ -386,21 +387,47 @@ func easyjson(pkgs []string) error {
 	return eg.Wait()
 }
 
-// gofmt formats all the output file buffers on disk using gofmt.
-func gofmt(pkgs []string) error {
+// gofmt go formats all files on disk.
+func gofmt(files []string) error {
 	logf("RUNNING: gofmt")
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, k := range files {
+		eg.Go(func(n string) func() error {
+			return func() error {
+				n = filepath.Join(*flagOut, n)
+				in, err := ioutil.ReadFile(n)
+				if err != nil {
+					return err
+				}
+				out, err := format.Source(in)
+				if err != nil {
+					return err
+				}
+				return ioutil.WriteFile(n, out, 0644)
+			}
+		}(k))
+	}
+	return eg.Wait()
+}
 
-	var keys []string
-	for _, k := range pkgs {
-		if k == "" {
-			continue
-		}
-		keys = append(keys, "./"+k)
+// fmtFiles returns the list of all files to format from the specified file
+// buffers and packages.
+func fmtFiles(files map[string]*bytes.Buffer, pkgs []string) []string {
+	filelen := len(files)
+	f := make([]string, filelen+len(pkgs))
+
+	var i int
+	for n := range files {
+		f[i] = n
+		i++
 	}
 
-	cmd := exec.Command("gofmt", append([]string{"-w", "-s", "."}, keys...)...)
-	cmd.Dir = *flagOut
-	return cmd.Run()
+	for i, pkg := range pkgs {
+		f[i+filelen] = filepath.Join(pkg, easyjsonGo)
+	}
+
+	sort.Strings(f)
+	return f
 }
 
 // fileCacher handles caching files to a path with a ttl.
