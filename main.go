@@ -38,7 +38,7 @@ import (
 
 const (
 	chromiumSrc = "https://chromium.googlesource.com/"
-	browserURL  = chromiumSrc + "chromium/src/+/%s/third_party/WebKit/Source/core/inspector/browser_protocol.json?format=TEXT"
+	browserURL  = chromiumSrc + "chromium/src/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.json?format=TEXT"
 	jsURL       = chromiumSrc + "v8/v8/+/%s/src/inspector/js_protocol.json?format=TEXT"
 	easyjsonGo  = "easyjson.go"
 )
