@@ -101,6 +101,21 @@ func run() error {
 		return err
 	}
 
+	// write protocol.json
+	if !*flagNoCopy || *flagDebug {
+		protoFile := fmt.Sprintf("protocol-%s_%s-%s.json", *flagBrowser, *flagJS, time.Now().Format("20060102"))
+
+		logf("WRITING: %s", protoFile)
+		buf, err := json.MarshalIndent(protoInfo, "", "  ")
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(filepath.Join(*flagOut, protoFile), buf, 0644)
+		if err != nil {
+			return err
+		}
+	}
+
 	// determine what to process
 	pkgs := []string{"", "cdp"}
 	var processed []*types.Domain
@@ -153,21 +168,6 @@ func run() error {
 			logf("REMOVING: %s", n)
 			return os.RemoveAll(n)
 		})
-		if err != nil {
-			return err
-		}
-	}
-
-	// write protocol.json
-	if !*flagNoCopy || *flagDebug {
-		protoFile := fmt.Sprintf("protocol-%s_%s-%s.json", *flagBrowser, *flagJS, time.Now().Format("20060102"))
-
-		logf("WRITING: %s", protoFile)
-		buf, err := json.MarshalIndent(protoInfo, "", "  ")
-		if err != nil {
-			return err
-		}
-		err = ioutil.WriteFile(filepath.Join(*flagOut, protoFile), buf, 0644)
 		if err != nil {
 			return err
 		}
