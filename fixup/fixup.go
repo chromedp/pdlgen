@@ -66,6 +66,11 @@ func FixDomains(domains []*types.Domain) {
 	// process domains
 	for _, d := range domains {
 		switch d.Domain {
+		case "Accessibility":
+			for _, t := range d.Types {
+				t.ID = strings.Replace(t.ID, "AX", "", -1)
+			}
+
 		case "CSS":
 			for _, t := range d.Types {
 				if t.ID == "CSSComputedStyleProperty" {
@@ -390,6 +395,7 @@ func convertObjectProperties(params []*types.Type, d *types.Domain, name string)
 			if z == "" {
 				z = p.Ref
 			}
+			z = strings.Replace(z, "AX", "", -1)
 
 			r = append(r, &types.Type{
 				Name:        p.Name,
