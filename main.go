@@ -43,9 +43,9 @@ import (
 )
 
 const (
-	chromiumSrc = "https://github.com/ChromeDevTools/devtools-protocol/raw/"
-	browserURL  = chromiumSrc + "%s/json/browser_protocol.json"
-	jsURL       = chromiumSrc + "%s/json/js_protocol.json"
+	chromiumSrc = "https://chromium.googlesource.com/"
+	browserURL  = chromiumSrc + "chromium/src/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.json?format=TEXT"
+	jsURL       = chromiumSrc + "v8/v8/+/%s/src/inspector/js_protocol.json?format=TEXT"
 	easyjsonGo  = "easyjson.go"
 )
 
@@ -612,7 +612,7 @@ func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte
 	}
 
 	// decode
-	if false /*b64Decode*/ {
+	if b64Decode {
 		buf, err = base64.StdEncoding.DecodeString(string(buf))
 		if err != nil {
 			return nil, err
