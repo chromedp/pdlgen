@@ -190,7 +190,6 @@ func run() error {
 		}
 		if diffBuf != nil {
 			os.Stdout.Write(diffBuf)
-			fmt.Fprintln(os.Stdout)
 		}
 	}
 
@@ -510,7 +509,7 @@ func prevProtoDiff(cur string) ([]byte, error) {
 			return nil, err
 		}
 		if diffBuf != nil {
-			return bytes.TrimSuffix(diffBuf, []byte{'\n'}), nil
+			return diffBuf, nil
 		}
 	}
 
