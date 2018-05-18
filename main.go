@@ -384,6 +384,9 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 				if err != nil {
 					return err
 				}
+				if err = os.MkdirAll(filepath.Dir(fn), 0755); err != nil {
+					return err
+				}
 				return ioutil.WriteFile(fn, buf, 0644)
 			}
 		}(k))
