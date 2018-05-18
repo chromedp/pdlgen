@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"go/format"
@@ -19,8 +20,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +38,7 @@ import (
 	"github.com/chromedp/cdproto-gen/fixup"
 	"github.com/chromedp/cdproto-gen/gen"
 	"github.com/chromedp/cdproto-gen/har"
+	"github.com/chromedp/cdproto-gen/internal"
 	"github.com/chromedp/cdproto-gen/types"
 )
 
@@ -60,6 +66,7 @@ var (
 	flagNoClean = flag.Bool("noclean", false, "toggle not cleaning (removing) existing directories")
 	flagNoCopy  = flag.Bool("nocopy", false, "toggle not copying combined protocol.json to out directory")
 	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR protocol and domain")
+	flagNoDiff  = flag.Bool("nodiff", false, "toggle not displaying diff")
 	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol*.json,"+easyjsonGo, "comma-separated list of files to whitelist (ignore) during clean")
 
 	flagDep      = flag.Bool("dep", false, "toggle generation for deprecated APIs")
@@ -68,8 +75,6 @@ var (
 )
 
 func main() {
-	var err error
-
 	flag.Parse()
 
 	// fix out directory
@@ -77,8 +82,8 @@ func main() {
 		*flagOut = filepath.Join(os.Getenv("GOPATH"), "src", *flagPkg)
 	}
 
-	err = run()
-	if err != nil {
+	// run
+	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
@@ -101,16 +106,16 @@ func run() error {
 		return err
 	}
 
+	protoFile := filepath.Join(*flagOut, fmt.Sprintf("protocol-%s_%s-%s.json", *flagBrowser, *flagJS, time.Now().Format("20060102")))
+
 	// write protocol.json
 	if !*flagNoCopy || *flagDebug {
-		protoFile := fmt.Sprintf("protocol-%s_%s-%s.json", *flagBrowser, *flagJS, time.Now().Format("20060102"))
-
 		logf("WRITING: %s", protoFile)
 		buf, err := json.MarshalIndent(protoInfo, "", "  ")
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(filepath.Join(*flagOut, protoFile), buf, 0644)
+		err = ioutil.WriteFile(protoFile, buf, 0644)
 		if err != nil {
 			return err
 		}
@@ -155,16 +160,19 @@ func run() error {
 		outpath := *flagOut + string(filepath.Separator)
 		err = filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
 			switch {
-			case os.IsNotExist(err):
+			case os.IsNotExist(err) || n == outpath:
 				return nil
 			case err != nil:
 				return err
 			}
 
-			fn, sn := n[len(outpath):], fi.Name()
-			if n == outpath || fn == "" || strings.HasPrefix(fn, ".") || strings.HasPrefix(sn, ".") || whitelisted(sn) || contains(files, fn) {
+			// skip if file or path starts with ., is whitelisted, or is one of
+			// the files whose output will be overwritten
+			pn, fn := n[len(outpath):], fi.Name()
+			if pn == "" || strings.HasPrefix(pn, ".") || strings.HasPrefix(fn, ".") || whitelisted(fn) || contains(files, pn) {
 				return nil
 			}
+
 			logf("REMOVING: %s", n)
 			return os.RemoveAll(n)
 		})
@@ -172,6 +180,21 @@ func run() error {
 			return err
 		}
 	}
+
+	// display differences between generated protocol.json and previous version
+	// on disk
+	if *flagVerbose && !*flagNoDiff && runtime.GOOS != "windows" {
+		diffBuf, err := prevProtoDiff(protoFile)
+		if err != nil {
+			return err
+		}
+		if diffBuf != nil {
+			os.Stdout.Write(diffBuf)
+			fmt.Fprintln(os.Stdout)
+		}
+	}
+
+	logf("WRITING: %d files", len(files))
 
 	// dump files and exit
 	if *flagDebug {
@@ -306,8 +329,6 @@ func cleanup(d *types.Domain) {
 
 // write writes all file buffer to disk.
 func write(fileBuffers map[string]*bytes.Buffer) error {
-	logf("WRITING: %d files", len(fileBuffers))
-
 	var keys []string
 	for k := range fileBuffers {
 		keys = append(keys, k)
@@ -319,15 +340,12 @@ func write(fileBuffers map[string]*bytes.Buffer) error {
 		n := filepath.Join(*flagOut, k)
 
 		// create directory
-		dir := filepath.Dir(n)
-		err := os.MkdirAll(dir, 0755)
-		if err != nil {
+		if err := os.MkdirAll(filepath.Dir(n), 0755); err != nil {
 			return err
 		}
 
 		// write file
-		err = ioutil.WriteFile(n, fileBuffers[k].Bytes(), 0644)
-		if err != nil {
+		if err := ioutil.WriteFile(n, fileBuffers[k].Bytes(), 0644); err != nil {
 			return err
 		}
 	}
@@ -369,8 +387,7 @@ func easyjson(pkgs []string) error {
 			return func() error {
 				n = filepath.Join(*flagOut, n)
 				p := parser.Parser{AllStructs: true}
-				err := p.Parse(n, true)
-				if err != nil {
+				if err := p.Parse(n, true); err != nil {
 					return err
 				}
 				g := bootstrap.Generator{
@@ -430,6 +447,118 @@ func fmtFiles(files map[string]*bytes.Buffer, pkgs []string) []string {
 	return f
 }
 
+// prevProtoDiff finds the last protocol.json file and returns a formatted diff
+// against current.
+func prevProtoDiff(cur string) ([]byte, error) {
+	var protoFileMaskRE = regexp.MustCompile(`^protocol-([^-]+)-(2[0-9]{7})\.json$`)
+
+	type finfo struct {
+		name string
+		info os.FileInfo
+		date time.Time
+	}
+
+	// build list of protocol.json files on disk
+	var files []*finfo
+	outpath := *flagOut + string(filepath.Separator)
+	curBase := filepath.Base(cur)
+	err := filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
+		switch {
+		case os.IsNotExist(err) || n == outpath:
+			return nil
+		case err != nil:
+			return err
+		case fi.IsDir():
+			return nil
+		}
+
+		// skip if same as current or doesn't match file mask
+		fn := n[len(outpath):]
+		m := protoFileMaskRE.FindAllStringSubmatch(fn, -1)
+		if m == nil || filepath.Base(fn) == curBase {
+			return nil
+		}
+
+		// parse date
+		date, err := time.Parse("20060102", m[0][2])
+		if err != nil {
+			return nil
+		}
+
+		// add to files
+		files = append(files, &finfo{n, fi, date})
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// if nothing to process, bail
+	if len(files) == 0 {
+		return nil, nil
+	}
+
+	// sort protos
+	sort.Slice(files, func(a, b int) bool {
+		return files[a].date.After(files[b].date)
+	})
+
+	// look for first file that's different
+	for _, f := range files {
+		diffBuf, err := diffFiles(f.name, cur)
+		if err != nil {
+			return nil, err
+		}
+		if diffBuf != nil {
+			return bytes.TrimSuffix(diffBuf, []byte{'\n'}), nil
+		}
+	}
+
+	return nil, nil
+}
+
+// diffFiles creates a diff between two files.
+func diffFiles(a, b string) ([]byte, error) {
+	// determine diff tool
+	icdiff := true
+	diffTool, err := exec.LookPath("icdiff")
+	if err != nil {
+		diffTool, err = exec.LookPath("diff")
+		icdiff = false
+	}
+	if err != nil || diffTool == "" {
+		return nil, errors.New("could not find icdiff or diff on path")
+	}
+
+	// build command line options
+	opts := []string{"--label", filepath.Base(a), "--label", filepath.Base(b)}
+	cols := strconv.Itoa(internal.GetColumns())
+	if !icdiff {
+		opts = append(opts, "--side-by-side", "--width="+cols)
+	} else {
+		opts = append(opts, "--cols="+cols)
+	}
+
+	// log.Printf("DIFF a:%s, b:%s", a, b)
+	cmd := exec.Command(diffTool, append(opts, a, b)...)
+	buf, err := cmd.CombinedOutput()
+	if internal.HasDiff(icdiff, err) {
+		return buf, nil
+	}
+	return nil, nil
+}
+
+// fmtStartLength formats the diff coord for start and len.
+func fmtStartLength(st, l int) string {
+	switch {
+	case l == 0:
+		return fmt.Sprintf("%d,0", st)
+	case l == 1:
+		return strconv.Itoa(st + 1)
+	}
+	return fmt.Sprintf("%d,%d", st+1, l)
+}
+
 // fileCacher handles caching files to a path with a ttl.
 type fileCacher struct {
 	path string
@@ -447,7 +576,7 @@ func (fc fileCacher) Cache(buf []byte, names ...string) error {
 	return ioutil.WriteFile(pathJoin(fc.path, names...), buf, 0644)
 }
 
-// Retrieve retrieves a file from disk or from the remote URL, optionally
+// Get retrieves a file from disk or from the remote URL, optionally
 // base64 decoding it and writing it to disk.
 func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte, error) {
 	n := pathJoin(fc.path, names...)
