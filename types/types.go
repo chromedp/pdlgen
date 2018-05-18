@@ -42,6 +42,9 @@ type Domain struct {
 	// Deprecated indicates whether or not the domain is deprecated.
 	Deprecated Bool `json:"deprecated,omitempty"`
 
+	// Dependencies are the domains this domain depends on.
+	Dependencies []string `json:"dependencies,omitempty"`
+
 	// Types are the list of types in the domain.
 	Types []*Type `json:"types,omitempty"`
 
@@ -261,6 +264,9 @@ type Type struct {
 
 	// Deprecated indicates if the type is deprecated. Used for commands and event parameters.
 	Deprecated Bool `json:"deprecated,omitempty"`
+
+	// Experimental indicates whether or not the type is experimental.
+	Experimental Bool `json:"experimental,omitempty"`
 
 	// Enum are the enum values for the type (only used when type is string --
 	// a non empty slice marks the type as a "enum").

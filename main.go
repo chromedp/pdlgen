@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -43,9 +44,9 @@ import (
 )
 
 const (
-	chromiumSrc = "https://chromium.googlesource.com/"
-	browserURL  = chromiumSrc + "chromium/src/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.json?format=TEXT"
-	jsURL       = chromiumSrc + "v8/v8/+/%s/src/inspector/js_protocol.json?format=TEXT"
+	chromiumSrc = "https://chromium.googlesource.com"
+	browserURL  = "chromium/src/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
+	jsURL       = "v8/v8/+/%s/src/inspector/js_protocol.pdl"
 	easyjsonGo  = "easyjson.go"
 )
 
@@ -121,6 +122,18 @@ func run() error {
 		}
 	}
 
+	// display differences between generated protocol.json and previous version
+	// on disk
+	if *flagVerbose && !*flagNoDiff && runtime.GOOS != "windows" {
+		diffBuf, err := prevProtoDiff(protoFile)
+		if err != nil {
+			return err
+		}
+		if diffBuf != nil {
+			os.Stdout.Write(diffBuf)
+		}
+	}
+
 	// determine what to process
 	pkgs := []string{"", "cdp"}
 	var processed []*types.Domain
@@ -181,18 +194,6 @@ func run() error {
 		}
 	}
 
-	// display differences between generated protocol.json and previous version
-	// on disk
-	if *flagVerbose && !*flagNoDiff && runtime.GOOS != "windows" {
-		diffBuf, err := prevProtoDiff(protoFile)
-		if err != nil {
-			return err
-		}
-		if diffBuf != nil {
-			os.Stdout.Write(diffBuf)
-		}
-	}
-
 	logf("WRITING: %d files", len(files))
 
 	// dump files and exit
@@ -246,26 +247,39 @@ func loadProtocolInfo() (*types.ProtocolInfo, error) {
 	}
 
 	var protos [][]byte
-	load := func(typ, ver, urlstr string) error {
-		urlstr = fmt.Sprintf(urlstr, ver)
+	load := func(typ, file, ver string) error {
+		urlstr := fmt.Sprintf("%s/%s?format=TEXT", chromiumSrc, fmt.Sprintf(file, ver))
 		logf("%s: %s", pad(strings.ToUpper(typ), 7), urlstr)
 		buf, err := fileCacher{
 			path: filepath.Join(*flagCache, typ, ver),
 			ttl:  *flagTTL,
-		}.Get(urlstr, true, typ+"_protocol.json")
+		}.Get(urlstr, true, path.Base(file))
 		if err != nil {
 			return err
 		}
+
+		// convert PDL to JSON definition
+		pdl, err := types.Parse(buf)
+		if err != nil {
+			return err
+		}
+
+		// remarshal to json
+		buf, err = json.MarshalIndent(pdl, "", "  ")
+		if err != nil {
+			return err
+		}
+
 		protos = append(protos, buf)
 		return nil
 	}
 
 	// grab browser + js definitions
-	err = load("browser", *flagBrowser, browserURL)
+	err = load("browser", browserURL, *flagBrowser)
 	if err != nil {
 		return nil, err
 	}
-	err = load("js", *flagJS, jsURL)
+	err = load("js", jsURL, *flagJS)
 	if err != nil {
 		return nil, err
 	}
