@@ -1,6 +1,6 @@
 // +build !windows
 
-package internal
+package diff
 
 import (
 	"os/exec"
@@ -8,8 +8,8 @@ import (
 	"unsafe"
 )
 
-// GetColumns returns the columns for the active terminal.
-func GetColumns() int {
+// getColumns returns the columns for the active terminal.
+func getColumns() int {
 	type size struct {
 		R uint16
 		C uint16
@@ -25,9 +25,9 @@ func GetColumns() int {
 	return int(ret.C)
 }
 
-// HasDiff takes the command result and error and returns true when exit status
+// hasDiff takes the command result and error and returns true when exit status
 // is 1.
-func HasDiff(icdiff bool, err error) bool {
+func hasDiff(icdiff bool, err error) bool {
 	if icdiff {
 		return err == nil
 	}

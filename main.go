@@ -12,7 +12,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"go/format"
@@ -20,13 +19,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -36,10 +32,10 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/imports"
 
+	"github.com/chromedp/cdproto-gen/diff"
 	"github.com/chromedp/cdproto-gen/fixup"
 	"github.com/chromedp/cdproto-gen/gen"
 	"github.com/chromedp/cdproto-gen/har"
-	"github.com/chromedp/cdproto-gen/internal"
 	"github.com/chromedp/cdproto-gen/types"
 )
 
@@ -125,7 +121,7 @@ func run() error {
 	// display differences between generated protocol.json and previous version
 	// on disk
 	if *flagVerbose && !*flagNoDiff && runtime.GOOS != "windows" {
-		diffBuf, err := prevProtoDiff(protoFile)
+		diffBuf, err := diff.WalkAndCompare(*flagOut, `^protocol-([^-]+)-(2[0-9]{7})\.json$`, 2, protoFile)
 		if err != nil {
 			return err
 		}
@@ -461,118 +457,6 @@ func fmtFiles(files map[string]*bytes.Buffer, pkgs []string) []string {
 
 	sort.Strings(f)
 	return f
-}
-
-// prevProtoDiff finds the last protocol.json file and returns a formatted diff
-// against current.
-func prevProtoDiff(cur string) ([]byte, error) {
-	var protoFileMaskRE = regexp.MustCompile(`^protocol-([^-]+)-(2[0-9]{7})\.json$`)
-
-	type finfo struct {
-		name string
-		info os.FileInfo
-		date time.Time
-	}
-
-	// build list of protocol.json files on disk
-	var files []*finfo
-	outpath := *flagOut + string(filepath.Separator)
-	curBase := filepath.Base(cur)
-	err := filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
-		switch {
-		case os.IsNotExist(err) || n == outpath:
-			return nil
-		case err != nil:
-			return err
-		case fi.IsDir():
-			return nil
-		}
-
-		// skip if same as current or doesn't match file mask
-		fn := n[len(outpath):]
-		m := protoFileMaskRE.FindAllStringSubmatch(fn, -1)
-		if m == nil || filepath.Base(fn) == curBase {
-			return nil
-		}
-
-		// parse date
-		date, err := time.Parse("20060102", m[0][2])
-		if err != nil {
-			return nil
-		}
-
-		// add to files
-		files = append(files, &finfo{n, fi, date})
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// if nothing to process, bail
-	if len(files) == 0 {
-		return nil, nil
-	}
-
-	// sort protos
-	sort.Slice(files, func(a, b int) bool {
-		return files[a].date.After(files[b].date)
-	})
-
-	// look for first file that's different
-	for _, f := range files {
-		diffBuf, err := diffFiles(f.name, cur)
-		if err != nil {
-			return nil, err
-		}
-		if diffBuf != nil {
-			return diffBuf, nil
-		}
-	}
-
-	return nil, nil
-}
-
-// diffFiles creates a diff between two files.
-func diffFiles(a, b string) ([]byte, error) {
-	// determine diff tool
-	icdiff := true
-	diffTool, err := exec.LookPath("icdiff")
-	if err != nil {
-		diffTool, err = exec.LookPath("diff")
-		icdiff = false
-	}
-	if err != nil || diffTool == "" {
-		return nil, errors.New("could not find icdiff or diff on path")
-	}
-
-	// build command line options
-	opts := []string{"--label", filepath.Base(a), "--label", filepath.Base(b)}
-	cols := strconv.Itoa(internal.GetColumns())
-	if !icdiff {
-		opts = append(opts, "--side-by-side", "--width="+cols)
-	} else {
-		opts = append(opts, "--cols="+cols)
-	}
-
-	// log.Printf("DIFF a:%s, b:%s", a, b)
-	cmd := exec.Command(diffTool, append(opts, a, b)...)
-	buf, err := cmd.CombinedOutput()
-	if internal.HasDiff(icdiff, err) {
-		return buf, nil
-	}
-	return nil, nil
-}
-
-// fmtStartLength formats the diff coord for start and len.
-func fmtStartLength(st, l int) string {
-	switch {
-	case l == 0:
-		return fmt.Sprintf("%d,0", st)
-	case l == 1:
-		return strconv.Itoa(st + 1)
-	}
-	return fmt.Sprintf("%d,%d", st+1, l)
 }
 
 // fileCacher handles caching files to a path with a ttl.
