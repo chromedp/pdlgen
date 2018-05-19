@@ -207,7 +207,7 @@ func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
 
 	// create the protocol info
 	return &types.ProtocolInfo{
-		Version: &types.Version{Major: "1", Minor: "2"},
+		Version: &types.Version{Major: "1", Minor: "3"},
 		Domains: []*types.Domain{{
 			Domain:      types.DomainType("HAR"),
 			Description: "HTTP Archive Format",
