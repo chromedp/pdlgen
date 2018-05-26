@@ -6,7 +6,8 @@ addons:
   apt:
     chrome: stable
 before_install:
-  - go get github.com/mattn/goveralls golang.org/x/vgo
+  - go get -u github.com/mattn/goveralls golang.org/x/vgo
+  - go get -u github.com/knq/sysutil github.com/mailru/easyjson
 script:
   - vgo build && ./cdproto-gen
   - cd $GOPATH/src/github.com/chromedp/cdproto
