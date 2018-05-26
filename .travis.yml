@@ -1,19 +1,13 @@
 language: go
 go:
-  - 1.9.x
-#  - 1.10.x
-#  - tip
+  - 1.10.x
+  - tip
 addons:
   apt:
     chrome: stable
 before_install:
-  - go get -u github.com/mailru/easyjson
-  - go get -d github.com/chromedp/chromedp
+  - go get github.com/mattn/goveralls golang.org/x/vgo
 script:
-  - go build && ./cdproto-gen
+  - vgo build && ./cdproto-gen
   - cd $GOPATH/src/github.com/chromedp/cdproto
   - go install ./...
-  - export CHROMEDP_TEST_RUNNER=google-chrome-stable
-  - export CHROMEDP_DISABLE_GPU=true
-  - cd $GOPATH/src/github.com/chromedp/chromedp
-  - go test -v
