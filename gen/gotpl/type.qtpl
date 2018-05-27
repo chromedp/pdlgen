@@ -2,23 +2,24 @@
 	"strings"
 	"strconv"
 
-	"github.com/chromedp/cdproto-gen/types"
+	"github.com/chromedp/cdproto-gen/gen/genutil"
+	"github.com/chromedp/cdproto-gen/pdl"
 ) %}
 
 // TypeTemplate is a template for a Typable type.
-{% func TypeTemplate(t *types.Type, prefix, suffix string, d *types.Domain, domains []*types.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
-	typ := prefix + t.CamelName() + suffix
+{% func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
+	typ := prefix + CamelName(t) + suffix
 
-	var extra []*types.Type
+	var extra []*pdl.Type
 	switch x := v.(type) {
-	case []*types.Type:
+	case []*pdl.Type:
 		extra = x
 	}
 %}
-{%s= formatComment(t.GetDescription(), "", typ + " ") %}
-type {%s= typ %} {%s= t.GoTypeDef(d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional) %}
-{% if t.Parameters == nil && t.Type != types.TypeArray && t.Type != types.TypeObject && t.Type != types.TypeAny %}{%code
-	gz := t.Type.GoType()
+{%s= genutil.FormatComment(t.Description, "", typ + " ") %}
+type {%s= typ %} {%s= GoTypeDef(t, d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional) %}
+{% if t.Parameters == nil && t.Type != pdl.TypeArray && t.Type != pdl.TypeObject && t.Type != pdl.TypeAny %}{%code
+	gz := GoEnumType(t.Type)
 	z := gz
 	if strings.Contains(z, ".") {
 		z = z[strings.Index(z, ".")+1:]
@@ -30,8 +31,8 @@ func (t {%s= typ %}) {%s= z %}() {%s= gz %} {
 	return {%s= gz %}(t)
 }
 {% endif %}
-{% if ev := t.EnumValues(); ev != nil %}{%code
-	gz := t.Type.GoType()
+{% if ev := t.Enum; ev != nil %}{%code
+	gz := GoEnumType(t.Type)
 	z := gz
 	if strings.Contains(z, ".") {
 		z = z[strings.Index(z, ".")+1:]
@@ -39,21 +40,21 @@ func (t {%s= typ %}) {%s= z %}() {%s= gz %} {
 	z = strings.ToUpper(z[:1])+z[1:]
 %}// {%s= typ %} values.
 const ({% for i, e := range ev %}{% code
-	n := t.EnumValueName(e)
+	n := EnumValueName(t, e)
 	val := `"` + e + `"`
-	if t.Type == types.TypeInteger && t.EnumBitMask {
+	if t.Type == pdl.TypeInteger && t.EnumBitMask {
 		val = strconv.Itoa(1<<uint(i-1))
-	} else if t.Type == types.TypeInteger {
+	} else if t.Type == pdl.TypeInteger {
 		val = strconv.Itoa(i+1)
 	}
 %}
 	{%s= n %} {%s= typ %} = {%s= val %}{% endfor %}
 )
-{% if t.Type != types.TypeString %}
+{% if t.Type != pdl.TypeString %}
 // String returns the {%s= typ %} as string value.
 func (t {%s= typ %}) String() string {
-	switch t {{% for _, e := range t.EnumValues() %}
-	case {%s= t.EnumValueName(e) %}:
+	switch t {{% for _, e := range t.Enum %}
+	case {%s= EnumValueName(t, e) %}:
 		return {%q= e %}{% endfor %}
 	}
 
@@ -73,8 +74,8 @@ func (t {%s= typ %}) MarshalJSON() ([]byte, error) {
 
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
 func (t *{%s= typ %}) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	switch {%s= typ %}(in.{%s= z %}()) {{% for _, e := range t.EnumValues() %}{% code
-		n := t.EnumValueName(e)
+	switch {%s= typ %}(in.{%s= z %}()) {{% for _, e := range t.Enum %}{% code
+		n := EnumValueName(t, e)
 %}
 	case {%s= n %}:
 		*t = {%s= n %}{% endfor %}

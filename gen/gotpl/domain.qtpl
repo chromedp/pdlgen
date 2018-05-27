@@ -1,0 +1,140 @@
+{% import (
+	"github.com/chromedp/cdproto-gen/gen/genutil"
+	"github.com/chromedp/cdproto-gen/pdl"
+) %}
+
+// DomainTemplate is the template for a single domain.
+{% func DomainTemplate(d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}
+{% for _, c := range d.Commands %}
+{%s= CommandTemplate(c, d, domains, sharedFunc) %}
+{% endfor %}
+{% if len(d.Commands) > 0 %}
+// Command names.
+const (
+{% for _, c := range d.Commands %}
+	{%s= CommandMethodType(c, nil) %} = {%q= ProtoName(c, d) %}{% endfor %})
+{% endif %}
+{% endfunc %}
+
+// CommandTemplate is the general command template.
+{% func CommandTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}
+{% code /* add *Param type */ %}
+{%s= TypeTemplate(c, CommandTypePrefix, CommandTypeSuffix, d, domains, sharedFunc, nil, false, true) %}
+
+{% code /* add Command func */ %}
+{%s= CommandFuncTemplate(c, d, domains, sharedFunc) %}
+
+{% code /* add param funcs (only if it has parameters and a returns). */ %}
+{% if len(c.Parameters) != 0 %}{% for _, p := range c.Parameters %}{% if !p.Optional %}{% continue %}{% endif %}
+{%s= CommandOptionFuncTemplate(p, c, d, domains, sharedFunc) %}
+{% endfor %}{% endif %}
+
+{% code /* add *Returns type */ %}
+{% if len(c.Returns) != 0 %}
+{%s= TypeTemplate(&pdl.Type{
+	Name: c.Name,
+	Type: pdl.TypeObject,
+	Description: "Return values.",
+	Properties: c.Returns,
+}, CommandReturnsPrefix, CommandReturnsSuffix, d, domains, sharedFunc, nil, false, false) %}
+{% endif %}
+
+{% code /* add CommandParams.Do func */ %}
+{%s= CommandDoFuncTemplate(c, d, domains, sharedFunc) %}
+{% endfunc %}
+
+// CommandFuncTemplate is the command func template.
+{% func CommandFuncTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}{% code
+	cmdName := CamelName(c)
+	typ := CommandType(c)
+%}
+{%s= genutil.FormatComment(c.Description, "", cmdName + " ") %}{% if len(c.Parameters) > 0 %}
+//
+// parameters:{% for _, p := range c.Parameters %}{% if p.Optional %}{% continue %}{% endif %}
+//   {%s= ParamDesc(p) %}{% if p.Optional %} (optional){% endif %}{% endfor %}{% endif %}
+func {%s= cmdName %}({%s= ParamList(c, d, domains, sharedFunc, false) %}) *{%s= typ %}{
+	return &{%s= typ %}{{% for _, t := range c.Parameters %}{% if !t.Optional %}
+		{%s= GoName(t, false) %}: {%s= GoName(t, true) %},{% endif %}{% endfor %}
+	}
+}
+{% endfunc %}
+
+// CommandOptionFuncTemplate is the command option func template.
+{% func CommandOptionFuncTemplate(t *pdl.Type, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}{% code
+	n := GoName(t, false)
+	optName := OptionFuncPrefix+n+OptionFuncSuffix
+	typ := CommandType(c)
+	v := GoName(t, true)
+%}
+{%s= genutil.FormatComment(t.Description, "", optName + " ") %}
+func (p {%s= typ %}) {%s= optName %}({%s= v %} {%s= GoType(t, d, domains, sharedFunc) %}) *{%s= typ %}{
+	p.{%s= n %} = {%s= v %}
+	return &p
+}
+{% endfunc %}
+
+// CommandDoFuncTemplate is the command do func template.
+{% func CommandDoFuncTemplate(c *pdl.Type, d *pdl.Domain, domains[]*pdl.Domain, sharedFunc func(string, string) bool) %}{% code
+	typ := CommandType(c)
+
+	hasEmptyParams := len(c.Parameters) == 0
+	hasEmptyRet := len(c.Returns) == 0
+
+	emptyRet := EmptyRetList(c, d, domains, sharedFunc)
+	if emptyRet != "" {
+		emptyRet += ", "
+	}
+
+	retTypeList := RetTypeList(c, d, domains, sharedFunc)
+	if retTypeList != "" {
+		retTypeList += ", "
+	}
+
+	retValueList := RetNameList(c, "res", d, domains)
+	if retValueList != "" {
+		retValueList += ", "
+	}
+
+	b64ret := Base64EncodedRetParam(c)
+
+	// determine if there's a conditional that indicates whether or not the
+	// returned value is b64 encoded.
+	var b64cond bool
+	for _, p := range c.Returns {
+		if p.Name == Base64EncodedParamName {
+			b64cond = true
+			break
+		}
+	}
+
+	pval := "p"
+	if hasEmptyParams {
+		pval = "nil"
+	}
+%}
+// Do executes {%s= ProtoName(c, d) %} against the provided context.{% if !hasEmptyRet %}
+//
+// returns:{% for _, p := range c.Returns %}{% if p.Name == Base64EncodedParamName %}{% continue %}{% endif %}
+//   {%s= ParamDesc(p) %}{% endfor %}{% endif %}
+func (p *{%s= typ %}) Do(ctxt context.Context, h cdp.Executor) ({%s= retTypeList %}err error) {{% if hasEmptyRet %}
+	return h.Execute(ctxt, {%s= CommandMethodType(c, nil) %}, {%s= pval %}, nil){% else %}
+	// execute
+	var res {%s= CommandReturnsType(c) %}
+	err = h.Execute(ctxt, {%s= CommandMethodType(c, nil) %}, {%s= pval %}, &res)
+	if err != nil {
+		return {%s= emptyRet %}err
+	}
+	{% if b64ret != nil %}
+	// decode
+	var dec []byte{% if b64cond %}
+	if res.Base64encoded {{% endif %}
+		dec, err = base64.StdEncoding.DecodeString(res.{%s= GoName(b64ret, false) %})
+		if err != nil {
+			return {%s= emptyRet %}err
+		}{% if b64cond %}
+	} else {
+		dec = []byte(res.{%s= GoName(b64ret, false) %})
+	}{% endif %}{% endif %}
+	return {%s= retValueList %}nil{% endif %}
+}
+{% endfunc %}

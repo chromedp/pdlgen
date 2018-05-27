@@ -1,10 +1,15 @@
-package har
+// +build ignore
+
+package main
 
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"regexp"
 	"sort"
 	"strings"
@@ -13,121 +18,103 @@ import (
 	"github.com/gedex/inflector"
 	"github.com/knq/snaker"
 
-	"github.com/chromedp/cdproto-gen/types"
+	"github.com/chromedp/cdproto-gen/pdl"
 )
 
 const (
 	specURL = "http://www.softwareishard.com/blog/har-12-spec/"
+)
 
+var (
+	flagOut = flag.String("o", "har.go", "out file")
+)
+
+func main() {
+	flag.Parse()
+
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// run downloads and generates a HAR definition from the remote website,
+// writing the generated definition to flagOut.
+func run() error {
+	// retrieve
+	buf, err := grab(specURL)
+	if err != nil {
+		return err
+	}
+
+	// generate
+	pdl, err := generate(buf)
+	if err != nil {
+		return err
+	}
+
+	// escape
+	pdlBuf := bytes.Replace(pdl.Bytes(), []byte("`"), []byte("\\`"), -1)
+	b := new(bytes.Buffer)
+	fmt.Fprintf(b, harTpl, string(pdlBuf))
+	return ioutil.WriteFile(*flagOut, b.Bytes(), 0644)
+}
+
+// grab retrieves a url.
+func grab(urlstr string) ([]byte, error) {
+	req, err := http.NewRequest("GET", specURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	cl := &http.Client{}
+	res, err := cl.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	return ioutil.ReadAll(res.Body)
+}
+
+const (
 	cacheDataID = "CacheData"
 )
 
-// propRefMap is the map of property names to their respective type.
-var propRefMap = map[string]string{
-	"Log.creator":         "Creator",
-	"Log.browser":         "Creator",
-	"Log.pages":           "Page",
-	"Log.entries":         "Entry",
-	"Page.pageTimings":    "PageTimings",
-	"Entry.request":       "Request",
-	"Entry.response":      "Response",
-	"Entry.cache":         "Cache",
-	"Entry.timings":       "Timings",
-	"Request.cookies":     "Cookie",
-	"Request.headers":     "NameValuePair",
-	"Request.queryString": "NameValuePair",
-	"Request.postData":    "PostData",
-	"Response.cookies":    "Cookie",
-	"Response.headers":    "NameValuePair",
-	"Response.content":    "Content",
-	"PostData.params":     "Param",
-	"Cache.beforeRequest": cacheDataID,
-	"Cache.afterRequest":  cacheDataID,
-}
-
-// Cacher is an interface to retrieve and cache remote files to disk.
-type Cacher interface {
-	Load(...string) ([]byte, error)
-	Cache([]byte, ...string) error
-	Get(string, bool, ...string) ([]byte, error)
-}
-
-// LoadProto loads the HAR protocol definition using the cacher. If the
-// har.json file is not cached, then it's generated from the remote spec and
-// written to the cache.
-func LoadProto(cacher Cacher) ([]byte, error) {
-	// load file on disk
-	harBuf, err := cacher.Load("har.json")
-	if err == nil {
-		return harBuf, nil
-	}
-
-	// grab spec file
-	specBuf, err := cacher.Get(specURL, false, "spec.html")
-	if err != nil {
-		return nil, err
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	harProto, err := generateDomain(specBuf)
-	if err != nil {
-		return nil, err
-	}
-
-	// marshal to json
-	harBuf, err = json.MarshalIndent(harProto, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-
-	// write
-	err = cacher.Cache(harBuf, "har.json")
-	if err != nil {
-		return nil, err
-	}
-
-	return harBuf, nil
-}
-
-var descCleanRE = regexp.MustCompile(`(?i)^this\s*objects?\s+`)
-
-// generateDomain generates a HAR domain definition using the supplied cacher
-// mechanism.
-func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
+// generate generates a PDL from the supplied HTML page containing a single
+// 'HAR' domain.
+func generate(buf []byte) (*pdl.PDL, error) {
 	// initial type map
-	typeMap := map[string]types.Type{
+	typeMap := map[string]pdl.Type{
 		"HAR": {
-			ID:          "HAR",
-			Type:        types.TypeObject,
+			Type:        pdl.TypeObject,
+			Name:        "HAR",
 			Description: "Parent container for HAR log.",
-			Properties: []*types.Type{{
+			Properties: []*pdl.Type{{
 				Name: "log",
 				Ref:  "Log",
 			}},
 		},
 		"NameValuePair": {
-			ID:          "NameValuePair",
-			Type:        types.TypeObject,
+			Name:        "NameValuePair",
+			Type:        pdl.TypeObject,
 			Description: "Describes a name/value pair.",
-			Properties: []*types.Type{{
+			Properties: []*pdl.Type{{
 				Name:        "name",
-				Type:        types.TypeString,
+				Type:        pdl.TypeString,
 				Description: "Name of the pair.",
 			}, {
 				Name:        "value",
-				Type:        types.TypeString,
+				Type:        pdl.TypeString,
 				Description: "Value of the pair.",
 			}, {
 				Name:        "comment",
-				Type:        types.TypeString,
+				Type:        pdl.TypeString,
 				Description: "A comment provided by the user or the application.",
-				Optional:    types.Bool(true),
+				Optional:    true,
 			}},
 		},
 	}
 
+	// parse file
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(buf))
 	if err != nil {
 		return nil, err
@@ -170,9 +157,9 @@ func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
 		}
 
 		// add to type map
-		typeMap[id] = types.Type{
-			ID:          id,
-			Type:        types.TypeObject,
+		typeMap[id] = pdl.Type{
+			Type:        pdl.TypeObject,
+			Name:        id,
 			Description: desc,
 			Properties:  props,
 		}
@@ -184,9 +171,9 @@ func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	typeMap[cacheDataID] = types.Type{
-		ID:          cacheDataID,
-		Type:        types.TypeObject,
+	typeMap[cacheDataID] = pdl.Type{
+		Name:        cacheDataID,
+		Type:        pdl.TypeObject,
 		Description: "Describes the cache data for beforeRequest and afterRequest.",
 		Properties:  cacheDataProps,
 	}
@@ -199,28 +186,31 @@ func generateDomain(buf []byte) (*types.ProtocolInfo, error) {
 	sort.Strings(typeNames)
 
 	// add to type list
-	var typs []*types.Type
+	var typs []*pdl.Type
 	for _, n := range typeNames {
 		typ := typeMap[n]
 		typs = append(typs, &typ)
 	}
 
 	// create the protocol info
-	return &types.ProtocolInfo{
-		Version: &types.Version{Major: "1", Minor: "3"},
-		Domains: []*types.Domain{{
-			Domain:      types.DomainType("HAR"),
+	return &pdl.PDL{
+		Version: &pdl.Version{Major: 1, Minor: 3},
+		Domains: []*pdl.Domain{{
+			Domain:      pdl.DomainType("HAR"),
 			Description: "HTTP Archive Format",
 			Types:       typs,
 		}},
 	}, nil
 }
 
-func scanProps(id string, propText string) ([]*types.Type, error) {
+// scanProps scans the supplied properties, converting into the appropriate
+// type.
+func scanProps(id string, propText string) ([]*pdl.Type, error) {
+	var i int
+	var props []*pdl.Type
+
 	// scan properties
-	var props []*types.Type
 	scanner := bufio.NewScanner(strings.NewReader(propText))
-	i := 0
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
@@ -233,41 +223,41 @@ func scanProps(id string, propText string) ([]*types.Type, error) {
 		opts := strings.TrimSpace(line[strings.Index(line, "[")+1 : strings.Index(line, "]")])
 
 		// determine type
-		typ := types.TypeEnum(opts)
+		typ := pdl.TypeEnum(opts)
 		if z := strings.Index(opts, ","); z != -1 {
-			typ = types.TypeEnum(strings.TrimSpace(opts[:z]))
+			typ = pdl.TypeEnum(strings.TrimSpace(opts[:z]))
 		}
 
 		// convert some fields to integers
 		if strings.Contains(strings.ToLower(propName), "size") ||
 			propName == "compression" || propName == "status" ||
 			propName == "hitCount" {
-			typ = types.TypeInteger
+			typ = pdl.TypeInteger
 		}
 
 		// fix object/array refs
 		var ref string
-		var items *types.Type
+		var items *pdl.Type
 		fqPropName := fmt.Sprintf("%s.%s", id, propName)
 		switch typ {
-		case types.TypeObject:
-			typ = types.TypeEnum("")
+		case pdl.TypeObject:
+			typ = pdl.TypeEnum("")
 			ref = propRefMap[fqPropName]
 
-		case types.TypeArray:
-			items = &types.Type{
+		case pdl.TypeArray:
+			items = &pdl.Type{
 				Ref: propRefMap[fqPropName],
 			}
 		}
 
 		// add property
-		props = append(props, &types.Type{
+		props = append(props, &pdl.Type{
 			Name:        propName,
 			Type:        typ,
 			Description: propDesc,
 			Ref:         ref,
 			Items:       items,
-			Optional:    types.Bool(strings.Contains(opts, "optional")),
+			Optional:    strings.Contains(opts, "optional"),
 		})
 
 		i++
@@ -287,3 +277,37 @@ func readPropText(sel string, doc *goquery.Document) string {
 	}
 	return text[:j]
 }
+
+// propRefMap is the map of property names to their respective type.
+var propRefMap = map[string]string{
+	"Log.creator":         "Creator",
+	"Log.browser":         "Creator",
+	"Log.pages":           "Page",
+	"Log.entries":         "Entry",
+	"Page.pageTimings":    "PageTimings",
+	"Entry.request":       "Request",
+	"Entry.response":      "Response",
+	"Entry.cache":         "Cache",
+	"Entry.timings":       "Timings",
+	"Request.cookies":     "Cookie",
+	"Request.headers":     "NameValuePair",
+	"Request.queryString": "NameValuePair",
+	"Request.postData":    "PostData",
+	"Response.cookies":    "Cookie",
+	"Response.headers":    "NameValuePair",
+	"Response.content":    "Content",
+	"PostData.params":     "Param",
+	"Cache.beforeRequest": cacheDataID,
+	"Cache.afterRequest":  cacheDataID,
+}
+
+var descCleanRE = regexp.MustCompile(`(?i)^this\s*objects?\s+`)
+
+const (
+	harTpl = `package pdl
+
+//go:generate go run gen.go -o har.go
+
+// HAR is the PDL formatted definition of HAR types.
+const HAR = ` + "`%s`\n"
+)

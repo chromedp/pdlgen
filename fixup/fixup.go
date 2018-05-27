@@ -43,8 +43,8 @@ import (
 
 	"github.com/knq/snaker"
 
-	"github.com/chromedp/cdproto-gen/templates"
-	"github.com/chromedp/cdproto-gen/types"
+	"github.com/chromedp/cdproto-gen/gen/gotpl"
+	"github.com/chromedp/cdproto-gen/pdl"
 )
 
 // Specific type names to use for the applied fixes to the protocol domains.
@@ -62,28 +62,28 @@ const (
 //
 // Please see package-level documentation for the list of changes made to the
 // various debugging protocol domains.
-func FixDomains(domains []*types.Domain) {
+func FixDomains(domains []*pdl.Domain) {
 	// process domains
 	for _, d := range domains {
 		switch d.Domain {
 		case "Accessibility":
 			for _, t := range d.Types {
-				t.ID = strings.Replace(t.ID, "AX", "", -1)
+				t.Name = strings.Replace(t.Name, "AX", "", -1)
 			}
 
 		case "CSS":
 			for _, t := range d.Types {
-				if t.ID == "CSSComputedStyleProperty" {
-					t.ID = "ComputedProperty"
+				if t.Name == "CSSComputedStyleProperty" {
+					t.Name = "ComputedProperty"
 				}
 			}
 
 		case "DOM":
 			// add DOM types
-			d.Types = append(d.Types, &types.Type{
+			d.Types = append(d.Types, &pdl.Type{
 				// see: https://developer.mozilla.org/en/docs/Web/API/Node/nodeType
-				ID:          "NodeType",
-				Type:        types.TypeInteger,
+				Name:        "NodeType",
+				Type:        pdl.TypeInteger,
 				Description: "Node type.",
 				Enum: []string{
 					"Element", "Attribute", "Text", "CDATA", "EntityReference",
@@ -93,34 +93,34 @@ func FixDomains(domains []*types.Domain) {
 			})
 
 			for _, t := range d.Types {
-				switch t.ID {
+				switch t.Name {
 				case "NodeId", "BackendNodeId":
-					t.Extra += templates.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.ID), "ParseInt", ", 10, 64")
+					t.Extra += gotpl.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.Name), "ParseInt", ", 10, 64")
 
 				case "Node":
 					t.Properties = append(t.Properties,
-						&types.Type{
+						&pdl.Type{
 							Name:        "Parent",
 							Ref:         domNodeRef,
 							Description: "Parent node.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&types.Type{
+						&pdl.Type{
 							Name:        "Invalidated",
 							Ref:         "chan struct{}",
 							Description: "Invalidated channel.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&types.Type{
+						&pdl.Type{
 							Name:        "State",
 							Ref:         "NodeState",
 							Description: "Node state.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&types.Type{
+						&pdl.Type{
 							Name:        "",
 							Ref:         "sync.RWMutex",
 							Description: "Read write mutex.",
@@ -128,15 +128,15 @@ func FixDomains(domains []*types.Domain) {
 							NoExpose:    true,
 						},
 					)
-					t.Extra += templates.ExtraNodeTemplate()
+					t.Extra += gotpl.ExtraNodeTemplate()
 				}
 			}
 
 		case "Input":
 			// add Input types
-			d.Types = append(d.Types, &types.Type{
-				ID:          "Modifier",
-				Type:        types.TypeInteger,
+			d.Types = append(d.Types, &pdl.Type{
+				Name:        "Modifier",
+				Type:        pdl.TypeInteger,
 				EnumBitMask: true,
 				Description: "Input key modifier type.",
 				Enum:        []string{"None", "Alt", "Ctrl", "Meta", "Shift"},
@@ -146,22 +146,22 @@ const ModifierCommand Modifier = ModifierMeta
 			})
 
 			for _, t := range d.Types {
-				switch t.ID {
+				switch t.Name {
 				case "GestureSourceType":
-					t.ID = "GestureType"
+					t.Name = "GestureType"
 
 				case "TimeSinceEpoch":
-					t.Type = types.TypeTimestamp
-					t.TimestampType = types.TimestampTypeSecond
-					t.Extra += templates.ExtraTimestampTemplate(t, d)
+					t.Type = pdl.TypeTimestamp
+					t.TimestampType = pdl.TimestampTypeSecond
+					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 			}
 
 		case "Inspector":
 			// add Inspector types
-			d.Types = append(d.Types, &types.Type{
-				ID:          "DetachReason",
-				Type:        types.TypeString,
+			d.Types = append(d.Types, &pdl.Type{
+				Name:        "DetachReason",
+				Type:        pdl.TypeString,
 				Enum:        []string{"target_closed", "canceled_by_user", "replaced_with_devtools", "Render process gone."},
 				Description: "Detach reason.",
 			})
@@ -172,7 +172,7 @@ const ModifierCommand Modifier = ModifierMeta
 					for _, t := range e.Parameters {
 						if t.Name == "reason" {
 							t.Ref = "DetachReason"
-							t.Type = types.TypeEnum("")
+							t.Type = pdl.TypeEnum("")
 							break
 						}
 					}
@@ -183,56 +183,56 @@ const ModifierCommand Modifier = ModifierMeta
 		case "Network":
 			for _, t := range d.Types {
 				// change Monotonic to TypeTimestamp and add extra unmarshaling template
-				if t.ID == "TimeSinceEpoch" {
-					t.Type = types.TypeTimestamp
-					t.TimestampType = types.TimestampTypeSecond
-					t.Extra += templates.ExtraTimestampTemplate(t, d)
+				if t.Name == "TimeSinceEpoch" {
+					t.Type = pdl.TypeTimestamp
+					t.TimestampType = pdl.TimestampTypeSecond
+					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 
 				// change Monotonic to TypeTimestamp and add extra unmarshaling template
-				if t.ID == "MonotonicTime" {
-					t.Type = types.TypeTimestamp
-					t.TimestampType = types.TimestampTypeMonotonic
-					t.Extra += templates.ExtraTimestampTemplate(t, d)
+				if t.Name == "MonotonicTime" {
+					t.Type = pdl.TypeTimestamp
+					t.TimestampType = pdl.TimestampTypeMonotonic
+					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 
 				// change Headers to be a map[string]interface{}
-				if t.ID == "Headers" {
-					t.Type = types.TypeAny
+				if t.Name == "Headers" {
+					t.Type = pdl.TypeAny
 					t.Ref = "map[string]interface{}"
 				}
 			}
 
 		case "Page":
 			for _, t := range d.Types {
-				switch t.ID {
+				switch t.Name {
 				case "FrameId":
-					t.Extra += templates.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.ID), "", "")
+					t.Extra += gotpl.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.Name), "", "")
 
 				case "Frame":
 					t.Properties = append(t.Properties,
-						&types.Type{
+						&pdl.Type{
 							Name:        "State",
 							Ref:         "FrameState",
 							Description: "Frame state.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&types.Type{
+						&pdl.Type{
 							Name:        "Root",
 							Ref:         domNodeRef,
 							Description: "Frame document root.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&types.Type{
+						&pdl.Type{
 							Name:        "Nodes",
 							Ref:         "map[" + domNodeIDRef + "]" + domNodeRef,
 							Description: "Frame nodes.",
 							NoResolve:   true,
 							NoExpose:    true,
 						},
-						&types.Type{
+						&pdl.Type{
 							Name:        "",
 							Ref:         "sync.RWMutex",
 							Description: "Read write mutex.",
@@ -240,26 +240,26 @@ const ModifierCommand Modifier = ModifierMeta
 							NoExpose:    true,
 						},
 					)
-					t.Extra += templates.ExtraFrameTemplate()
+					t.Extra += gotpl.ExtraFrameTemplate()
 
 					// convert Frame.id/parentId to $ref of FrameID
 					for _, p := range t.Properties {
 						if p.Name == "id" || p.Name == "parentId" {
 							p.Ref = "FrameId"
-							p.Type = types.TypeEnum("")
+							p.Type = pdl.TypeEnum("")
 						}
 					}
 				}
 			}
 
 		case "Runtime":
-			var typs []*types.Type
+			var typs []*pdl.Type
 			for _, t := range d.Types {
-				switch t.ID {
+				switch t.Name {
 				case "Timestamp":
-					t.Type = types.TypeTimestamp
-					t.TimestampType = types.TimestampTypeMillisecond
-					t.Extra += templates.ExtraTimestampTemplate(t, d)
+					t.Type = pdl.TypeTimestamp
+					t.TimestampType = pdl.TimestampTypeMillisecond
+					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 
 				case "ExceptionDetails":
 					t.Extra += `// Error satisfies the error interface.
@@ -279,7 +279,7 @@ func (e *ExceptionDetails) Error() string {
 		for _, t := range d.Types {
 			// convert object properties
 			if t.Properties != nil {
-				t.Properties = convertObjectProperties(t.Properties, d, t.ID)
+				t.Properties = convertObjectProperties(t.Properties, d, t.Name)
 			}
 		}
 
@@ -290,18 +290,18 @@ func (e *ExceptionDetails) Error() string {
 		// fix input enums
 		if d.Domain == "Input" {
 			for _, t := range d.Types {
-				if t.Enum != nil && t.ID != "Modifier" {
+				if t.Enum != nil && t.Name != "Modifier" {
 					t.EnumValueNameMap = make(map[string]string)
 					for _, v := range t.Enum {
 						prefix := ""
-						switch t.ID {
+						switch t.Name {
 						case "GestureType":
 							prefix = "Gesture"
 						case "ButtonType":
 							prefix = "Button"
 						}
 						n := prefix + snaker.ForceCamelIdentifier(v)
-						if t.ID == "KeyType" {
+						if t.Name == "KeyType" {
 							n = "Key" + strings.Replace(n, "Key", "", -1)
 						}
 						t.EnumValueNameMap[v] = strings.Replace(n, "Cancell", "Cancel", -1)
@@ -313,11 +313,11 @@ func (e *ExceptionDetails) Error() string {
 		// fix type stuttering
 		for _, t := range d.Types {
 			if !t.NoExpose && !t.NoResolve {
-				id := strings.TrimPrefix(t.ID, d.Domain.String())
+				id := strings.TrimPrefix(t.Name, d.Domain.String())
 				if id == "" {
 					continue
 				}
-				t.ID = id
+				t.Name = id
 			}
 		}
 	}
@@ -325,7 +325,7 @@ func (e *ExceptionDetails) Error() string {
 
 // convertObjects converts the Parameters and Returns properties of the object
 // types.
-func convertObjects(d *types.Domain, typs []*types.Type) {
+func convertObjects(d *pdl.Domain, typs []*pdl.Type) {
 	for _, t := range typs {
 		t.Parameters = convertObjectProperties(t.Parameters, d, t.Name)
 		if t.Returns != nil {
@@ -335,24 +335,24 @@ func convertObjects(d *types.Domain, typs []*types.Type) {
 }
 
 // convertObjectProperties converts object properties.
-func convertObjectProperties(params []*types.Type, d *types.Domain, name string) []*types.Type {
-	r := make([]*types.Type, 0)
+func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*pdl.Type {
+	r := make([]*pdl.Type, 0)
 	for _, p := range params {
 		switch {
 		case p.Items != nil:
-			r = append(r, &types.Type{
+			r = append(r, &pdl.Type{
 				Name:        p.Name,
-				Type:        types.TypeArray,
+				Type:        pdl.TypeArray,
 				Description: p.Description,
 				Optional:    p.Optional,
-				Items:       convertObjectProperties([]*types.Type{p.Items}, d, name+"."+p.Name)[0],
+				Items:       convertObjectProperties([]*pdl.Type{p.Items}, d, name+"."+p.Name)[0],
 			})
 
 		case p.Enum != nil:
 			r = append(r, fixupEnumParameter(name, p, d))
 
 		case p.Name == "modifiers":
-			r = append(r, &types.Type{
+			r = append(r, &pdl.Type{
 				Name:        p.Name,
 				Ref:         "Modifier",
 				Description: p.Description,
@@ -360,7 +360,7 @@ func convertObjectProperties(params []*types.Type, d *types.Domain, name string)
 			})
 
 		case p.Name == "nodeType":
-			r = append(r, &types.Type{
+			r = append(r, &pdl.Type{
 				Name:        p.Name,
 				Ref:         "DOM.NodeType",
 				Description: p.Description,
@@ -368,7 +368,7 @@ func convertObjectProperties(params []*types.Type, d *types.Domain, name string)
 			})
 
 		case p.Ref == "GestureSourceType":
-			r = append(r, &types.Type{
+			r = append(r, &pdl.Type{
 				Name:        p.Name,
 				Ref:         "GestureType",
 				Description: p.Description,
@@ -376,7 +376,7 @@ func convertObjectProperties(params []*types.Type, d *types.Domain, name string)
 			})
 
 		case p.Ref == "CSSComputedStyleProperty":
-			r = append(r, &types.Type{
+			r = append(r, &pdl.Type{
 				Name:        p.Name,
 				Ref:         "ComputedProperty",
 				Description: p.Description,
@@ -397,7 +397,7 @@ func convertObjectProperties(params []*types.Type, d *types.Domain, name string)
 			}
 			z = strings.Replace(z, "AX", "", -1)
 
-			r = append(r, &types.Type{
+			r = append(r, &pdl.Type{
 				Name:        p.Name,
 				Ref:         z,
 				Description: p.Description,
@@ -413,19 +413,19 @@ func convertObjectProperties(params []*types.Type, d *types.Domain, name string)
 }
 
 // addEnumValues adds orig.Enum values to type named n's Enum values in domain.
-func addEnumValues(d *types.Domain, n string, p *types.Type) {
+func addEnumValues(d *pdl.Domain, n string, p *pdl.Type) {
 	// find type
-	var typ *types.Type
+	var typ *pdl.Type
 	for _, t := range d.Types {
-		if t.ID == n {
+		if t.Name == n {
 			typ = t
 			break
 		}
 	}
 	if typ == nil {
-		typ = &types.Type{
-			ID:          n,
-			Type:        types.TypeString,
+		typ = &pdl.Type{
+			Name:        n,
+			Type:        pdl.TypeString,
 			Description: p.Description,
 			Optional:    p.Optional,
 		}
@@ -486,7 +486,7 @@ var enumRefMap = map[string]string{
 
 // fixupEnumParameter takes an enum parameter, adds it to the domain and
 // returns a type suitable for use in place of the type.
-func fixupEnumParameter(typ string, p *types.Type, d *types.Domain) *types.Type {
+func fixupEnumParameter(typ string, p *pdl.Type, d *pdl.Domain) *pdl.Type {
 	fqname := strings.TrimSuffix(fmt.Sprintf("%s.%s.%s", d.Domain, typ, p.Name), ".")
 	ref := snaker.ForceCamelIdentifier(typ + "." + p.Name)
 	if n, ok := enumRefMap[fqname]; ok {
@@ -496,7 +496,7 @@ func fixupEnumParameter(typ string, p *types.Type, d *types.Domain) *types.Type 
 	// add enum values to type name
 	addEnumValues(d, ref, p)
 
-	return &types.Type{
+	return &pdl.Type{
 		Name:        p.Name,
 		Ref:         ref,
 		Description: p.Description,

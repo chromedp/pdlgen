@@ -1,17 +1,19 @@
 // cdproto-gen is a tool to generate the low-level Chrome Debugging Protocol
-// implementation types used by chromedp, based off Chrome's protocol.json.
+// implementation types used by chromedp, based off Chrome's protocol
+// definitions.
 //
 // Please see README.md for more information on using this tool.
 package main
 
-//go:generate qtc -dir templates -ext qtpl
-//go:generate gofmt -w -s templates/
+//go:generate qtc -dir gen/gotpl -ext qtpl
+//go:generate gofmt -w -s gen/gotpl/
 
 import (
 	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"go/format"
@@ -35,8 +37,8 @@ import (
 	"github.com/chromedp/cdproto-gen/diff"
 	"github.com/chromedp/cdproto-gen/fixup"
 	"github.com/chromedp/cdproto-gen/gen"
-	"github.com/chromedp/cdproto-gen/har"
-	"github.com/chromedp/cdproto-gen/types"
+	"github.com/chromedp/cdproto-gen/gen/genutil"
+	"github.com/chromedp/cdproto-gen/pdl"
 )
 
 const (
@@ -46,38 +48,44 @@ const (
 	easyjsonGo  = "easyjson.go"
 )
 
-var (
-	flagVerbose = flag.Bool("v", true, "toggle verbose")
-	flagDebug   = flag.Bool("debug", false, "toggle debug (writes generated files to disk without post-processing)")
+type FlagSet struct {
+	Debug   bool
+	Pdl     string
+	Browser string
+	Js      string
+	TTL     time.Duration
+}
 
-	flagProto   = flag.String("proto", "", "protocol.json path")
-	flagBrowser = flag.String("browser", "master", "browser protocol version to use")
-	flagJS      = flag.String("js", "master", "js protocol version to use")
-	flagTTL     = flag.Duration("ttl", 24*time.Hour, "browser and js protocol cache ttl")
-	flagTTLHar  = flag.Duration("ttlHar", 0, "har cache ttl")
+var (
+	flagDebug = flag.Bool("debug", false, "toggle debug (writes generated files to disk without post-processing)")
+
+	flagPdl     = flag.String("pdl", "", "path to pdl file to use")
+	flagBrowser = flag.String("browser", "master", "browser version to retrieve/use")
+	flagJS      = flag.String("js", "master", "js version to retrieve/use")
+	flagTTL     = flag.Duration("ttl", 24*time.Hour, "browser and js cache ttl")
 
 	flagCache = flag.String("cache", filepath.Join(os.Getenv("GOPATH"), "pkg", "cdproto-gen"), "protocol cache directory")
-	flagPkg   = flag.String("pkg", "github.com/chromedp/cdproto", "out base package")
 	flagOut   = flag.String("out", "", "out directory")
 
-	flagNoClean = flag.Bool("noclean", false, "toggle not cleaning (removing) existing directories")
-	flagNoCopy  = flag.Bool("nocopy", false, "toggle not copying combined protocol.json to out directory")
-	flagNoHar   = flag.Bool("nohar", false, "toggle not generating HAR protocol and domain")
-	flagNoDiff  = flag.Bool("nodiff", false, "toggle not displaying diff")
-	flagCleanWl = flag.String("wl", "LICENSE,README.md,protocol*.json,"+easyjsonGo, "comma-separated list of files to whitelist (ignore) during clean")
+	flagNoClean = flag.Bool("no-clean", false, "toggle not cleaning (removing) existing directories")
+	flagNoDump  = flag.Bool("no-dump", false, "toggle not dumping generated protocol file to out directory")
 
-	flagDep      = flag.Bool("dep", false, "toggle generation for deprecated APIs")
-	flagExp      = flag.Bool("exp", true, "toggle generation for experimental APIs")
-	flagRedirect = flag.Bool("redirect", false, "toggle generation for redirect APIs")
+	flagGoPkg = flag.String("go-pkg", "github.com/chromedp/cdproto", "go base package name")
+	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,protocol*.pdl,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
+
+	flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
 )
 
 func main() {
-	flag.Parse()
-
-	// fix out directory
-	if *flagOut == "" {
-		*flagOut = filepath.Join(os.Getenv("GOPATH"), "src", *flagPkg)
+	// add generator parameters
+	var genTypes []string
+	generators := gen.Generators()
+	for n, g := range generators {
+		genTypes = append(genTypes, n)
+		g = g
 	}
+
+	flag.Parse()
 
 	// run
 	if err := run(); err != nil {
@@ -89,13 +97,17 @@ func main() {
 // run runs the generator.
 func run() error {
 	// load protocol definitions
-	protoInfo, err := loadProtocolInfo()
+	protoDefs, err := loadProtoDefs()
 	if err != nil {
 		return err
 	}
-	sort.Slice(protoInfo.Domains, func(i, j int) bool {
-		return strings.Compare(protoInfo.Domains[i].String(), protoInfo.Domains[j].String()) <= 0
+	sort.Slice(protoDefs.Domains, func(i, j int) bool {
+		return strings.Compare(protoDefs.Domains[i].Domain.String(), protoDefs.Domains[j].Domain.String()) <= 0
 	})
+
+	if *flagOut == "" {
+		*flagOut = filepath.Join(os.Getenv("GOPATH"), "src", *flagGoPkg)
+	}
 
 	// create out directory
 	err = os.MkdirAll(*flagOut, 0755)
@@ -103,12 +115,12 @@ func run() error {
 		return err
 	}
 
-	protoFile := filepath.Join(*flagOut, fmt.Sprintf("protocol-%s_%s-%s.json", *flagBrowser, *flagJS, time.Now().Format("20060102")))
+	protoFile := filepath.Join(*flagOut, fmt.Sprintf("protocol-%s_%s-%s.pdl", *flagBrowser, *flagJS, time.Now().Format("20060102")))
 
-	// write protocol.json
-	if !*flagNoCopy || *flagDebug {
+	// write protocol definitions
+	if *flagDebug {
 		logf("WRITING: %s", protoFile)
-		buf, err := json.MarshalIndent(protoInfo, "", "  ")
+		buf, err := json.MarshalIndent(protoDefs, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -118,10 +130,10 @@ func run() error {
 		}
 	}
 
-	// display differences between generated protocol.json and previous version
+	// display differences between generated definitions and previous version
 	// on disk
-	if *flagVerbose && !*flagNoDiff && runtime.GOOS != "windows" {
-		diffBuf, err := diff.WalkAndCompare(*flagOut, `^protocol-([^-]+)-(2[0-9]{7})\.json$`, 2, protoFile)
+	if runtime.GOOS != "windows" {
+		diffBuf, err := diff.WalkAndCompare(*flagOut, `^protocol-([^-]+)-(2[0-9]{7})\.pdl$`, 2, protoFile)
 		if err != nil {
 			return err
 		}
@@ -132,25 +144,20 @@ func run() error {
 
 	// determine what to process
 	pkgs := []string{"", "cdp"}
-	var processed []*types.Domain
-	for _, d := range protoInfo.Domains {
+	var processed []*pdl.Domain
+	for _, d := range protoDefs.Domains {
 		// skip if not processing
-		if (!*flagDep && d.Deprecated.Bool()) || (!*flagExp && d.Experimental.Bool()) {
-			// extra info
+		if d.Deprecated {
 			var extra []string
-			if d.Deprecated.Bool() {
+			if d.Deprecated {
 				extra = append(extra, "deprecated")
 			}
-			if d.Experimental.Bool() {
-				extra = append(extra, "experimental")
-			}
-
-			logf("SKIPPING(%s): %s %v", pad("domain", 7), d, extra)
+			logf("SKIPPING(%s): %s %v", pad("domain", 7), d.Domain.String(), extra)
 			continue
 		}
 
 		// will process
-		pkgs = append(pkgs, d.PackageName())
+		pkgs = append(pkgs, genutil.PackageName(d))
 		processed = append(processed, d)
 
 		// cleanup types, events, commands
@@ -160,8 +167,18 @@ func run() error {
 	// fixup
 	fixup.FixDomains(processed)
 
-	// generate
-	files := gen.GenerateDomains(processed, *flagPkg, *flagRedirect)
+	// get generator
+	generator := gen.Generators()["go"]
+	if generator == nil {
+		return errors.New("no generator")
+	}
+
+	// emit
+	emitter, err := generator(processed, *flagGoPkg)
+	if err != nil {
+		return err
+	}
+	files := emitter.Emit()
 
 	// clean up files
 	if !*flagNoClean {
@@ -198,20 +215,17 @@ func run() error {
 	}
 
 	// goimports (also writes to disk)
-	err = goimports(files)
-	if err != nil {
+	if err = goimports(files); err != nil {
 		return err
 	}
 
 	// easyjson
-	err = easyjson(pkgs)
-	if err != nil {
+	if err = easyjson(pkgs); err != nil {
 		return err
 	}
 
 	// gofmt
-	err = gofmt(fmtFiles(files, pkgs))
-	if err != nil {
+	if err = gofmt(fmtFiles(files, pkgs)); err != nil {
 		return err
 	}
 
@@ -219,30 +233,23 @@ func run() error {
 	return nil
 }
 
-// loadProtocolInfo loads the protocol.json either from the path specified in
-// -proto or by retrieving the versions specified in the -browser and -js
-// files. Unless -nohar is specified, the virtual "HAR" domain will be
-// generated as well and added to the specification.
-func loadProtocolInfo() (*types.ProtocolInfo, error) {
+// loadProtoDefs loads the protocol definitions either from the path specified
+// in -proto or by retrieving the versions specified in the -browser and -js
+// files.
+func loadProtoDefs() (*pdl.PDL, error) {
 	var err error
 
-	if *flagProto != "" {
-		logf("PROTOCOL: %s", *flagProto)
-		buf, err := ioutil.ReadFile(*flagProto)
+	if *flagPdl != "" {
+		logf("PROTOCOL: %s", *flagPdl)
+		buf, err := ioutil.ReadFile(*flagPdl)
 		if err != nil {
 			return nil, err
 		}
 
-		// unmarshal
-		protoInfo := new(types.ProtocolInfo)
-		err = json.Unmarshal(buf, protoInfo)
-		if err != nil {
-			return nil, err
-		}
-		return protoInfo, nil
+		return pdl.Parse(buf)
 	}
 
-	var protos [][]byte
+	var protoDefs []*pdl.PDL
 	load := func(typ, file, ver string) error {
 		urlstr := fmt.Sprintf("%s/%s?format=TEXT", chromiumSrc, fmt.Sprintf(file, ver))
 		logf("%s: %s", pad(strings.ToUpper(typ), 7), urlstr)
@@ -255,58 +262,48 @@ func loadProtocolInfo() (*types.ProtocolInfo, error) {
 		}
 
 		// convert PDL to JSON definition
-		pdl, err := types.Parse(buf)
+		protoDef, err := pdl.Parse(buf)
 		if err != nil {
 			return err
 		}
 
-		// remarshal to json
-		buf, err = json.MarshalIndent(pdl, "", "  ")
-		if err != nil {
-			return err
-		}
-
-		protos = append(protos, buf)
+		protoDefs = append(protoDefs, protoDef)
 		return nil
 	}
 
-	// grab browser + js definitions
+	// grab browser definition
 	err = load("browser", browserURL, *flagBrowser)
 	if err != nil {
 		return nil, err
 	}
+
+	// grab js definition
 	err = load("js", jsURL, *flagJS)
 	if err != nil {
 		return nil, err
 	}
 
-	// grab and add har definition
-	if !*flagNoHar {
-		harBuf, err := har.LoadProto(&fileCacher{
-			path: filepath.Join(*flagCache, "har"),
-			ttl:  *flagTTLHar,
-		})
-		if err != nil {
-			return nil, err
-		}
-		protos = append(protos, harBuf)
+	// grab har definition
+	har, err := pdl.Parse([]byte(pdl.HAR))
+	if err != nil {
+		return nil, err
 	}
 
-	return combineProtoInfos(protos...)
+	return pdl.Combine(append(protoDefs, har)...), nil
 }
 
 // cleanupTypes removes deprecated types.
-func cleanupTypes(n string, dtyp string, typs []*types.Type) []*types.Type {
-	var ret []*types.Type
+func cleanupTypes(n string, dtyp string, typs []*pdl.Type) []*pdl.Type {
+	var ret []*pdl.Type
 
 	for _, t := range typs {
-		typ := dtyp + "." + t.IDorName()
-		if !*flagDep && t.Deprecated.Bool() {
+		typ := dtyp + "." + t.Name
+		if t.Deprecated {
 			logf("SKIPPING(%s): %s [deprecated]", pad(n, 7), typ)
 			continue
 		}
 
-		if !*flagRedirect && string(t.Redirect) != "" {
+		if t.Redirect != nil {
 			logf("SKIPPING(%s): %s [redirect:%s]", pad(n, 7), typ, t.Redirect)
 			continue
 		}
@@ -330,10 +327,10 @@ func cleanupTypes(n string, dtyp string, typs []*types.Type) []*types.Type {
 }
 
 // cleanup removes deprecated types, events, and commands from the domain.
-func cleanup(d *types.Domain) {
-	d.Types = cleanupTypes("type", d.String(), d.Types)
-	d.Events = cleanupTypes("event", d.String(), d.Events)
-	d.Commands = cleanupTypes("command", d.String(), d.Commands)
+func cleanup(d *pdl.Domain) {
+	d.Types = cleanupTypes("type", d.Domain.String(), d.Types)
+	d.Events = cleanupTypes("event", d.Domain.String(), d.Events)
+	d.Commands = cleanupTypes("command", d.Domain.String(), d.Commands)
 }
 
 // write writes all file buffer to disk.
@@ -529,24 +526,6 @@ func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte
 	return buf, nil
 }
 
-// combineProtoInfos combines the types and commands from multiple JSON-encoded
-// protocol definitions.
-func combineProtoInfos(buffers ...[]byte) (*types.ProtocolInfo, error) {
-	protoInfo := new(types.ProtocolInfo)
-	for _, buf := range buffers {
-		var pi types.ProtocolInfo
-		err := json.Unmarshal(buf, &pi)
-		if err != nil {
-			return nil, err
-		}
-		if protoInfo.Version == nil {
-			protoInfo.Version = pi.Version
-		}
-		protoInfo.Domains = append(protoInfo.Domains, pi.Domains...)
-	}
-	return protoInfo, nil
-}
-
 // pathJoin is a simple wrapper around filepath.Join to simplify inline syntax.
 func pathJoin(n string, m ...string) string {
 	return filepath.Join(append([]string{n}, m...)...)
@@ -554,9 +533,7 @@ func pathJoin(n string, m ...string) string {
 
 // logf is a wrapper around log.Printf.
 func logf(s string, v ...interface{}) {
-	if *flagVerbose {
-		log.Printf(s, v...)
-	}
+	log.Printf(s, v...)
 }
 
 // contains determines if any key in m is equal to n or starts with the path
@@ -578,7 +555,7 @@ func pad(s string, n int) string {
 
 // whitelisted checks if n is a whitelisted file.
 func whitelisted(n string) bool {
-	for _, z := range strings.Split(*flagCleanWl, ",") {
+	for _, z := range strings.Split(*flagGoWl, ",") {
 		if z == n || glob.Glob(z, n) {
 			return true
 		}

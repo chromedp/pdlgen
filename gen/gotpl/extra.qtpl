@@ -1,14 +1,15 @@
 {% import (
-	"github.com/chromedp/cdproto-gen/types"
+	"github.com/chromedp/cdproto-gen/gen/genutil"
+	"github.com/chromedp/cdproto-gen/pdl"
 ) %}
 
 // ExtraTimestampTemplate is a special template for the Timestamp type that
 // defines its JSON unmarshaling.
-{% func ExtraTimestampTemplate(t *types.Type, d *types.Domain) %}{%code
-	typ := t.IDorName()
-	monotonic := t.TimestampType == types.TimestampTypeMonotonic
+{% func ExtraTimestampTemplate(t *pdl.Type, d *pdl.Domain) %}{%code
+	typ := t.Name
+	monotonic := t.TimestampType == pdl.TimestampTypeMonotonic
 	timeRes := "time.Millisecond"
-	if t.TimestampType != types.TimestampTypeMillisecond {
+	if t.TimestampType != pdl.TimestampTypeMillisecond {
 		timeRes = "time.Second"
 	}
 %}
@@ -239,7 +240,7 @@ type Executor interface {
 {% endfunc %}
 
 // ExtraMethodTypeTemplate generates the additional MethodType funcs and consts.
-{% func ExtraMethodTypeTemplate(domains []*types.Domain) %}
+{% func ExtraMethodTypeTemplate(domains []*pdl.Domain) %}
 // Domain returns the Chrome Debugging Protocol domain of the event or command.
 func (t MethodType) Domain() string {
 	return string(t[:strings.IndexByte(string(t), '.')])
@@ -247,12 +248,12 @@ func (t MethodType) Domain() string {
 
 // MethodType values.
 const ({% for _, d := range domains %}{% for _, c := range d.Commands %}
-	{%s= c.CommandMethodType(d) %} = {%s= d.PackageName() %}.{%s= c.CommandMethodType(nil) %}{% endfor %}{% for _, e := range d.Events %}
-	{%s= e.EventMethodType(d) %} = {%q= e.ProtoName(d) %}{%endfor %}{% endfor %})
+	{%s= CommandMethodType(c, d) %} = {%s= genutil.PackageName(d) %}.{%s= CommandMethodType(c, nil) %}{% endfor %}{% for _, e := range d.Events %}
+	{%s= EventMethodType(e, d) %} = {%q= ProtoName(e, d) %}{%endfor %}{% endfor %})
 {% endfunc %}
 
 // ExtraMessageTemplate generates the additional Message funcs.
-{% func ExtraMessageTemplate(domains []*types.Domain) %}
+{% func ExtraMessageTemplate(domains []*pdl.Domain) %}
 type empty struct{}
 var emptyVal = &empty{}
 
@@ -260,12 +261,12 @@ var emptyVal = &empty{}
 func UnmarshalMessage(msg *Message) (interface{}, error) {
 	var v easyjson.Unmarshaler
 	switch msg.Method {{% for _, d := range domains %}{% for _, c := range d.Commands %}
-	case {%s= c.CommandMethodType(d) %}:{% if len(c.Returns) == 0 %}
+	case {%s= CommandMethodType(c, d) %}:{% if len(c.Returns) == 0 %}
 		return emptyVal, nil{% else %}
-		v = new({%s= d.PackageName() %}.{%s= c.CommandReturnsType() %}){% endif %}
+		v = new({%s= genutil.PackageName(d) %}.{%s= CommandReturnsType(c) %}){% endif %}
 	{% endfor %}{% for _, e := range d.Events %}
-	case {%s= e.EventMethodType(d) %}:
-		v = new({%s= d.PackageName() %}.{%s= e.EventType() %})
+	case {%s= EventMethodType(e, d) %}:
+		v = new({%s= genutil.PackageName(d) %}.{%s= EventType(e) %})
 	{% endfor %}{% endfor %}}
 
 	var buf easyjson.RawMessage
