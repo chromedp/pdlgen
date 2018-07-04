@@ -55,7 +55,7 @@ type FileInfo struct {
 func FindFilesWithMask(dir, mask string, maskField int, exclude ...string) ([]*FileInfo, error) {
 	var maskRE = regexp.MustCompile(mask)
 
-	// build list of protocol.json files on disk
+	// build list of protocol files on disk
 	var files []*FileInfo
 	dir = strings.TrimSuffix(dir, string(os.PathSeparator)) + string(os.PathSeparator)
 	err := filepath.Walk(dir, func(n string, fi os.FileInfo, err error) error {

@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -47,14 +46,6 @@ const (
 	jsURL       = "v8/v8/+/%s/src/inspector/js_protocol.pdl"
 	easyjsonGo  = "easyjson.go"
 )
-
-type FlagSet struct {
-	Debug   bool
-	Pdl     string
-	Browser string
-	Js      string
-	TTL     time.Duration
-}
 
 var (
 	flagDebug = flag.Bool("debug", false, "toggle debug (writes generated files to disk without post-processing)")
@@ -118,27 +109,21 @@ func run() error {
 	protoFile := filepath.Join(*flagOut, fmt.Sprintf("protocol-%s_%s-%s.pdl", *flagBrowser, *flagJS, time.Now().Format("20060102")))
 
 	// write protocol definitions
-	if *flagDebug {
+	if *flagPdl == "" {
 		logf("WRITING: %s", protoFile)
-		buf, err := json.MarshalIndent(protoDefs, "", "  ")
-		if err != nil {
+		if err = ioutil.WriteFile(protoFile, protoDefs.Bytes(), 0644); err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(protoFile, buf, 0644)
-		if err != nil {
-			return err
-		}
-	}
 
-	// display differences between generated definitions and previous version
-	// on disk
-	if runtime.GOOS != "windows" {
-		diffBuf, err := diff.WalkAndCompare(*flagOut, `^protocol-([^-]+)-(2[0-9]{7})\.pdl$`, 2, protoFile)
-		if err != nil {
-			return err
-		}
-		if diffBuf != nil {
-			os.Stdout.Write(diffBuf)
+		// display differences between generated definitions and previous version on disk
+		if runtime.GOOS != "windows" {
+			diffBuf, err := diff.WalkAndCompare(*flagOut, `^protocol-([^-]+)-(2[0-9]{7})\.pdl$`, 2, protoFile)
+			if err != nil {
+				return err
+			}
+			if diffBuf != nil {
+				os.Stdout.Write(diffBuf)
+			}
 		}
 	}
 
