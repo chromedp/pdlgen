@@ -161,7 +161,9 @@ func run() error {
 		processed = append(processed, d)
 
 		// cleanup types, events, commands
-		cleanup(d)
+		d.Types = cleanupTypes("type", d.Domain.String(), d.Types)
+		d.Events = cleanupTypes("event", d.Domain.String(), d.Events)
+		d.Commands = cleanupTypes("command", d.Domain.String(), d.Commands)
 	}
 
 	// fixup
@@ -292,7 +294,7 @@ func loadProtoDefs() (*pdl.PDL, error) {
 	return pdl.Combine(append(protoDefs, har)...), nil
 }
 
-// cleanupTypes removes deprecated types.
+// cleanupTypes removes deprecated and redirected types.
 func cleanupTypes(n string, dtyp string, typs []*pdl.Type) []*pdl.Type {
 	var ret []*pdl.Type
 
@@ -324,13 +326,6 @@ func cleanupTypes(n string, dtyp string, typs []*pdl.Type) []*pdl.Type {
 	}
 
 	return ret
-}
-
-// cleanup removes deprecated types, events, and commands from the domain.
-func cleanup(d *pdl.Domain) {
-	d.Types = cleanupTypes("type", d.Domain.String(), d.Types)
-	d.Events = cleanupTypes("event", d.Domain.String(), d.Events)
-	d.Commands = cleanupTypes("command", d.Domain.String(), d.Commands)
 }
 
 // write writes all file buffer to disk.
