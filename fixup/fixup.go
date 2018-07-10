@@ -157,6 +157,18 @@ const ModifierCommand Modifier = ModifierMeta
 				}
 			}
 
+			for _, c := range d.Commands {
+				switch c.Name {
+				case "dispatchKeyEvent":
+					for _, p := range c.Parameters {
+						switch p.Name {
+						case "autoRepeat", "isKeypad", "isSystemKey":
+							p.AlwaysEmit = true
+						}
+					}
+				}
+			}
+
 		case "Inspector":
 			// add Inspector types
 			d.Types = append(d.Types, &pdl.Type{
