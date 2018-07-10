@@ -24,6 +24,7 @@ var KeepUpper = map[string]bool{
 	"DOM": true,
 	"X":   true,
 	"Y":   true,
+	"UTC": true,
 }
 
 // Keep are names to maintain exact spelling.
