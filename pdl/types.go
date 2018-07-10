@@ -93,8 +93,12 @@ type Type struct {
 	// NoExpose toggles whether or not to expose the type.
 	NoExpose bool `json:"-"`
 
-	// NoResolve toggles not resolving the type to a domain (ie, for special internal types).
+	// NoResolve toggles not resolving the type to a domain (ie, for special
+	// internal types).
 	NoResolve bool `json:"-"`
+
+	// AlwaysEmit forces the value to always be emitted when marshaled to JSON.
+	AlwaysEmit bool `json:"-"`
 
 	// EnumValueNameMap is a map to override the generated enum value name.
 	EnumValueNameMap map[string]string `json:"-"`

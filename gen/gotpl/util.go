@@ -309,7 +309,7 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFu
 		s += "\n\t" + GoName(v, noExposeOverride) + " " + GoType(v, d, domains, sharedFunc)
 
 		omit := ",omitempty"
-		if omitOnlyWhenOptional && !v.Optional {
+		if (omitOnlyWhenOptional && !v.Optional) || v.AlwaysEmit {
 			omit = ""
 		}
 

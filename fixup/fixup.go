@@ -345,6 +345,7 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 				Type:        pdl.TypeArray,
 				Description: p.Description,
 				Optional:    p.Optional,
+				AlwaysEmit:  p.AlwaysEmit,
 				Items:       convertObjectProperties([]*pdl.Type{p.Items}, d, name+"."+p.Name)[0],
 			})
 
@@ -357,6 +358,7 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 				Ref:         "Modifier",
 				Description: p.Description,
 				Optional:    p.Optional,
+				AlwaysEmit:  true,
 			})
 
 		case p.Name == "nodeType":
@@ -365,6 +367,7 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 				Ref:         "DOM.NodeType",
 				Description: p.Description,
 				Optional:    p.Optional,
+				AlwaysEmit:  p.AlwaysEmit,
 			})
 
 		case p.Ref == "GestureSourceType":
@@ -373,6 +376,7 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 				Ref:         "GestureType",
 				Description: p.Description,
 				Optional:    p.Optional,
+				AlwaysEmit:  p.AlwaysEmit,
 			})
 
 		case p.Ref == "CSSComputedStyleProperty":
@@ -381,6 +385,7 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 				Ref:         "ComputedProperty",
 				Description: p.Description,
 				Optional:    p.Optional,
+				AlwaysEmit:  p.AlwaysEmit,
 			})
 
 		case p.Ref != "" && !p.NoExpose && !p.NoResolve:
@@ -402,6 +407,7 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 				Ref:         z,
 				Description: p.Description,
 				Optional:    p.Optional,
+				AlwaysEmit:  p.AlwaysEmit,
 			})
 
 		default:
@@ -428,6 +434,7 @@ func addEnumValues(d *pdl.Domain, n string, p *pdl.Type) {
 			Type:        pdl.TypeString,
 			Description: p.Description,
 			Optional:    p.Optional,
+			AlwaysEmit:  p.AlwaysEmit,
 		}
 		d.Types = append(d.Types, typ)
 	}
@@ -501,5 +508,6 @@ func fixupEnumParameter(typ string, p *pdl.Type, d *pdl.Domain) *pdl.Type {
 		Ref:         ref,
 		Description: p.Description,
 		Optional:    p.Optional,
+		AlwaysEmit:  p.AlwaysEmit,
 	}
 }
