@@ -1,5 +1,5 @@
-// Package pdl contains types and funcs for working with Chrome Debugging
-// Protocol PDL files.
+// Package pdl contains types and funcs for working with Chrome DevTools
+// Protocol definitions (ie, PDL files).
 package pdl
 
 import (
@@ -14,7 +14,7 @@ import (
 )
 
 // PDL contains information about the domains, types, commands, and events of
-// the Chrome Debugging Protocol.
+// the Chrome DevTools Protocol.
 type PDL struct {
 	// Copyright is the file copyright.
 	Copyright string
@@ -24,37 +24,6 @@ type PDL struct {
 
 	// Domains are the available domains.
 	Domains []*Domain
-}
-
-// primitiveTypes is a map of primitive type names to their enum value.
-var primitiveTypes = map[string]TypeEnum{
-	"integer": TypeInteger,
-	"number":  TypeNumber,
-	"boolean": TypeBoolean,
-	"string":  TypeString,
-	"object":  TypeObject,
-	"any":     TypeAny,
-	"array":   TypeArray,
-}
-
-// assignType assigns item to be of type typ.
-func assignType(item *Type, typ string, isArray bool) {
-	if isArray {
-		item.Type = TypeArray
-		item.Items = new(Type)
-		assignType(item.Items, typ, false)
-		return
-	}
-
-	if typ == "enum" {
-		typ = "string"
-	}
-
-	if pt, ok := primitiveTypes[typ]; ok {
-		item.Type = pt
-	} else {
-		item.Ref = typ
-	}
 }
 
 // Parse parses a PDL file contained in buf.
@@ -252,6 +221,37 @@ func Parse(buf []byte) (*PDL, error) {
 	return pdl, nil
 }
 
+// primitiveTypes is a map of primitive type names to their enum value.
+var primitiveTypes = map[string]TypeEnum{
+	"integer": TypeInteger,
+	"number":  TypeNumber,
+	"boolean": TypeBoolean,
+	"string":  TypeString,
+	"object":  TypeObject,
+	"any":     TypeAny,
+	"array":   TypeArray,
+}
+
+// assignType assigns item as a type of typ.
+func assignType(item *Type, typ string, isArray bool) {
+	if isArray {
+		item.Type = TypeArray
+		item.Items = new(Type)
+		assignType(item.Items, typ, false)
+		return
+	}
+
+	if typ == "enum" {
+		typ = "string"
+	}
+
+	if pt, ok := primitiveTypes[typ]; ok {
+		item.Type = pt
+	} else {
+		item.Ref = typ
+	}
+}
+
 // LoadFile loads a PDL file from the specified filename.
 func LoadFile(filename string) (*PDL, error) {
 	buf, err := ioutil.ReadFile(filename)
@@ -261,7 +261,30 @@ func LoadFile(filename string) (*PDL, error) {
 	return Parse(buf)
 }
 
-// Bytes generates the PDL file contents from the pdl.
+// Combine combines domains from multiple PDL definitions into a single PDL.
+func Combine(pdls ...*PDL) *PDL {
+	pdl := new(PDL)
+	for _, p := range pdls {
+		if pdl.Copyright == "" {
+			pdl.Copyright = p.Copyright
+		}
+		if pdl.Version == nil {
+			pdl.Version = new(Version)
+		}
+		if p.Version != nil {
+			if pdl.Version.Major < p.Version.Major {
+				pdl.Version.Major = p.Version.Major
+				pdl.Version.Minor = p.Version.Minor
+			} else if pdl.Version.Minor < p.Version.Minor {
+				pdl.Version.Minor = p.Version.Minor
+			}
+		}
+		pdl.Domains = append(pdl.Domains, p.Domains...)
+	}
+	return pdl
+}
+
+// Bytes generates file contents for the PDL.
 func (pdl *PDL) Bytes() []byte {
 	buf := new(bytes.Buffer)
 
@@ -444,25 +467,161 @@ func (pdl *PDL) Bytes() []byte {
 	return append(bytes.TrimRightFunc(buf.Bytes(), unicode.IsSpace), '\n')
 }
 
-// Combine combines the domains from multiple PDL definitions.
-func Combine(pdls ...*PDL) *PDL {
-	pdl := new(PDL)
-	for _, p := range pdls {
-		if pdl.Copyright == "" {
-			pdl.Copyright = p.Copyright
-		}
-		if pdl.Version == nil {
-			pdl.Version = new(Version)
-		}
-		if p.Version != nil {
-			if pdl.Version.Major < p.Version.Major {
-				pdl.Version.Major = p.Version.Major
-				pdl.Version.Minor = p.Version.Minor
-			} else if pdl.Version.Minor < p.Version.Minor {
-				pdl.Version.Minor = p.Version.Minor
-			}
-		}
-		pdl.Domains = append(pdl.Domains, p.Domains...)
+// Version holds information for the the version Chrome DevTools Protocol
+// definition.
+type Version struct {
+	// Major is the major version.
+	Major int
+
+	// Minor is the minor version.
+	Minor int
+}
+
+// Domain represents a Chrome DevTools Protocol domain.
+type Domain struct {
+	// Domain is the name of the domain.
+	Domain DomainType
+
+	// Description is the domain description.
+	Description string
+
+	// Experimental indicates whether or not the domain is experimental.
+	Experimental bool
+
+	// Deprecated indicates whether or not the domain is deprecated.
+	Deprecated bool
+
+	// Dependencies are the domains' dependencies.
+	Dependencies []string
+
+	// Types are the list of types in the domain.
+	Types []*Type
+
+	// Commands are the list of commands in the domain.
+	Commands []*Type
+
+	// Events is the list of events types in the domain.
+	Events []*Type
+}
+
+// DomainType is the Chrome domain type.
+type DomainType string
+
+// String satisfies Stringer.
+func (dt DomainType) String() string {
+	return string(dt)
+}
+
+// Type represents a Chrome DevTools Protocol type.
+type Type struct {
+	// Type is the base type of the type.
+	Type TypeEnum
+
+	// Name is the name of the type.
+	Name string
+
+	// Description is the type description.
+	Description string
+
+	// Experimental indicates whether or not the type is experimental.
+	Experimental bool
+
+	// Deprecated indicates if the type is deprecated. Used for commands and event parameters.
+	Deprecated bool
+
+	// Optional indicates whether or not the type is optional.
+	Optional bool
+
+	// Ref is the type the object refers to.
+	Ref string
+
+	// Items is the contained type for arrays.
+	Items *Type
+
+	// Parameters are object parameters for commands or events.
+	Parameters []*Type
+
+	// Returns are the return values for commands.
+	Returns []*Type
+
+	// Properties are object properties.
+	Properties []*Type
+
+	// Redirect is a type to redirect to, if any.
+	Redirect *Redirect
+
+	// Enum are string enum values.
+	Enum []string
+
+	// ---------------------------------
+	// additional fields
+
+	// TimestampType is the timestamp subtype.
+	TimestampType TimestampType `json:"-"`
+
+	// NoExpose toggles whether or not to expose the type.
+	NoExpose bool `json:"-"`
+
+	// NoResolve toggles not resolving the type to a domain (ie, for special
+	// internal types).
+	NoResolve bool `json:"-"`
+
+	// AlwaysEmit forces the value to always be emitted when marshaled to JSON.
+	AlwaysEmit bool `json:"-"`
+
+	// EnumValueNameMap is a map to override the generated enum value name.
+	EnumValueNameMap map[string]string `json:"-"`
+
+	// EnumBitMask toggles it as a bit mask enum for TypeInteger enums.
+	EnumBitMask bool `json:"-"`
+
+	// Extra will be added as output after the the type is emitted.
+	Extra string `json:"-"`
+}
+
+// TypeEnum is the Chrome domain type enum.
+type TypeEnum string
+
+// TypeEnum values.
+const (
+	TypeAny       TypeEnum = "any"
+	TypeArray     TypeEnum = "array"
+	TypeBoolean   TypeEnum = "boolean"
+	TypeInteger   TypeEnum = "integer"
+	TypeNumber    TypeEnum = "number"
+	TypeObject    TypeEnum = "object"
+	TypeString    TypeEnum = "string"
+	TypeTimestamp TypeEnum = "timestamp"
+)
+
+// String satisfies stringer.
+func (te TypeEnum) String() string {
+	return string(te)
+}
+
+// TimestampType are the various timestamp subtypes.
+type TimestampType int
+
+// TimestampType values.
+const (
+	TimestampTypeMillisecond TimestampType = 1 + iota
+	TimestampTypeSecond
+	TimestampTypeMonotonic
+)
+
+// Redirect holds type redirect information.
+type Redirect struct {
+	// Domain is the domain to redirect to.
+	Domain DomainType
+
+	// Name is the name of the command, event, or type to redirect to.
+	Name string
+}
+
+// String satisfies the fmt.Stringer interface.
+func (r Redirect) String() string {
+	if r.Name != "" {
+		return r.Domain.String() + "." + r.Name
 	}
-	return pdl
+	return r.Domain.String()
 }

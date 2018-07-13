@@ -1,7 +1,7 @@
 # cdproto-gen
 
 `cdproto-gen` generates Go code for the commands, events, and types for the
-[Chrome Debugging Protocol][devtools-protocol] and is a core component of the
+[Chrome DevTools Protocol][devtools-protocol] and is a core component of the
 [`chromedp`][chromedp] project. While `cdproto-gen`'s development is primarily
 driven by the needs of the `chromedp` project, the aim of this project is to
 generate [type-safe, fast, efficient, idiomatic Go code][cdproto] usable by any
@@ -64,10 +64,10 @@ $ cdproto-gen
 
 `cdproto-gen` can be passed a single, combined protocol file via the `-proto`
 command-line option for generating the commands, events, and types for the
-Chromium Debugging Protocol domains. If the `-proto` option is not specified
+Chromium DevTools Protocol domains. If the `-proto` option is not specified
 (the default behavior), then the `browser_protocol.pdl` and `js_protocol.pdl`
-protocol definition files will be retrieved from the [Chromium source tree][chromium-src]
-and cached locally.
+protocol definition files will be retrieved from the [Chromium source
+tree][chromium-src] and cached locally.
 
 The revisions of `browser_protocol.pdl` and `js_protocol.pdl` that are
 retrieved/cached can be controlled using the `-browser` and `-js` command-line

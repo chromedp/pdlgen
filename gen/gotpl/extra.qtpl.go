@@ -570,7 +570,7 @@ func ExtraExecutorTemplate() string {
 func StreamExtraMethodTypeTemplate(qw422016 *qt422016.Writer, domains []*pdl.Domain) {
 	//line gen/gotpl/extra.qtpl:243
 	qw422016.N().S(`
-// Domain returns the Chrome Debugging Protocol domain of the event or command.
+// Domain returns the Chrome DevTools Protocol domain of the event or command.
 func (t MethodType) Domain() string {
 	return string(t[:strings.IndexByte(string(t), '.')])
 }

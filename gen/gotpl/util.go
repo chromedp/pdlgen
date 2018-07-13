@@ -106,6 +106,49 @@ func ParamList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc fun
 	return strings.TrimSuffix(s, ",")
 }
 
+// Resolve is a utility func to resolve the fully qualified name of a type's
+// ref from the list of provided domains, relative to domain d when ref is not
+// namespaced.
+func Resolve(ref string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) (pdl.DomainType, *pdl.Type, string) {
+	n := strings.SplitN(ref, ".", 2)
+
+	// determine domain
+	dtyp, typ := d.Domain, n[0]
+	if len(n) == 2 {
+		dtyp, typ = pdl.DomainType(n[0]), n[1]
+	}
+
+	// determine if ref points to an object
+	var other *pdl.Type
+	for _, z := range domains {
+		if dtyp == z.Domain {
+			for _, j := range z.Types {
+				if j.Name == typ {
+					other = j
+					break
+				}
+			}
+			break
+		}
+	}
+
+	if other == nil {
+		panic(fmt.Sprintf("could not resolve type %s in domain %s", ref, d.Domain))
+	}
+
+	var s string
+	// add prefix if not an internal type and not defined in the domain
+	if sharedFunc(dtyp.String(), typ) {
+		if d.Domain != pdl.DomainType("cdp") {
+			s += "cdp."
+		}
+	} else if dtyp != d.Domain {
+		s += strings.ToLower(dtyp.String()) + "."
+	}
+
+	return dtyp, other, s + snaker.ForceCamelIdentifier(typ)
+}
+
 // ResolveType resolves the type relative to the Go domain.
 //
 // Returns the DomainType of the underlying type, the underlying type (or the
@@ -117,7 +160,7 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc f
 		return d.Domain, t, t.Ref
 
 	case t.Ref != "":
-		dtyp, typ, z := pdl.Resolve(t.Ref, d, domains, sharedFunc)
+		dtyp, typ, z := Resolve(t.Ref, d, domains, sharedFunc)
 
 		// add ptr if object
 		var ptr string

@@ -12,12 +12,12 @@ import (
 	"github.com/chromedp/cdproto-gen/pdl"
 )
 
-// GoGenerator generates Go source code for the Chrome Debugging Protocol.
+// GoGenerator generates Go source code for the Chrome DevTools Protocol.
 type GoGenerator struct {
 	files fileBuffers
 }
 
-// NewGoGenerator creates a Go source code generator for the Chrome Debugging
+// NewGoGenerator creates a Go source code generator for the Chrome DevTools
 // Protocol domain definitions.
 func NewGoGenerator(domains []*pdl.Domain, basePkg string) (Emitter, error) {
 	// setup shared types
@@ -112,7 +112,7 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, sharedFunc func
 	d := &pdl.Domain{
 		Domain:      pdl.DomainType("cdp"),
 		Types:       typs,
-		Description: "Shared Chrome Debugging Protocol Domain types.",
+		Description: "Shared Chrome DevTools Protocol Domain types.",
 	}
 
 	w := fb.get("cdp/types.go", "cdp", d, domains, basePkg)
@@ -140,7 +140,7 @@ func (fb fileBuffers) generateRootPackage(domains []*pdl.Domain, basePkg string)
 	n := path.Base(basePkg)
 	d := &pdl.Domain{
 		Domain:      pdl.DomainType(n),
-		Description: "Chrome Debugging Protocol types.",
+		Description: "Chrome DevTools Protocol types.",
 	}
 	w := fb.get(n+".go", n, d, domains, basePkg)
 	for _, t := range rootPackageTypes(domains) {
@@ -223,7 +223,7 @@ func rootPackageTypes(domains []*pdl.Domain) []*pdl.Type {
 	return []*pdl.Type{{
 		Name:             "MethodType",
 		Type:             pdl.TypeString,
-		Description:      "Chrome Debugging Protocol method type (ie, event and command names).",
+		Description:      "Chrome DevTools Protocol method type (ie, event and command names).",
 		EnumValueNameMap: make(map[string]string),
 		Extra:            gotpl.ExtraMethodTypeTemplate(domains),
 	}, {
@@ -246,7 +246,7 @@ func (e *Error) Error() string {
 	}, {
 		Name:        "Message",
 		Type:        pdl.TypeObject,
-		Description: "Chrome Debugging Protocol message sent/read over websocket connection.",
+		Description: "Chrome DevTools Protocol message sent/read over websocket connection.",
 		Properties: []*pdl.Type{{
 			Name:        "id",
 			Type:        pdl.TypeInteger,

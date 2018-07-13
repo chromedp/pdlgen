@@ -1,6 +1,6 @@
-// cdproto-gen is a tool to generate the low-level Chrome Debugging Protocol
-// implementation types used by chromedp, based off Chrome's protocol
-// definitions.
+// cdproto-gen is a tool to generate the low-level Chrome DevTools Protocol
+// implementation types used by chromedp from the CDP protocol definitions
+// (PDLs) in the Chromium source tree.
 //
 // Please see README.md for more information on using this tool.
 package main

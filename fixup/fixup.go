@@ -1,5 +1,5 @@
 // Package fixup modifies/alters/fixes and adds to the low level type
-// definitions for the Chrome Debugging Protocol domains, as generated from
+// definitions for the Chrome DevTools Protocol domains, as generated from
 // protocol.json.
 //
 // The goal of package fixup is to fix the issues associated with generating Go
@@ -57,11 +57,11 @@ const (
 )
 
 // FixDomains modifies, updates, alters, fixes, and adds to the types defined
-// in the domains, so that the generated Chrome Debugging Protocol domain code
+// in the domains, so that the generated Chrome DevTools Protocol domain code
 // is more Go-like and easier to use.
 //
 // Please see package-level documentation for the list of changes made to the
-// various debugging protocol domains.
+// various domains.
 func FixDomains(domains []*pdl.Domain) {
 	// process domains
 	for _, d := range domains {

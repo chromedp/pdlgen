@@ -1,5 +1,5 @@
 // Package gen provides various template-based source code generators for the
-// Chrome Debugging Protocol domain definitions.
+// Chrome DevTools Protocol domain definitions.
 package gen
 
 import (
@@ -16,7 +16,7 @@ type Emitter interface {
 	Emit() map[string]*bytes.Buffer
 }
 
-// Generators returns all the various Chrome Debugging Protocol generators.
+// Generators returns all the various Chrome DevTools Protocol generators.
 func Generators() map[string]Generator {
 	return map[string]Generator{
 		"go": NewGoGenerator,

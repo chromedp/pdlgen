@@ -39,7 +39,7 @@ func StreamFileHeader(qw422016 *qt422016.Writer, pkgName string, d *pdl.Domain) 
 		//line gen/gotpl/file.qtpl:10
 		qw422016.N().S(genutil.PackageName(d))
 		//line gen/gotpl/file.qtpl:10
-		qw422016.N().S(` provides the Chrome Debugging Protocol
+		qw422016.N().S(` provides the Chrome DevTools Protocol
 // commands, types, and events for the `)
 		//line gen/gotpl/file.qtpl:11
 		qw422016.N().S(d.Domain.String())

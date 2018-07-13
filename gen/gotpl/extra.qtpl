@@ -241,7 +241,7 @@ type Executor interface {
 
 // ExtraMethodTypeTemplate generates the additional MethodType funcs and consts.
 {% func ExtraMethodTypeTemplate(domains []*pdl.Domain) %}
-// Domain returns the Chrome Debugging Protocol domain of the event or command.
+// Domain returns the Chrome DevTools Protocol domain of the event or command.
 func (t MethodType) Domain() string {
 	return string(t[:strings.IndexByte(string(t), '.')])
 }
