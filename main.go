@@ -87,6 +87,11 @@ func main() {
 
 // run runs the generator.
 func run() error {
+	// force GO111MODULE=off until it fixed
+	if err := os.Setenv("GO111MODULE", "off"); err != nil {
+		return err
+	}
+
 	// load protocol definitions
 	protoDefs, err := loadProtoDefs()
 	if err != nil {
