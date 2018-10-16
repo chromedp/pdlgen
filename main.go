@@ -62,7 +62,7 @@ var (
 	flagNoDump  = flag.Bool("no-dump", false, "toggle not dumping generated protocol file to out directory")
 
 	flagGoPkg = flag.String("go-pkg", "github.com/chromedp/cdproto", "go base package name")
-	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,protocol*.pdl,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
+	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,protocol*.pdl,go.mod,go.sum,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
 
 	flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
 )
