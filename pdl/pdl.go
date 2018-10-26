@@ -223,13 +223,14 @@ func Parse(buf []byte) (*PDL, error) {
 
 // primitiveTypes is a map of primitive type names to their enum value.
 var primitiveTypes = map[string]TypeEnum{
-	"integer": TypeInteger,
-	"number":  TypeNumber,
-	"boolean": TypeBoolean,
-	"string":  TypeString,
-	"object":  TypeObject,
 	"any":     TypeAny,
 	"array":   TypeArray,
+	"binary":  TypeBinary,
+	"boolean": TypeBoolean,
+	"integer": TypeInteger,
+	"number":  TypeNumber,
+	"object":  TypeObject,
+	"string":  TypeString,
 }
 
 // assignType assigns item as a type of typ.
@@ -586,6 +587,7 @@ type TypeEnum string
 const (
 	TypeAny       TypeEnum = "any"
 	TypeArray     TypeEnum = "array"
+	TypeBinary    TypeEnum = "binary"
 	TypeBoolean   TypeEnum = "boolean"
 	TypeInteger   TypeEnum = "integer"
 	TypeNumber    TypeEnum = "number"

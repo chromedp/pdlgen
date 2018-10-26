@@ -5,10 +5,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/knq/snaker"
-
 	"github.com/chromedp/cdproto-gen/gen/genutil"
 	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/knq/snaker"
 )
 
 // Prefix and suffix values.
@@ -331,13 +330,11 @@ func Base64EncodedRetParam(t *pdl.Type) *pdl.Type {
 		if p.Name == Base64EncodedParamName {
 			return last
 		}
-		if strings.HasPrefix(p.Description, Base64EncodedDescriptionPrefix) {
+		if p.Type == pdl.TypeBinary || strings.HasPrefix(p.Description, Base64EncodedDescriptionPrefix) {
 			return p
 		}
-
 		last = p
 	}
-
 	return nil
 }
 
@@ -443,7 +440,7 @@ func GoEnumType(te pdl.TypeEnum) string {
 	case pdl.TypeNumber:
 		return "float64"
 
-	case pdl.TypeString:
+	case pdl.TypeString, pdl.TypeBinary:
 		return "string"
 
 	case pdl.TypeTimestamp:
@@ -466,7 +463,7 @@ func GoEnumEmptyValue(te pdl.TypeEnum) string {
 	case pdl.TypeNumber:
 		return `0`
 
-	case pdl.TypeString:
+	case pdl.TypeString, pdl.TypeBinary:
 		return `""`
 
 	case pdl.TypeTimestamp:
