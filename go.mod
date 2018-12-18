@@ -11,4 +11,4 @@ require (
 	golang.org/x/tools v0.0.0-20181218020041-13ba8ad772df
 )
 
-replace github.com/mailru/easyjson => github.com/kenshaw/easyjson v0.0.0-20181218163322-87f1cb3c5e89
+replace github.com/mailru/easyjson => github.com/kenshaw/easyjson v0.0.0-20181218164051-f60ef3823047
