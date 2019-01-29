@@ -1,6 +1,7 @@
 package diff
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"os/exec"
@@ -9,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // CompareFiles returns the diff between files a, b.
@@ -47,12 +47,16 @@ func CompareFiles(a, b string) ([]byte, error) {
 type FileInfo struct {
 	Name string
 	Info os.FileInfo
-	Date time.Time
+}
+
+// String satisfies fmt.Stringer.
+func (fi *FileInfo) String() string {
+	return filepath.Base(fi.Name)
 }
 
 // FindFilesWithMask walks dir finding all files with the regexp mask, removing
 // any exclude'd files.
-func FindFilesWithMask(dir, mask string, maskField int, exclude ...string) ([]*FileInfo, error) {
+func FindFilesWithMask(dir, mask string, exclude ...string) ([]*FileInfo, error) {
 	var maskRE = regexp.MustCompile(mask)
 
 	// build list of protocol files on disk
@@ -70,14 +74,7 @@ func FindFilesWithMask(dir, mask string, maskField int, exclude ...string) ([]*F
 
 		// skip if same as current or doesn't match file mask
 		fn := n[len(dir):]
-		matches := maskRE.FindAllStringSubmatch(fn, -1)
-		if matches == nil || contains(exclude, filepath.Base(fn)) {
-			return nil
-		}
-
-		// parse date
-		date, err := time.Parse("20060102", matches[0][maskField])
-		if err != nil {
+		if !maskRE.MatchString(fn) || contains(exclude, filepath.Base(fn)) {
 			return nil
 		}
 
@@ -85,7 +82,6 @@ func FindFilesWithMask(dir, mask string, maskField int, exclude ...string) ([]*F
 		files = append(files, &FileInfo{
 			Name: n,
 			Info: fi,
-			Date: date,
 		})
 		return nil
 	})
@@ -102,8 +98,8 @@ func FindFilesWithMask(dir, mask string, maskField int, exclude ...string) ([]*F
 //
 // Useful for comparing multiple files to find the most recent difference from
 // a set of files matching mask that likely have the same content.
-func WalkAndCompare(dir, mask string, maskField int, filename string) ([]byte, error) {
-	files, err := FindFilesWithMask(dir, mask, maskField, filepath.Base(filename))
+func WalkAndCompare(dir, mask string, filename string, cmp func(*FileInfo, *FileInfo) bool) ([]byte, error) {
+	files, err := FindFilesWithMask(dir, mask)
 	if err != nil {
 		return nil, err
 	}
@@ -112,19 +108,26 @@ func WalkAndCompare(dir, mask string, maskField int, filename string) ([]byte, e
 	if len(files) == 0 {
 		return nil, nil
 	}
-
 	// sort most recent
 	sort.Slice(files, func(a, b int) bool {
-		return files[a].Date.After(files[b].Date)
+		return cmp(files[a], files[b])
 	})
 
+	// find filename in files
+	var i int
+	for ; i < len(files); i++ {
+		if filepath.Base(files[i].Name) == filepath.Base(filename) {
+			break
+		}
+	}
+
 	// compare and return first with diff
-	for _, f := range files {
-		buf, err := CompareFiles(f.Name, filename)
+	for i--; i >= 0; i-- {
+		buf, err := CompareFiles(files[i].Name, filename)
 		if err != nil {
 			return nil, err
 		}
-		if buf != nil {
+		if buf != nil && len(bytes.TrimSpace(buf)) > 0 {
 			return buf, nil
 		}
 	}

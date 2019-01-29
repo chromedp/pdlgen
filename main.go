@@ -20,13 +20,15 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/mailru/easyjson/bootstrap"
 	"github.com/mailru/easyjson/parser"
 	glob "github.com/ryanuber/go-glob"
@@ -41,30 +43,33 @@ import (
 )
 
 const (
-	chromiumSrc = "https://chromium.googlesource.com"
-	browserURL  = "chromium/src/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
-	jsURL       = "v8/v8/+/%s/src/inspector/js_protocol.pdl"
-	easyjsonGo  = "easyjson.go"
+	browserIndex = "https://chromium.googlesource.com/chromium/src"
+	browserURL   = "https://chromium.googlesource.com/chromium/src/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
+	jsIndex      = "https://chromium.googlesource.com/v8/v8"
+	jsURL        = "https://chromium.googlesource.com/v8/v8/+/%s/src/inspector/js_protocol.pdl"
+
+	easyjsonGo = "easyjson.go"
 )
 
 var (
 	flagDebug = flag.Bool("debug", false, "toggle debug (writes generated files to disk without post-processing)")
 
-	flagPdl     = flag.String("pdl", "", "path to pdl file to use")
-	flagBrowser = flag.String("browser", "master", "browser version to retrieve/use")
-	flagJS      = flag.String("js", "master", "js version to retrieve/use")
-	flagTTL     = flag.Duration("ttl", 24*time.Hour, "browser and js cache ttl")
+	flagTTL = flag.Duration("ttl", 24*time.Hour, "file retrieval caching ttl")
 
-	flagCache = flag.String("cache", filepath.Join(os.Getenv("GOPATH"), "pkg", "cdproto-gen"), "protocol cache directory")
-	flagOut   = flag.String("out", "", "out directory")
+	flagPdl     = flag.String("pdl", "", "path to pdl file to use")
+	flagBrowser = flag.String("browser", "", "browser protocol version")
+	flagJS      = flag.String("js", "", "js protocol version")
+
+	flagCache = flag.String("cache", "", "protocol cache directory")
+	flagOut   = flag.String("out", "", "package out directory")
 
 	flagNoClean = flag.Bool("no-clean", false, "toggle not cleaning (removing) existing directories")
 	flagNoDump  = flag.Bool("no-dump", false, "toggle not dumping generated protocol file to out directory")
 
 	flagGoPkg = flag.String("go-pkg", "github.com/chromedp/cdproto", "go base package name")
-	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,protocol*.pdl,go.mod,go.sum,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
+	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,*.pdl,go.mod,go.sum,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
 
-	flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
+	//flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
 )
 
 func main() {
@@ -87,9 +92,32 @@ func main() {
 
 // run runs the generator.
 func run() error {
-	// force GO111MODULE=off until it fixed
-	if err := os.Setenv("GO111MODULE", "off"); err != nil {
+	var err error
+
+	// set cache path
+	if *flagCache == "" {
+		cacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return err
+		}
+		*flagCache = filepath.Join(cacheDir, "cdproto-gen")
+	}
+
+	// force GO111MODULE=off
+	if err = os.Setenv("GO111MODULE", "off"); err != nil {
 		return err
+	}
+
+	// determine version
+	if *flagBrowser == "" {
+		if *flagBrowser, err = getLatestVersion(browserIndex); err != nil {
+			return err
+		}
+	}
+	if *flagJS == "" {
+		if *flagJS, err = getLatestVersion(jsIndex); err != nil {
+			return err
+		}
 	}
 
 	// load protocol definitions
@@ -106,12 +134,15 @@ func run() error {
 	}
 
 	// create out directory
-	err = os.MkdirAll(*flagOut, 0755)
-	if err != nil {
+	if err = os.MkdirAll(*flagOut, 0755); err != nil {
 		return err
 	}
 
-	protoFile := filepath.Join(*flagOut, fmt.Sprintf("protocol-%s_%s-%s.pdl", *flagBrowser, *flagJS, time.Now().Format("20060102")))
+	combinedDir := filepath.Join(*flagCache, "combined")
+	if err = os.MkdirAll(combinedDir, 0755); err != nil {
+		return err
+	}
+	protoFile := filepath.Join(combinedDir, fmt.Sprintf("%s_%s.pdl", *flagBrowser, *flagJS))
 
 	// write protocol definitions
 	if *flagPdl == "" {
@@ -122,7 +153,14 @@ func run() error {
 
 		// display differences between generated definitions and previous version on disk
 		if runtime.GOOS != "windows" {
-			diffBuf, err := diff.WalkAndCompare(*flagOut, `^protocol-([^-]+)-(2[0-9]{7})\.pdl$`, 2, protoFile)
+			diffBuf, err := diff.WalkAndCompare(combinedDir, `^([0-9_.]+)\.pdl$`, protoFile, func(a, b *diff.FileInfo) bool {
+				n := strings.Split(strings.TrimSuffix(filepath.Base(a.Name), ".pdl"), "_")
+				m := strings.Split(strings.TrimSuffix(filepath.Base(b.Name), ".pdl"), "_")
+				if n[0] == m[0] {
+					return compareSemver(n[1], m[1])
+				}
+				return compareSemver(n[0], m[0])
+			})
 			if err != nil {
 				return err
 			}
@@ -225,6 +263,38 @@ func run() error {
 	return nil
 }
 
+var verRE = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$`)
+
+// getLatestVersion determines the latest tag version the html page.
+func getLatestVersion(urlstr string) (string, error) {
+	var err error
+
+	buf, err := fileCacher{
+		path: filepath.Join(*flagCache, "html", filepath.Base(urlstr)),
+		ttl:  *flagTTL,
+	}.Get(urlstr, false, "versions.html")
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(buf))
+	if err != nil {
+		return "", err
+	}
+
+	var vers []*semver.Version
+	doc.Find(`h3:contains("Tags") + ul li`).Each(func(i int, s *goquery.Selection) {
+		if t := s.Text(); verRE.MatchString(t) {
+			vers = append(vers, makeSemver(t))
+		}
+	})
+	if len(vers) < 1 {
+		return "", fmt.Errorf("could not find a valid tag at %s", urlstr)
+	}
+	sort.Sort(semver.Collection(vers))
+	return strings.Replace(vers[len(vers)-1].String(), "-", ".", -1), nil
+}
+
 // loadProtoDefs loads the protocol definitions either from the path specified
 // in -proto or by retrieving the versions specified in the -browser and -js
 // files.
@@ -237,41 +307,34 @@ func loadProtoDefs() (*pdl.PDL, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		return pdl.Parse(buf)
 	}
 
 	var protoDefs []*pdl.PDL
-	load := func(typ, file, ver string) error {
-		urlstr := fmt.Sprintf("%s/%s?format=TEXT", chromiumSrc, fmt.Sprintf(file, ver))
-		logf("%s: %s", pad(strings.ToUpper(typ), 7), urlstr)
+	load := func(urlstr, ver string) error {
+		n := strings.TrimSuffix(filepath.Base(urlstr), "_protocol.pdl")
 		buf, err := fileCacher{
-			path: filepath.Join(*flagCache, typ, ver),
+			path: filepath.Join(*flagCache, n, ver+".pdl"),
 			ttl:  *flagTTL,
-		}.Get(urlstr, true, path.Base(file))
+		}.Get(fmt.Sprintf(urlstr+"?format=TEXT", ver), true)
 		if err != nil {
 			return err
 		}
 
-		// convert PDL to JSON definition
+		// parse
 		protoDef, err := pdl.Parse(buf)
 		if err != nil {
 			return err
 		}
-
 		protoDefs = append(protoDefs, protoDef)
 		return nil
 	}
 
-	// grab browser definition
-	err = load("browser", browserURL, *flagBrowser)
-	if err != nil {
+	// grab browser + js definition
+	if err = load(browserURL, *flagBrowser); err != nil {
 		return nil, err
 	}
-
-	// grab js definition
-	err = load("js", jsURL, *flagJS)
-	if err != nil {
+	if err = load(jsURL, *flagJS); err != nil {
 		return nil, err
 	}
 
@@ -449,19 +512,23 @@ type fileCacher struct {
 
 // Load attempts to load the file from disk, disregarding ttl.
 func (fc fileCacher) Load(names ...string) ([]byte, error) {
-	return ioutil.ReadFile(pathJoin(fc.path, names...))
+	return ioutil.ReadFile(filepathJoin(fc.path, names...))
 }
 
 // Cache writes buf to the fileCacher path joined with names.
 func (fc fileCacher) Cache(buf []byte, names ...string) error {
-	logf("WRITING: %s", pathJoin(fc.path, names...))
-	return ioutil.WriteFile(pathJoin(fc.path, names...), buf, 0644)
+	n := filepathJoin(fc.path, names...)
+	if err := os.MkdirAll(filepath.Dir(n), 0755); err != nil {
+		return err
+	}
+	logf("WRITING: %s", n)
+	return ioutil.WriteFile(n, buf, 0644)
 }
 
 // Get retrieves a file from disk or from the remote URL, optionally
 // base64 decoding it and writing it to disk.
 func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte, error) {
-	n := pathJoin(fc.path, names...)
+	n := filepathJoin(fc.path, names...)
 	cd := filepath.Dir(n)
 	err := os.MkdirAll(cd, 0755)
 	if err != nil {
@@ -503,16 +570,16 @@ func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte
 	}
 
 	// write
-	err = fc.Cache(buf, names...)
-	if err != nil {
+	if err = fc.Cache(buf, names...); err != nil {
 		return nil, err
 	}
 
 	return buf, nil
 }
 
-// pathJoin is a simple wrapper around filepath.Join to simplify inline syntax.
-func pathJoin(n string, m ...string) string {
+// filepathJoin is a simple wrapper around filepath.Join to simplify inline
+// syntax.
+func filepathJoin(n string, m ...string) string {
 	return filepath.Join(append([]string{n}, m...)...)
 }
 
@@ -546,4 +613,23 @@ func whitelisted(n string) bool {
 		}
 	}
 	return false
+}
+
+// makeSemver makes a semver for v.
+func makeSemver(v string) *semver.Version {
+	// replace last . with -
+	if strings.Count(v, ".") > 2 {
+		n := strings.LastIndex(v, ".")
+		v = v[:n] + "-" + v[n+1:]
+	}
+	ver, err := semver.NewVersion(v)
+	if err != nil {
+		panic(fmt.Sprintf("could not make %s into semver: %v", v, err))
+	}
+	return ver
+}
+
+// compareSemver returns true if the semver of a is less than the semver of b.
+func compareSemver(a, b string) bool {
+	return makeSemver(b).GreaterThan(makeSemver(a))
 }
