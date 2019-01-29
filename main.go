@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -43,10 +44,12 @@ import (
 )
 
 const (
-	browserIndex = "https://chromium.googlesource.com/chromium/src"
-	browserURL   = "https://chromium.googlesource.com/chromium/src/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
-	jsIndex      = "https://chromium.googlesource.com/v8/v8"
-	jsURL        = "https://chromium.googlesource.com/v8/v8/+/%s/src/inspector/js_protocol.pdl"
+	browserBase = "https://chromium.googlesource.com/chromium/src"
+	browserDeps = browserBase + "/+/%s/DEPS"
+	browserURL  = browserBase + "/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
+
+	jsBase = "https://chromium.googlesource.com/v8/v8"
+	jsURL  = jsBase + "/+/%s/src/inspector/js_protocol.pdl"
 
 	easyjsonGo = "easyjson.go"
 )
@@ -59,6 +62,7 @@ var (
 	flagPdl     = flag.String("pdl", "", "path to pdl file to use")
 	flagBrowser = flag.String("browser", "", "browser protocol version")
 	flagJS      = flag.String("js", "", "js protocol version")
+	flagLatest  = flag.Bool("latest", false, "use latest protocol")
 
 	flagCache = flag.String("cache", "", "protocol cache directory")
 	flagOut   = flag.String("out", "", "package out directory")
@@ -108,15 +112,21 @@ func run() error {
 		return err
 	}
 
-	// determine version
+	// get latest versions
 	if *flagBrowser == "" {
-		if *flagBrowser, err = getLatestVersion(browserIndex); err != nil {
+		if *flagBrowser, err = getLatestVersion(browserBase); err != nil {
 			return err
 		}
 	}
 	if *flagJS == "" {
-		if *flagJS, err = getLatestVersion(jsIndex); err != nil {
-			return err
+		if *flagLatest {
+			if *flagJS, err = getLatestVersion(jsBase); err != nil {
+				return err
+			}
+		} else {
+			if *flagJS, err = getDepVersion(*flagBrowser); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -265,14 +275,15 @@ func run() error {
 
 var verRE = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$`)
 
-// getLatestVersion determines the latest tag version the html page.
+// getLatestVersion determines the latest tag version listed on the gitiles html page.
 func getLatestVersion(urlstr string) (string, error) {
 	var err error
 
-	buf, err := fileCacher{
-		path: filepath.Join(*flagCache, "html", filepath.Base(urlstr)),
+	buf, err := get(cache{
+		path: filepath.Join(*flagCache, "html", filepath.Base(urlstr), "versions.html"),
 		ttl:  *flagTTL,
-	}.Get(urlstr, false, "versions.html")
+		url:  urlstr,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -295,6 +306,65 @@ func getLatestVersion(urlstr string) (string, error) {
 	return strings.Replace(vers[len(vers)-1].String(), "-", ".", -1), nil
 }
 
+var cleanRE = regexp.MustCompile(`[^0-9a-f]`)
+
+// getDepVersion version retrieves the v8 version used for the browser version.
+func getDepVersion(ver string) (string, error) {
+	buf, err := get(cache{
+		path:   filepath.Join(*flagCache, "deps", *flagBrowser),
+		ttl:    *flagTTL,
+		decode: true,
+		url:    fmt.Sprintf(browserDeps+"?format=TEXT", ver),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// determine revision
+	mark := []byte("'v8_revision':")
+	i := bytes.Index(buf, mark)
+	if i == -1 {
+		return "", fmt.Errorf("could not determine v8 version for browser version %q", ver)
+	}
+	buf = buf[i+len(mark):]
+	i = bytes.Index(buf, []byte("\n"))
+	rev := string(cleanRE.ReplaceAll(buf[:i], nil))
+
+	// grab refs
+	buf, err = get(cache{
+		path: filepath.Join(*flagCache, "refs", "v8.json"),
+		ttl:  *flagTTL,
+		url:  jsBase + "/+refs?format=JSON",
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// chop first line
+	buf = buf[bytes.Index(buf, []byte("\n")):]
+
+	// unmarshal
+	var m map[string]struct {
+		Value  string `json:"value"`
+		Target string `json:"target"`
+	}
+	if err = json.Unmarshal(buf, &m); err != nil {
+		return "", err
+	}
+
+	// find tag
+	for k, v := range m {
+		if !strings.HasPrefix(k, "refs/tags/") {
+			continue
+		}
+		if v.Value == rev {
+			return strings.TrimPrefix(k, "refs/tags/"), nil
+		}
+	}
+
+	return "", fmt.Errorf("could not find %s revision tag for rev %s", ver, rev)
+}
+
 // loadProtoDefs loads the protocol definitions either from the path specified
 // in -proto or by retrieving the versions specified in the -browser and -js
 // files.
@@ -313,10 +383,12 @@ func loadProtoDefs() (*pdl.PDL, error) {
 	var protoDefs []*pdl.PDL
 	load := func(urlstr, ver string) error {
 		n := strings.TrimSuffix(filepath.Base(urlstr), "_protocol.pdl")
-		buf, err := fileCacher{
-			path: filepath.Join(*flagCache, n, ver+".pdl"),
-			ttl:  *flagTTL,
-		}.Get(fmt.Sprintf(urlstr+"?format=TEXT", ver), true)
+		buf, err := get(cache{
+			path:   filepath.Join(*flagCache, n, ver+".pdl"),
+			ttl:    *flagTTL,
+			url:    fmt.Sprintf(urlstr+"?format=TEXT", ver),
+			decode: true,
+		})
 		if err != nil {
 			return err
 		}
@@ -504,49 +576,34 @@ func fmtFiles(files map[string]*bytes.Buffer, pkgs []string) []string {
 	return f
 }
 
-// fileCacher handles caching files to a path with a ttl.
-type fileCacher struct {
-	path string
-	ttl  time.Duration
+// cache holds information about a cached file.
+type cache struct {
+	path   string
+	ttl    time.Duration
+	decode bool
+	url    string
 }
 
-// Load attempts to load the file from disk, disregarding ttl.
-func (fc fileCacher) Load(names ...string) ([]byte, error) {
-	return ioutil.ReadFile(filepathJoin(fc.path, names...))
-}
+// get retrieves a file from disk or from the remote URL, optionally base64
+// decoding it and writing it to disk.
+func get(c cache) ([]byte, error) {
+	var err error
 
-// Cache writes buf to the fileCacher path joined with names.
-func (fc fileCacher) Cache(buf []byte, names ...string) error {
-	n := filepathJoin(fc.path, names...)
-	if err := os.MkdirAll(filepath.Dir(n), 0755); err != nil {
-		return err
-	}
-	logf("WRITING: %s", n)
-	return ioutil.WriteFile(n, buf, 0644)
-}
-
-// Get retrieves a file from disk or from the remote URL, optionally
-// base64 decoding it and writing it to disk.
-func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte, error) {
-	n := filepathJoin(fc.path, names...)
-	cd := filepath.Dir(n)
-	err := os.MkdirAll(cd, 0755)
-	if err != nil {
+	if err = os.MkdirAll(filepath.Dir(c.path), 0755); err != nil {
 		return nil, err
 	}
 
 	// check if exists on disk
-	fi, err := os.Stat(n)
-	if err == nil && fc.ttl != 0 && !time.Now().After(fi.ModTime().Add(fc.ttl)) {
-		// logf("LOADING: %s", n)
-		return ioutil.ReadFile(n)
+	fi, err := os.Stat(c.path)
+	if err == nil && c.ttl != 0 && !time.Now().After(fi.ModTime().Add(c.ttl)) {
+		return ioutil.ReadFile(c.path)
 	}
 
-	logf("RETRIEVING: %s", urlstr)
+	logf("RETRIEVING: %s", c.url)
 
 	// retrieve
 	cl := &http.Client{}
-	req, err := http.NewRequest("GET", urlstr, nil)
+	req, err := http.NewRequest("GET", c.url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -562,15 +619,15 @@ func (fc fileCacher) Get(urlstr string, b64Decode bool, names ...string) ([]byte
 	}
 
 	// decode
-	if b64Decode {
+	if c.decode {
 		buf, err = base64.StdEncoding.DecodeString(string(buf))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// write
-	if err = fc.Cache(buf, names...); err != nil {
+	logf("WRITING: %s", c.path)
+	if err = ioutil.WriteFile(c.path, buf, 0644); err != nil {
 		return nil, err
 	}
 
