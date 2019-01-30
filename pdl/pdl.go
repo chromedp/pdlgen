@@ -201,8 +201,8 @@ func Parse(buf []byte) (*PDL, error) {
 			}
 			if m := redirectCommentRE.FindAllStringSubmatch(desc, -1); len(m) != 0 {
 				name := m[0][1]
-				if i := strings.LastIndex(name, "."); i != -1 {
-					name = name[i+1:]
+				if n := strings.LastIndex(name, "."); n != -1 {
+					name = name[n+1:]
 				}
 				item.Redirect.Name = name
 			}
@@ -392,9 +392,7 @@ func (pdl *PDL) Bytes() []byte {
 
 	// copy and sort domains
 	domains := make([]*Domain, len(pdl.Domains))
-	for i, d := range pdl.Domains {
-		domains[i] = d
-	}
+	copy(domains, pdl.Domains)
 	sort.Slice(domains, func(i, j int) bool {
 		return strings.Compare(domains[i].Domain.String(), domains[j].Domain.String()) < 0
 	})
@@ -412,9 +410,7 @@ func (pdl *PDL) Bytes() []byte {
 
 		// sort types
 		types := make([]*Type, len(d.Types))
-		for i, typ := range d.Types {
-			types[i] = typ
-		}
+		copy(types, d.Types)
 		sort.Slice(types, func(i, j int) bool {
 			return strings.Compare(types[i].Name, types[i].Name) < 0
 		})
@@ -445,9 +441,7 @@ func (pdl *PDL) Bytes() []byte {
 
 		// sort commands
 		commands := make([]*Type, len(d.Commands))
-		for i, c := range d.Commands {
-			commands[i] = c
-		}
+		copy(commands, d.Commands)
 		sort.Slice(commands, func(i, j int) bool {
 			return strings.Compare(commands[i].Name, commands[i].Name) < 0
 		})
@@ -463,9 +457,7 @@ func (pdl *PDL) Bytes() []byte {
 
 		// sort events
 		events := make([]*Type, len(d.Events))
-		for i, e := range d.Events {
-			events[i] = e
-		}
+		copy(events, d.Events)
 		sort.Slice(events, func(i, j int) bool {
 			return strings.Compare(events[i].Name, events[i].Name) < 0
 		})
