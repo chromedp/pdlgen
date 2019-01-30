@@ -11,25 +11,18 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"go/format"
 	"io/ioutil"
-	"log"
-	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/mailru/easyjson/bootstrap"
 	"github.com/mailru/easyjson/parser"
 	glob "github.com/ryanuber/go-glob"
@@ -41,16 +34,10 @@ import (
 	"github.com/chromedp/cdproto-gen/gen"
 	"github.com/chromedp/cdproto-gen/gen/genutil"
 	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/cdproto-gen/util"
 )
 
 const (
-	browserBase = "https://chromium.googlesource.com/chromium/src"
-	browserDeps = browserBase + "/+/%s/DEPS"
-	browserURL  = browserBase + "/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
-
-	jsBase = "https://chromium.googlesource.com/v8/v8"
-	jsURL  = jsBase + "/+/%s/src/inspector/js_protocol.pdl"
-
 	easyjsonGo = "easyjson.go"
 )
 
@@ -59,10 +46,11 @@ var (
 
 	flagTTL = flag.Duration("ttl", 24*time.Hour, "file retrieval caching ttl")
 
-	flagPdl     = flag.String("pdl", "", "path to pdl file to use")
-	flagBrowser = flag.String("browser", "", "browser protocol version")
-	flagJS      = flag.String("js", "", "js protocol version")
-	flagLatest  = flag.Bool("latest", false, "use latest protocol")
+	flagChromium = flag.String("chromium", "", "chromium protocol version")
+	flagV8       = flag.String("v8", "", "v8 protocol version")
+	flagLatest   = flag.Bool("latest", false, "use latest protocol")
+
+	flagPdl = flag.String("pdl", "", "path to pdl file to use")
 
 	flagCache = flag.String("cache", "", "protocol cache directory")
 	flagOut   = flag.String("out", "", "package out directory")
@@ -113,18 +101,35 @@ func run() error {
 	}
 
 	// get latest versions
-	if *flagBrowser == "" {
-		if *flagBrowser, err = getLatestVersion(browserBase); err != nil {
+	if *flagChromium == "" {
+		if *flagChromium, err = util.GetLatestVersion(util.Cache{
+			URL:  util.ChromiumBase,
+			Path: filepath.Join(*flagCache, "html", "chromium.html"),
+			TTL:  *flagTTL,
+		}); err != nil {
 			return err
 		}
 	}
-	if *flagJS == "" {
+	if *flagV8 == "" {
 		if *flagLatest {
-			if *flagJS, err = getLatestVersion(jsBase); err != nil {
+			if *flagV8, err = util.GetLatestVersion(util.Cache{
+				URL:  util.V8Base,
+				Path: filepath.Join(*flagCache, "html", "v8.html"),
+				TTL:  *flagTTL,
+			}); err != nil {
 				return err
 			}
 		} else {
-			if *flagJS, err = getDepVersion(*flagBrowser); err != nil {
+			if *flagV8, err = util.GetDepVersion("v8", *flagChromium, util.Cache{
+				URL:    fmt.Sprintf(util.ChromiumDeps+"?format=TEXT", *flagChromium),
+				Path:   filepath.Join(*flagCache, "deps", "chromium", *flagChromium),
+				TTL:    *flagTTL,
+				Decode: true,
+			}, util.Cache{
+				URL:  util.V8Base + "/+refs?format=JSON",
+				Path: filepath.Join(*flagCache, "refs", "v8.json"),
+				TTL:  *flagTTL,
+			}); err != nil {
 				return err
 			}
 		}
@@ -148,15 +153,15 @@ func run() error {
 		return err
 	}
 
-	combinedDir := filepath.Join(*flagCache, "combined")
+	combinedDir := filepath.Join(*flagCache, "pdl", "combined")
 	if err = os.MkdirAll(combinedDir, 0755); err != nil {
 		return err
 	}
-	protoFile := filepath.Join(combinedDir, fmt.Sprintf("%s_%s.pdl", *flagBrowser, *flagJS))
+	protoFile := filepath.Join(combinedDir, fmt.Sprintf("%s_%s.pdl", *flagChromium, *flagV8))
 
 	// write protocol definitions
 	if *flagPdl == "" {
-		logf("WRITING: %s", protoFile)
+		util.Logf("WRITING: %s", protoFile)
 		if err = ioutil.WriteFile(protoFile, protoDefs.Bytes(), 0644); err != nil {
 			return err
 		}
@@ -167,9 +172,9 @@ func run() error {
 				n := strings.Split(strings.TrimSuffix(filepath.Base(a.Name), ".pdl"), "_")
 				m := strings.Split(strings.TrimSuffix(filepath.Base(b.Name), ".pdl"), "_")
 				if n[0] == m[0] {
-					return compareSemver(n[1], m[1])
+					return util.CompareSemver(n[1], m[1])
 				}
-				return compareSemver(n[0], m[0])
+				return util.CompareSemver(n[0], m[0])
 			})
 			if err != nil {
 				return err
@@ -190,7 +195,7 @@ func run() error {
 			if d.Deprecated {
 				extra = append(extra, "deprecated")
 			}
-			logf("SKIPPING(%s): %s %v", pad("domain", 7), d.Domain.String(), extra)
+			util.Logf("SKIPPING(%s): %s %v", pad("domain", 7), d.Domain.String(), extra)
 			continue
 		}
 
@@ -222,7 +227,7 @@ func run() error {
 
 	// clean up files
 	if !*flagNoClean {
-		logf("CLEANING: %s", *flagOut)
+		util.Logf("CLEANING: %s", *flagOut)
 		outpath := *flagOut + string(filepath.Separator)
 		err = filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
 			switch {
@@ -239,7 +244,7 @@ func run() error {
 				return nil
 			}
 
-			logf("REMOVING: %s", n)
+			util.Logf("REMOVING: %s", n)
 			return os.RemoveAll(n)
 		})
 		if err != nil {
@@ -247,7 +252,7 @@ func run() error {
 		}
 	}
 
-	logf("WRITING: %d files", len(files))
+	util.Logf("WRITING: %d files", len(files))
 
 	// dump files and exit
 	if *flagDebug {
@@ -269,100 +274,8 @@ func run() error {
 		return err
 	}
 
-	logf("done.")
+	util.Logf("done.")
 	return nil
-}
-
-var verRE = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$`)
-
-// getLatestVersion determines the latest tag version listed on the gitiles html page.
-func getLatestVersion(urlstr string) (string, error) {
-	var err error
-
-	buf, err := get(cache{
-		path: filepath.Join(*flagCache, "html", filepath.Base(urlstr), "versions.html"),
-		ttl:  *flagTTL,
-		url:  urlstr,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(buf))
-	if err != nil {
-		return "", err
-	}
-
-	var vers []*semver.Version
-	doc.Find(`h3:contains("Tags") + ul li`).Each(func(i int, s *goquery.Selection) {
-		if t := s.Text(); verRE.MatchString(t) {
-			vers = append(vers, makeSemver(t))
-		}
-	})
-	if len(vers) < 1 {
-		return "", fmt.Errorf("could not find a valid tag at %s", urlstr)
-	}
-	sort.Sort(semver.Collection(vers))
-	return strings.Replace(vers[len(vers)-1].String(), "-", ".", -1), nil
-}
-
-var cleanRE = regexp.MustCompile(`[^0-9a-f]`)
-
-// getDepVersion version retrieves the v8 version used for the browser version.
-func getDepVersion(ver string) (string, error) {
-	buf, err := get(cache{
-		path:   filepath.Join(*flagCache, "deps", *flagBrowser),
-		ttl:    *flagTTL,
-		decode: true,
-		url:    fmt.Sprintf(browserDeps+"?format=TEXT", ver),
-	})
-	if err != nil {
-		return "", err
-	}
-
-	// determine revision
-	mark := []byte("'v8_revision':")
-	i := bytes.Index(buf, mark)
-	if i == -1 {
-		return "", fmt.Errorf("could not determine v8 version for browser version %q", ver)
-	}
-	buf = buf[i+len(mark):]
-	i = bytes.Index(buf, []byte("\n"))
-	rev := string(cleanRE.ReplaceAll(buf[:i], nil))
-
-	// grab refs
-	buf, err = get(cache{
-		path: filepath.Join(*flagCache, "refs", "v8.json"),
-		ttl:  *flagTTL,
-		url:  jsBase + "/+refs?format=JSON",
-	})
-	if err != nil {
-		return "", err
-	}
-
-	// chop first line
-	buf = buf[bytes.Index(buf, []byte("\n")):]
-
-	// unmarshal
-	var m map[string]struct {
-		Value  string `json:"value"`
-		Target string `json:"target"`
-	}
-	if err = json.Unmarshal(buf, &m); err != nil {
-		return "", err
-	}
-
-	// find tag
-	for k, v := range m {
-		if !strings.HasPrefix(k, "refs/tags/") {
-			continue
-		}
-		if v.Value == rev {
-			return strings.TrimPrefix(k, "refs/tags/"), nil
-		}
-	}
-
-	return "", fmt.Errorf("could not find %s revision tag for rev %s", ver, rev)
 }
 
 // loadProtoDefs loads the protocol definitions either from the path specified
@@ -372,7 +285,7 @@ func loadProtoDefs() (*pdl.PDL, error) {
 	var err error
 
 	if *flagPdl != "" {
-		logf("PROTOCOL: %s", *flagPdl)
+		util.Logf("PROTOCOL: %s", *flagPdl)
 		buf, err := ioutil.ReadFile(*flagPdl)
 		if err != nil {
 			return nil, err
@@ -381,13 +294,12 @@ func loadProtoDefs() (*pdl.PDL, error) {
 	}
 
 	var protoDefs []*pdl.PDL
-	load := func(urlstr, ver string) error {
-		n := strings.TrimSuffix(filepath.Base(urlstr), "_protocol.pdl")
-		buf, err := get(cache{
-			path:   filepath.Join(*flagCache, n, ver+".pdl"),
-			ttl:    *flagTTL,
-			url:    fmt.Sprintf(urlstr+"?format=TEXT", ver),
-			decode: true,
+	load := func(urlstr, typ, ver string) error {
+		buf, err := util.Get(util.Cache{
+			URL:    fmt.Sprintf(urlstr+"?format=TEXT", ver),
+			Path:   filepath.Join(*flagCache, "pdl", typ, ver+".pdl"),
+			TTL:    *flagTTL,
+			Decode: true,
 		})
 		if err != nil {
 			return err
@@ -403,10 +315,10 @@ func loadProtoDefs() (*pdl.PDL, error) {
 	}
 
 	// grab browser + js definition
-	if err = load(browserURL, *flagBrowser); err != nil {
+	if err = load(util.ChromiumURL, "chromium", *flagChromium); err != nil {
 		return nil, err
 	}
-	if err = load(jsURL, *flagJS); err != nil {
+	if err = load(util.V8URL, "v8", *flagV8); err != nil {
 		return nil, err
 	}
 
@@ -426,12 +338,12 @@ func cleanupTypes(n string, dtyp string, typs []*pdl.Type) []*pdl.Type {
 	for _, t := range typs {
 		typ := dtyp + "." + t.Name
 		if t.Deprecated {
-			logf("SKIPPING(%s): %s [deprecated]", pad(n, 7), typ)
+			util.Logf("SKIPPING(%s): %s [deprecated]", pad(n, 7), typ)
 			continue
 		}
 
 		if t.Redirect != nil {
-			logf("SKIPPING(%s): %s [redirect:%s]", pad(n, 7), typ, t.Redirect)
+			util.Logf("SKIPPING(%s): %s [redirect:%s]", pad(n, 7), typ, t.Redirect)
 			continue
 		}
 
@@ -480,7 +392,7 @@ func write(fileBuffers map[string]*bytes.Buffer) error {
 
 // goimports formats all the output file buffers on disk using goimports.
 func goimports(fileBuffers map[string]*bytes.Buffer) error {
-	logf("RUNNING: goimports")
+	util.Logf("RUNNING: goimports")
 
 	var keys []string
 	for k := range fileBuffers {
@@ -509,7 +421,7 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 
 // easyjson runs easy json on the list of packages.
 func easyjson(pkgs []string) error {
-	logf("RUNNING: easyjson")
+	util.Logf("RUNNING: easyjson")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, k := range pkgs {
 		eg.Go(func(n string) func() error {
@@ -535,7 +447,7 @@ func easyjson(pkgs []string) error {
 
 // gofmt go formats all files on disk.
 func gofmt(files []string) error {
-	logf("RUNNING: gofmt")
+	util.Logf("RUNNING: gofmt")
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, k := range files {
 		eg.Go(func(n string) func() error {
@@ -576,75 +488,6 @@ func fmtFiles(files map[string]*bytes.Buffer, pkgs []string) []string {
 	return f
 }
 
-// cache holds information about a cached file.
-type cache struct {
-	path   string
-	ttl    time.Duration
-	decode bool
-	url    string
-}
-
-// get retrieves a file from disk or from the remote URL, optionally base64
-// decoding it and writing it to disk.
-func get(c cache) ([]byte, error) {
-	var err error
-
-	if err = os.MkdirAll(filepath.Dir(c.path), 0755); err != nil {
-		return nil, err
-	}
-
-	// check if exists on disk
-	fi, err := os.Stat(c.path)
-	if err == nil && c.ttl != 0 && !time.Now().After(fi.ModTime().Add(c.ttl)) {
-		return ioutil.ReadFile(c.path)
-	}
-
-	logf("RETRIEVING: %s", c.url)
-
-	// retrieve
-	cl := &http.Client{}
-	req, err := http.NewRequest("GET", c.url, nil)
-	if err != nil {
-		return nil, err
-	}
-	res, err := cl.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	buf, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// decode
-	if c.decode {
-		buf, err = base64.StdEncoding.DecodeString(string(buf))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	logf("WRITING: %s", c.path)
-	if err = ioutil.WriteFile(c.path, buf, 0644); err != nil {
-		return nil, err
-	}
-
-	return buf, nil
-}
-
-// filepathJoin is a simple wrapper around filepath.Join to simplify inline
-// syntax.
-func filepathJoin(n string, m ...string) string {
-	return filepath.Join(append([]string{n}, m...)...)
-}
-
-// logf is a wrapper around log.Printf.
-func logf(s string, v ...interface{}) {
-	log.Printf(s, v...)
-}
-
 // contains determines if any key in m is equal to n or starts with the path
 // prefix equal to n.
 func contains(m map[string]*bytes.Buffer, n string) bool {
@@ -670,23 +513,4 @@ func whitelisted(n string) bool {
 		}
 	}
 	return false
-}
-
-// makeSemver makes a semver for v.
-func makeSemver(v string) *semver.Version {
-	// replace last . with -
-	if strings.Count(v, ".") > 2 {
-		n := strings.LastIndex(v, ".")
-		v = v[:n] + "-" + v[n+1:]
-	}
-	ver, err := semver.NewVersion(v)
-	if err != nil {
-		panic(fmt.Sprintf("could not make %s into semver: %v", v, err))
-	}
-	return ver
-}
-
-// compareSemver returns true if the semver of a is less than the semver of b.
-func compareSemver(a, b string) bool {
-	return makeSemver(b).GreaterThan(makeSemver(a))
 }

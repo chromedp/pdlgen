@@ -285,6 +285,20 @@ func Combine(pdls ...*PDL) *PDL {
 	return pdl
 }
 
+// CombineBytes combines domains from multiple PDL definitions into a single
+// PDL.
+func CombineBytes(buffers ...[]byte) ([]byte, error) {
+	var pdls []*PDL
+	for _, buf := range buffers {
+		pdl, err := Parse(buf)
+		if err != nil {
+			return nil, err
+		}
+		pdls = append(pdls, pdl)
+	}
+	return Combine(pdls...).Bytes(), nil
+}
+
 // Bytes generates file contents for the PDL.
 func (pdl *PDL) Bytes() []byte {
 	buf := new(bytes.Buffer)
