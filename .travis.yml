@@ -11,9 +11,7 @@ before_install:
   - go get -u github.com/mailru/easyjson
   - go get -u github.com/chromedp/cdproto
 script:
-  - cd $GOPATH/src/github.com/mailru/easyjson && go install ./...
-  - cd $GOPATH/src/github.com/chromedp/cdproto && go install ./...
-  - cd $GOPATH/src/github.com/chromedp/cdproto-gen
-  - vgo build && ./cdproto-gen
+  - export GO111MODULE=on
+  - go build && ./cdproto-gen
   - cd $GOPATH/src/github.com/chromedp/cdproto
   - go install ./...
