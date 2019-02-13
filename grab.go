@@ -47,6 +47,12 @@ func run() error {
 		*flagCache = filepath.Join(cacheDir, "cdproto-gen")
 	}
 
+	// create combined dir
+	combinedDir := filepath.Join(*flagCache, "pdl", "combined")
+	if err = os.MkdirAll(combinedDir, 0755); err != nil {
+		return err
+	}
+
 	// get refs
 	refs, err := util.GetRefs(util.Cache{
 		URL:  util.ChromiumBase + "/+refs?format=JSON",
@@ -135,7 +141,8 @@ func run() error {
 			if buf, err = pdl.CombineBytes(chromiumBuf, v8Buf, harBuf); err != nil {
 				return err
 			}
-			out := filepath.Join(*flagCache, "pdl", "combined", fmt.Sprintf("%s_%s.pdl", ver, v8ver))
+
+			out := filepath.Join(combinedDir, fmt.Sprintf("%s_%s.pdl", ver, v8ver))
 			util.Logf("WRITING: %s", out)
 			if err = ioutil.WriteFile(out, buf, 0644); err != nil {
 				return err
