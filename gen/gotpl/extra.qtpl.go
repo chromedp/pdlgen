@@ -716,7 +716,10 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 		//line gen/gotpl/extra.qtpl:270
 	}
 	//line gen/gotpl/extra.qtpl:270
-	qw422016.N().S(`}
+	qw422016.N().S(`
+	default:
+		return nil, fmt.Errorf("unknown command or event %q", msg.Method)
+	}
 
 	var buf easyjson.RawMessage
 	switch {
@@ -738,31 +741,31 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 	return v, nil
 }
 `)
-//line gen/gotpl/extra.qtpl:291
+//line gen/gotpl/extra.qtpl:294
 }
 
-//line gen/gotpl/extra.qtpl:291
+//line gen/gotpl/extra.qtpl:294
 func WriteExtraMessageTemplate(qq422016 qtio422016.Writer, domains []*pdl.Domain) {
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	StreamExtraMessageTemplate(qw422016, domains)
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/extra.qtpl:291
+//line gen/gotpl/extra.qtpl:294
 }
 
-//line gen/gotpl/extra.qtpl:291
+//line gen/gotpl/extra.qtpl:294
 func ExtraMessageTemplate(domains []*pdl.Domain) string {
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	WriteExtraMessageTemplate(qb422016, domains)
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	qs422016 := string(qb422016.B)
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line gen/gotpl/extra.qtpl:291
+	//line gen/gotpl/extra.qtpl:294
 	return qs422016
-//line gen/gotpl/extra.qtpl:291
+//line gen/gotpl/extra.qtpl:294
 }

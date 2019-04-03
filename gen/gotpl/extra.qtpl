@@ -267,7 +267,10 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 	{% endfor %}{% for _, e := range d.Events %}
 	case {%s= EventMethodType(e, d) %}:
 		v = new({%s= genutil.PackageName(d) %}.{%s= EventType(e) %})
-	{% endfor %}{% endfor %}}
+	{% endfor %}{% endfor %}
+	default:
+		return nil, fmt.Errorf("unknown command or event %q", msg.Method)
+	}
 
 	var buf easyjson.RawMessage
 	switch {
