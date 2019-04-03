@@ -1,14 +1,11 @@
 language: go
 go:
   - 1.11.x
+  - 1.12.x
 addons:
   apt:
     chrome: stable
 before_install:
-  - go get -u github.com/mattn/goveralls
-  - go get -u golang.org/x/vgo
-  - go get -u github.com/knq/sysutil
-  - go get -u github.com/mailru/easyjson
   - go get -u github.com/chromedp/cdproto
 script:
   - export GO111MODULE=on
