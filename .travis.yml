@@ -1,14 +1,18 @@
 language: go
 go:
-  - 1.11.x
   - 1.12.x
 addons:
   apt:
     chrome: stable
 before_install:
-  - go get -u github.com/chromedp/cdproto
+  - go get -d github.com/chromedp/cdproto
+  - go get -d github.com/chromedp/chromedp
 script:
-  - export GO111MODULE=on
+  - cd $GOPATH/src/github.com/chromedp/cdproto
+  - go install ./...
+  - cd $GOPATH/src/github.com/chromedp/cdproto-gen
   - go build && ./cdproto-gen
   - cd $GOPATH/src/github.com/chromedp/cdproto
   - go install ./...
+  - cd $GOPATH/src/github.com/chromedp/chromedp
+  - go test -v ./...
