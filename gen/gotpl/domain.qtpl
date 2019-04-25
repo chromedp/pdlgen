@@ -116,11 +116,11 @@ func (p {%s= typ %}) {%s= optName %}({%s= v %} {%s= GoType(t, d, domains, shared
 //
 // returns:{% for _, p := range c.Returns %}{% if p.Name == Base64EncodedParamName %}{% continue %}{% endif %}
 //   {%s= ParamDesc(p) %}{% endfor %}{% endif %}
-func (p *{%s= typ %}) Do(ctxt context.Context, h cdp.Executor) ({%s= retTypeList %}err error) {{% if hasEmptyRet %}
-	return h.Execute(ctxt, {%s= CommandMethodType(c, nil) %}, {%s= pval %}, nil){% else %}
+func (p *{%s= typ %}) Do(ctxt context.Context) ({%s= retTypeList %}err error) {{% if hasEmptyRet %}
+	return cdp.Execute(ctxt, {%s= CommandMethodType(c, nil) %}, {%s= pval %}, nil){% else %}
 	// execute
 	var res {%s= CommandReturnsType(c) %}
-	err = h.Execute(ctxt, {%s= CommandMethodType(c, nil) %}, {%s= pval %}, &res)
+	err = cdp.Execute(ctxt, {%s= CommandMethodType(c, nil) %}, {%s= pval %}, &res)
 	if err != nil {
 		return {%s= emptyRet %}err
 	}

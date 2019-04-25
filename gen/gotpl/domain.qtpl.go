@@ -504,7 +504,7 @@ func (p *`)
 	//line gen/gotpl/domain.qtpl:119
 	qw422016.N().S(typ)
 	//line gen/gotpl/domain.qtpl:119
-	qw422016.N().S(`) Do(ctxt context.Context, h cdp.Executor) (`)
+	qw422016.N().S(`) Do(ctxt context.Context) (`)
 	//line gen/gotpl/domain.qtpl:119
 	qw422016.N().S(retTypeList)
 	//line gen/gotpl/domain.qtpl:119
@@ -513,7 +513,7 @@ func (p *`)
 	if hasEmptyRet {
 		//line gen/gotpl/domain.qtpl:119
 		qw422016.N().S(`
-	return h.Execute(ctxt, `)
+	return cdp.Execute(ctxt, `)
 		//line gen/gotpl/domain.qtpl:120
 		qw422016.N().S(CommandMethodType(c, nil))
 		//line gen/gotpl/domain.qtpl:120
@@ -532,7 +532,7 @@ func (p *`)
 		qw422016.N().S(CommandReturnsType(c))
 		//line gen/gotpl/domain.qtpl:122
 		qw422016.N().S(`
-	err = h.Execute(ctxt, `)
+	err = cdp.Execute(ctxt, `)
 		//line gen/gotpl/domain.qtpl:123
 		qw422016.N().S(CommandMethodType(c, nil))
 		//line gen/gotpl/domain.qtpl:123
