@@ -81,7 +81,7 @@ func FixDomains(domains []*pdl.Domain) {
 		case "DOM":
 			// add DOM types
 			d.Types = append(d.Types, &pdl.Type{
-				// see: https://developer.mozilla.org/en/docs/Web/API/Node/nodeType
+				RawSee:      "https://developer.mozilla.org/en/docs/Web/API/Node/nodeType",
 				Name:        "NodeType",
 				Type:        pdl.TypeInteger,
 				Description: "Node type.",
@@ -353,6 +353,8 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 		switch {
 		case p.Items != nil:
 			r = append(r, &pdl.Type{
+				RawType:     p.RawType,
+				RawName:     p.RawName,
 				Name:        p.Name,
 				Type:        pdl.TypeArray,
 				Description: p.Description,
@@ -366,6 +368,8 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 
 		case p.Name == "modifiers":
 			r = append(r, &pdl.Type{
+				RawType:     p.RawType,
+				RawName:     p.RawName,
 				Name:        p.Name,
 				Ref:         "Modifier",
 				Description: p.Description,
@@ -375,6 +379,8 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 
 		case p.Name == "nodeType":
 			r = append(r, &pdl.Type{
+				RawType:     p.RawType,
+				RawName:     p.RawName,
 				Name:        p.Name,
 				Ref:         "DOM.NodeType",
 				Description: p.Description,
@@ -384,6 +390,8 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 
 		case p.Ref == "GestureSourceType":
 			r = append(r, &pdl.Type{
+				RawType:     p.RawType,
+				RawName:     p.RawName,
 				Name:        p.Name,
 				Ref:         "GestureType",
 				Description: p.Description,
@@ -393,6 +401,8 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 
 		case p.Ref == "CSSComputedStyleProperty":
 			r = append(r, &pdl.Type{
+				RawType:     p.RawType,
+				RawName:     p.RawName,
 				Name:        p.Name,
 				Ref:         "ComputedProperty",
 				Description: p.Description,
@@ -415,6 +425,8 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 			z = strings.Replace(z, "AX", "", -1)
 
 			r = append(r, &pdl.Type{
+				RawType:     p.RawType,
+				RawName:     p.RawName,
 				Name:        p.Name,
 				Ref:         z,
 				Description: p.Description,
@@ -442,6 +454,8 @@ func addEnumValues(d *pdl.Domain, n string, p *pdl.Type) {
 	}
 	if typ == nil {
 		typ = &pdl.Type{
+			RawType:     p.RawType,
+			RawName:     p.RawName,
 			Name:        n,
 			Type:        pdl.TypeString,
 			Description: p.Description,
@@ -516,6 +530,8 @@ func fixupEnumParameter(typ string, p *pdl.Type, d *pdl.Domain) *pdl.Type {
 	addEnumValues(d, ref, p)
 
 	return &pdl.Type{
+		RawType:     p.RawType,
+		RawName:     p.RawName,
 		Name:        p.Name,
 		Ref:         ref,
 		Description: p.Description,

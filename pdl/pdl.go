@@ -575,6 +575,9 @@ type Type struct {
 	// RawName is the raw type name.
 	RawName string `json:"-"`
 
+	// RawSee is a raw see url reference.
+	RawSee string `json:"-"`
+
 	// TimestampType is the timestamp subtype.
 	TimestampType TimestampType `json:"-"`
 

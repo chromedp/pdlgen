@@ -47,7 +47,7 @@ func StreamTypeTemplate(qw422016 *qt422016.Writer, t *pdl.Type, prefix, suffix s
 	//line gen/gotpl/type.qtpl:21
 	qw422016.N().S(genutil.FormatComment(t.Description, "", typ+" "))
 	//line gen/gotpl/type.qtpl:21
-	if t.RawType != "command" && docRefLink != "" {
+	if t.RawType != "command" && t.RawType != "returns" && docRefLink != "" {
 		//line gen/gotpl/type.qtpl:21
 		qw422016.N().S(`
 //

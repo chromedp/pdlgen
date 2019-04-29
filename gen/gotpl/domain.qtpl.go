@@ -178,265 +178,267 @@ func StreamCommandTemplate(qw422016 *qt422016.Writer, c *pdl.Type, d *pdl.Domain
 `)
 		//line gen/gotpl/domain.qtpl:34
 		qw422016.N().S(TypeTemplate(&pdl.Type{
+			RawType:     "returns",
+			RawName:     c.RawName,
 			Name:        c.Name,
 			Type:        pdl.TypeObject,
 			Description: "Return values.",
 			Properties:  c.Returns,
 		}, CommandReturnsPrefix, CommandReturnsSuffix, d, domains, sharedFunc, nil, false, false))
-		//line gen/gotpl/domain.qtpl:39
+		//line gen/gotpl/domain.qtpl:41
 		qw422016.N().S(`
 `)
-		//line gen/gotpl/domain.qtpl:40
+		//line gen/gotpl/domain.qtpl:42
 	}
-	//line gen/gotpl/domain.qtpl:40
+	//line gen/gotpl/domain.qtpl:42
 	qw422016.N().S(`
 
 `)
-	//line gen/gotpl/domain.qtpl:42
+	//line gen/gotpl/domain.qtpl:44
 	/* add CommandParams.Do func */
 
-	//line gen/gotpl/domain.qtpl:42
+	//line gen/gotpl/domain.qtpl:44
 	qw422016.N().S(`
 `)
-	//line gen/gotpl/domain.qtpl:43
+	//line gen/gotpl/domain.qtpl:45
 	qw422016.N().S(CommandDoFuncTemplate(c, d, domains, sharedFunc))
-	//line gen/gotpl/domain.qtpl:43
+	//line gen/gotpl/domain.qtpl:45
 	qw422016.N().S(`
 `)
-//line gen/gotpl/domain.qtpl:44
+//line gen/gotpl/domain.qtpl:46
 }
 
-//line gen/gotpl/domain.qtpl:44
+//line gen/gotpl/domain.qtpl:46
 func WriteCommandTemplate(qq422016 qtio422016.Writer, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) {
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	StreamCommandTemplate(qw422016, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/domain.qtpl:44
+//line gen/gotpl/domain.qtpl:46
 }
 
-//line gen/gotpl/domain.qtpl:44
+//line gen/gotpl/domain.qtpl:46
 func CommandTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	WriteCommandTemplate(qb422016, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	qs422016 := string(qb422016.B)
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line gen/gotpl/domain.qtpl:44
+	//line gen/gotpl/domain.qtpl:46
 	return qs422016
-//line gen/gotpl/domain.qtpl:44
+//line gen/gotpl/domain.qtpl:46
 }
 
 // CommandFuncTemplate is the command func template.
 
-//line gen/gotpl/domain.qtpl:47
+//line gen/gotpl/domain.qtpl:49
 func StreamCommandFuncTemplate(qw422016 *qt422016.Writer, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) {
-	//line gen/gotpl/domain.qtpl:48
+	//line gen/gotpl/domain.qtpl:50
 	cmdName := CamelName(c)
 	typ := CommandType(c)
 
-	//line gen/gotpl/domain.qtpl:50
+	//line gen/gotpl/domain.qtpl:52
 	qw422016.N().S(`
 `)
-	//line gen/gotpl/domain.qtpl:51
+	//line gen/gotpl/domain.qtpl:53
 	qw422016.N().S(genutil.FormatComment(c.Description, "", cmdName+" "))
-	//line gen/gotpl/domain.qtpl:51
-	if len(c.Parameters) > 0 {
-		//line gen/gotpl/domain.qtpl:51
-		qw422016.N().S(`
+	//line gen/gotpl/domain.qtpl:53
+	qw422016.N().S(`
 //
 // See: `)
-		//line gen/gotpl/domain.qtpl:53
-		qw422016.N().S(DocRefLink(c))
-		//line gen/gotpl/domain.qtpl:53
+	//line gen/gotpl/domain.qtpl:55
+	qw422016.N().S(DocRefLink(c))
+	//line gen/gotpl/domain.qtpl:55
+	if len(c.Parameters) > 0 {
+		//line gen/gotpl/domain.qtpl:55
 		qw422016.N().S(`
 //
 // parameters:`)
-		//line gen/gotpl/domain.qtpl:55
+		//line gen/gotpl/domain.qtpl:57
 		for _, p := range c.Parameters {
-			//line gen/gotpl/domain.qtpl:55
+			//line gen/gotpl/domain.qtpl:57
 			if p.Optional {
-				//line gen/gotpl/domain.qtpl:55
+				//line gen/gotpl/domain.qtpl:57
 				continue
-				//line gen/gotpl/domain.qtpl:55
+				//line gen/gotpl/domain.qtpl:57
 			}
-			//line gen/gotpl/domain.qtpl:55
+			//line gen/gotpl/domain.qtpl:57
 			qw422016.N().S(`
 //   `)
-			//line gen/gotpl/domain.qtpl:56
+			//line gen/gotpl/domain.qtpl:58
 			qw422016.N().S(ParamDesc(p))
-			//line gen/gotpl/domain.qtpl:56
+			//line gen/gotpl/domain.qtpl:58
 			if p.Optional {
-				//line gen/gotpl/domain.qtpl:56
+				//line gen/gotpl/domain.qtpl:58
 				qw422016.N().S(` (optional)`)
-				//line gen/gotpl/domain.qtpl:56
+				//line gen/gotpl/domain.qtpl:58
 			}
-			//line gen/gotpl/domain.qtpl:56
+			//line gen/gotpl/domain.qtpl:58
 		}
-		//line gen/gotpl/domain.qtpl:56
+		//line gen/gotpl/domain.qtpl:58
 	}
-	//line gen/gotpl/domain.qtpl:56
+	//line gen/gotpl/domain.qtpl:58
 	qw422016.N().S(`
 func `)
-	//line gen/gotpl/domain.qtpl:57
+	//line gen/gotpl/domain.qtpl:59
 	qw422016.N().S(cmdName)
-	//line gen/gotpl/domain.qtpl:57
+	//line gen/gotpl/domain.qtpl:59
 	qw422016.N().S(`(`)
-	//line gen/gotpl/domain.qtpl:57
+	//line gen/gotpl/domain.qtpl:59
 	qw422016.N().S(ParamList(c, d, domains, sharedFunc, false))
-	//line gen/gotpl/domain.qtpl:57
+	//line gen/gotpl/domain.qtpl:59
 	qw422016.N().S(`) *`)
-	//line gen/gotpl/domain.qtpl:57
+	//line gen/gotpl/domain.qtpl:59
 	qw422016.N().S(typ)
-	//line gen/gotpl/domain.qtpl:57
+	//line gen/gotpl/domain.qtpl:59
 	qw422016.N().S(`{
 	return &`)
-	//line gen/gotpl/domain.qtpl:58
+	//line gen/gotpl/domain.qtpl:60
 	qw422016.N().S(typ)
-	//line gen/gotpl/domain.qtpl:58
+	//line gen/gotpl/domain.qtpl:60
 	qw422016.N().S(`{`)
-	//line gen/gotpl/domain.qtpl:58
+	//line gen/gotpl/domain.qtpl:60
 	for _, t := range c.Parameters {
-		//line gen/gotpl/domain.qtpl:58
+		//line gen/gotpl/domain.qtpl:60
 		if !t.Optional {
-			//line gen/gotpl/domain.qtpl:58
+			//line gen/gotpl/domain.qtpl:60
 			qw422016.N().S(`
 		`)
-			//line gen/gotpl/domain.qtpl:59
+			//line gen/gotpl/domain.qtpl:61
 			qw422016.N().S(GoName(t, false))
-			//line gen/gotpl/domain.qtpl:59
+			//line gen/gotpl/domain.qtpl:61
 			qw422016.N().S(`: `)
-			//line gen/gotpl/domain.qtpl:59
+			//line gen/gotpl/domain.qtpl:61
 			qw422016.N().S(GoName(t, true))
-			//line gen/gotpl/domain.qtpl:59
+			//line gen/gotpl/domain.qtpl:61
 			qw422016.N().S(`,`)
-			//line gen/gotpl/domain.qtpl:59
+			//line gen/gotpl/domain.qtpl:61
 		}
-		//line gen/gotpl/domain.qtpl:59
+		//line gen/gotpl/domain.qtpl:61
 	}
-	//line gen/gotpl/domain.qtpl:59
+	//line gen/gotpl/domain.qtpl:61
 	qw422016.N().S(`
 	}
 }
 `)
-//line gen/gotpl/domain.qtpl:62
+//line gen/gotpl/domain.qtpl:64
 }
 
-//line gen/gotpl/domain.qtpl:62
+//line gen/gotpl/domain.qtpl:64
 func WriteCommandFuncTemplate(qq422016 qtio422016.Writer, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) {
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	StreamCommandFuncTemplate(qw422016, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/domain.qtpl:62
+//line gen/gotpl/domain.qtpl:64
 }
 
-//line gen/gotpl/domain.qtpl:62
+//line gen/gotpl/domain.qtpl:64
 func CommandFuncTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	WriteCommandFuncTemplate(qb422016, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	qs422016 := string(qb422016.B)
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line gen/gotpl/domain.qtpl:62
+	//line gen/gotpl/domain.qtpl:64
 	return qs422016
-//line gen/gotpl/domain.qtpl:62
+//line gen/gotpl/domain.qtpl:64
 }
 
 // CommandOptionFuncTemplate is the command option func template.
 
-//line gen/gotpl/domain.qtpl:65
+//line gen/gotpl/domain.qtpl:67
 func StreamCommandOptionFuncTemplate(qw422016 *qt422016.Writer, t *pdl.Type, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) {
-	//line gen/gotpl/domain.qtpl:66
+	//line gen/gotpl/domain.qtpl:68
 	n := GoName(t, false)
 	optName := OptionFuncPrefix + n + OptionFuncSuffix
 	typ := CommandType(c)
 	v := GoName(t, true)
 
-	//line gen/gotpl/domain.qtpl:70
+	//line gen/gotpl/domain.qtpl:72
 	qw422016.N().S(`
 `)
-	//line gen/gotpl/domain.qtpl:71
+	//line gen/gotpl/domain.qtpl:73
 	qw422016.N().S(genutil.FormatComment(t.Description, "", optName+" "))
-	//line gen/gotpl/domain.qtpl:71
+	//line gen/gotpl/domain.qtpl:73
 	qw422016.N().S(`
 func (p `)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(typ)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(`) `)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(optName)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(`(`)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(v)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(` `)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(GoType(t, d, domains, sharedFunc))
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(`) *`)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(typ)
-	//line gen/gotpl/domain.qtpl:72
+	//line gen/gotpl/domain.qtpl:74
 	qw422016.N().S(`{
 	p.`)
-	//line gen/gotpl/domain.qtpl:73
+	//line gen/gotpl/domain.qtpl:75
 	qw422016.N().S(n)
-	//line gen/gotpl/domain.qtpl:73
+	//line gen/gotpl/domain.qtpl:75
 	qw422016.N().S(` = `)
-	//line gen/gotpl/domain.qtpl:73
+	//line gen/gotpl/domain.qtpl:75
 	qw422016.N().S(v)
-	//line gen/gotpl/domain.qtpl:73
+	//line gen/gotpl/domain.qtpl:75
 	qw422016.N().S(`
 	return &p
 }
 `)
-//line gen/gotpl/domain.qtpl:76
+//line gen/gotpl/domain.qtpl:78
 }
 
-//line gen/gotpl/domain.qtpl:76
+//line gen/gotpl/domain.qtpl:78
 func WriteCommandOptionFuncTemplate(qq422016 qtio422016.Writer, t *pdl.Type, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) {
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	StreamCommandOptionFuncTemplate(qw422016, t, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/domain.qtpl:76
+//line gen/gotpl/domain.qtpl:78
 }
 
-//line gen/gotpl/domain.qtpl:76
+//line gen/gotpl/domain.qtpl:78
 func CommandOptionFuncTemplate(t *pdl.Type, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	WriteCommandOptionFuncTemplate(qb422016, t, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	qs422016 := string(qb422016.B)
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line gen/gotpl/domain.qtpl:76
+	//line gen/gotpl/domain.qtpl:78
 	return qs422016
-//line gen/gotpl/domain.qtpl:76
+//line gen/gotpl/domain.qtpl:78
 }
 
 // CommandDoFuncTemplate is the command do func template.
 
-//line gen/gotpl/domain.qtpl:79
+//line gen/gotpl/domain.qtpl:81
 func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) {
-	//line gen/gotpl/domain.qtpl:80
+	//line gen/gotpl/domain.qtpl:82
 	typ := CommandType(c)
 
 	hasEmptyParams := len(c.Parameters) == 0
@@ -474,167 +476,167 @@ func StreamCommandDoFuncTemplate(qw422016 *qt422016.Writer, c *pdl.Type, d *pdl.
 		pval = "nil"
 	}
 
-	//line gen/gotpl/domain.qtpl:116
+	//line gen/gotpl/domain.qtpl:118
 	qw422016.N().S(`
 // Do executes `)
-	//line gen/gotpl/domain.qtpl:117
+	//line gen/gotpl/domain.qtpl:119
 	qw422016.N().S(c.RawName)
-	//line gen/gotpl/domain.qtpl:117
+	//line gen/gotpl/domain.qtpl:119
 	qw422016.N().S(` against the provided context.`)
-	//line gen/gotpl/domain.qtpl:117
+	//line gen/gotpl/domain.qtpl:119
 	if !hasEmptyRet {
-		//line gen/gotpl/domain.qtpl:117
+		//line gen/gotpl/domain.qtpl:119
 		qw422016.N().S(`
 //
 // returns:`)
-		//line gen/gotpl/domain.qtpl:119
+		//line gen/gotpl/domain.qtpl:121
 		for _, p := range c.Returns {
-			//line gen/gotpl/domain.qtpl:119
+			//line gen/gotpl/domain.qtpl:121
 			if p.Name == Base64EncodedParamName {
-				//line gen/gotpl/domain.qtpl:119
+				//line gen/gotpl/domain.qtpl:121
 				continue
-				//line gen/gotpl/domain.qtpl:119
+				//line gen/gotpl/domain.qtpl:121
 			}
-			//line gen/gotpl/domain.qtpl:119
+			//line gen/gotpl/domain.qtpl:121
 			qw422016.N().S(`
 //   `)
-			//line gen/gotpl/domain.qtpl:120
+			//line gen/gotpl/domain.qtpl:122
 			qw422016.N().S(ParamDesc(p))
-			//line gen/gotpl/domain.qtpl:120
+			//line gen/gotpl/domain.qtpl:122
 		}
-		//line gen/gotpl/domain.qtpl:120
+		//line gen/gotpl/domain.qtpl:122
 	}
-	//line gen/gotpl/domain.qtpl:120
+	//line gen/gotpl/domain.qtpl:122
 	qw422016.N().S(`
 func (p *`)
-	//line gen/gotpl/domain.qtpl:121
+	//line gen/gotpl/domain.qtpl:123
 	qw422016.N().S(typ)
-	//line gen/gotpl/domain.qtpl:121
+	//line gen/gotpl/domain.qtpl:123
 	qw422016.N().S(`) Do(ctx context.Context) (`)
-	//line gen/gotpl/domain.qtpl:121
+	//line gen/gotpl/domain.qtpl:123
 	qw422016.N().S(retTypeList)
-	//line gen/gotpl/domain.qtpl:121
+	//line gen/gotpl/domain.qtpl:123
 	qw422016.N().S(`err error) {`)
-	//line gen/gotpl/domain.qtpl:121
+	//line gen/gotpl/domain.qtpl:123
 	if hasEmptyRet {
-		//line gen/gotpl/domain.qtpl:121
+		//line gen/gotpl/domain.qtpl:123
 		qw422016.N().S(`
 	return cdp.Execute(ctx, `)
-		//line gen/gotpl/domain.qtpl:122
+		//line gen/gotpl/domain.qtpl:124
 		qw422016.N().S(CommandMethodType(c, nil))
-		//line gen/gotpl/domain.qtpl:122
+		//line gen/gotpl/domain.qtpl:124
 		qw422016.N().S(`, `)
-		//line gen/gotpl/domain.qtpl:122
+		//line gen/gotpl/domain.qtpl:124
 		qw422016.N().S(pval)
-		//line gen/gotpl/domain.qtpl:122
+		//line gen/gotpl/domain.qtpl:124
 		qw422016.N().S(`, nil)`)
-		//line gen/gotpl/domain.qtpl:122
+		//line gen/gotpl/domain.qtpl:124
 	} else {
-		//line gen/gotpl/domain.qtpl:122
+		//line gen/gotpl/domain.qtpl:124
 		qw422016.N().S(`
 	// execute
 	var res `)
-		//line gen/gotpl/domain.qtpl:124
+		//line gen/gotpl/domain.qtpl:126
 		qw422016.N().S(CommandReturnsType(c))
-		//line gen/gotpl/domain.qtpl:124
+		//line gen/gotpl/domain.qtpl:126
 		qw422016.N().S(`
 	err = cdp.Execute(ctx, `)
-		//line gen/gotpl/domain.qtpl:125
+		//line gen/gotpl/domain.qtpl:127
 		qw422016.N().S(CommandMethodType(c, nil))
-		//line gen/gotpl/domain.qtpl:125
+		//line gen/gotpl/domain.qtpl:127
 		qw422016.N().S(`, `)
-		//line gen/gotpl/domain.qtpl:125
+		//line gen/gotpl/domain.qtpl:127
 		qw422016.N().S(pval)
-		//line gen/gotpl/domain.qtpl:125
+		//line gen/gotpl/domain.qtpl:127
 		qw422016.N().S(`, &res)
 	if err != nil {
 		return `)
-		//line gen/gotpl/domain.qtpl:127
+		//line gen/gotpl/domain.qtpl:129
 		qw422016.N().S(emptyRet)
-		//line gen/gotpl/domain.qtpl:127
+		//line gen/gotpl/domain.qtpl:129
 		qw422016.N().S(`err
 	}
 	`)
-		//line gen/gotpl/domain.qtpl:129
+		//line gen/gotpl/domain.qtpl:131
 		if b64ret != nil {
-			//line gen/gotpl/domain.qtpl:129
+			//line gen/gotpl/domain.qtpl:131
 			qw422016.N().S(`
 	// decode
 	var dec []byte`)
-			//line gen/gotpl/domain.qtpl:131
+			//line gen/gotpl/domain.qtpl:133
 			if b64cond {
-				//line gen/gotpl/domain.qtpl:131
+				//line gen/gotpl/domain.qtpl:133
 				qw422016.N().S(`
 	if res.Base64encoded {`)
-				//line gen/gotpl/domain.qtpl:132
+				//line gen/gotpl/domain.qtpl:134
 			}
-			//line gen/gotpl/domain.qtpl:132
+			//line gen/gotpl/domain.qtpl:134
 			qw422016.N().S(`
 		dec, err = base64.StdEncoding.DecodeString(res.`)
-			//line gen/gotpl/domain.qtpl:133
+			//line gen/gotpl/domain.qtpl:135
 			qw422016.N().S(GoName(b64ret, false))
-			//line gen/gotpl/domain.qtpl:133
+			//line gen/gotpl/domain.qtpl:135
 			qw422016.N().S(`)
 		if err != nil {
 			return `)
-			//line gen/gotpl/domain.qtpl:135
+			//line gen/gotpl/domain.qtpl:137
 			qw422016.N().S(emptyRet)
-			//line gen/gotpl/domain.qtpl:135
+			//line gen/gotpl/domain.qtpl:137
 			qw422016.N().S(`err
 		}`)
-			//line gen/gotpl/domain.qtpl:136
+			//line gen/gotpl/domain.qtpl:138
 			if b64cond {
-				//line gen/gotpl/domain.qtpl:136
+				//line gen/gotpl/domain.qtpl:138
 				qw422016.N().S(`
 	} else {
 		dec = []byte(res.`)
-				//line gen/gotpl/domain.qtpl:138
+				//line gen/gotpl/domain.qtpl:140
 				qw422016.N().S(GoName(b64ret, false))
-				//line gen/gotpl/domain.qtpl:138
+				//line gen/gotpl/domain.qtpl:140
 				qw422016.N().S(`)
 	}`)
-				//line gen/gotpl/domain.qtpl:139
+				//line gen/gotpl/domain.qtpl:141
 			}
-			//line gen/gotpl/domain.qtpl:139
+			//line gen/gotpl/domain.qtpl:141
 		}
-		//line gen/gotpl/domain.qtpl:139
+		//line gen/gotpl/domain.qtpl:141
 		qw422016.N().S(`
 	return `)
-		//line gen/gotpl/domain.qtpl:140
+		//line gen/gotpl/domain.qtpl:142
 		qw422016.N().S(retValueList)
-		//line gen/gotpl/domain.qtpl:140
+		//line gen/gotpl/domain.qtpl:142
 		qw422016.N().S(`nil`)
-		//line gen/gotpl/domain.qtpl:140
+		//line gen/gotpl/domain.qtpl:142
 	}
-	//line gen/gotpl/domain.qtpl:140
+	//line gen/gotpl/domain.qtpl:142
 	qw422016.N().S(`
 }
 `)
-//line gen/gotpl/domain.qtpl:142
+//line gen/gotpl/domain.qtpl:144
 }
 
-//line gen/gotpl/domain.qtpl:142
+//line gen/gotpl/domain.qtpl:144
 func WriteCommandDoFuncTemplate(qq422016 qtio422016.Writer, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) {
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	StreamCommandDoFuncTemplate(qw422016, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/domain.qtpl:142
+//line gen/gotpl/domain.qtpl:144
 }
 
-//line gen/gotpl/domain.qtpl:142
+//line gen/gotpl/domain.qtpl:144
 func CommandDoFuncTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	WriteCommandDoFuncTemplate(qb422016, c, d, domains, sharedFunc)
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	qs422016 := string(qb422016.B)
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line gen/gotpl/domain.qtpl:142
+	//line gen/gotpl/domain.qtpl:144
 	return qs422016
-//line gen/gotpl/domain.qtpl:142
+//line gen/gotpl/domain.qtpl:144
 }

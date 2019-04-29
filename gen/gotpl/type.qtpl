@@ -18,7 +18,7 @@
 
 	docRefLink := DocRefLink(t)
 %}
-{%s= genutil.FormatComment(t.Description, "", typ + " ") %}{% if t.RawType != "command" && docRefLink != "" %}
+{%s= genutil.FormatComment(t.Description, "", typ + " ") %}{% if t.RawType != "command" && t.RawType != "returns" && docRefLink != "" %}
 //
 // See: {%s= docRefLink %}{% endif %}
 type {%s= typ %} {%s= GoTypeDef(t, d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional) %}

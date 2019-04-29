@@ -481,6 +481,10 @@ func GoEnumEmptyValue(te pdl.TypeEnum) string {
 
 // DocRefLink returns the reference documentation link for the type.
 func DocRefLink(t *pdl.Type) string {
+	if t.RawSee != "" {
+		return t.RawSee
+	}
+
 	typ := "type"
 	switch t.RawType {
 	case "command":

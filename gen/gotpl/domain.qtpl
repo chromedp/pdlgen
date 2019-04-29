@@ -32,6 +32,8 @@ const (
 {% code /* add *Returns type */ %}
 {% if len(c.Returns) != 0 %}
 {%s= TypeTemplate(&pdl.Type{
+	RawType: "returns",
+	RawName: c.RawName,
 	Name: c.Name,
 	Type: pdl.TypeObject,
 	Description: "Return values.",
@@ -48,9 +50,9 @@ const (
 	cmdName := CamelName(c)
 	typ := CommandType(c)
 %}
-{%s= genutil.FormatComment(c.Description, "", cmdName + " ") %}{% if len(c.Parameters) > 0 %}
+{%s= genutil.FormatComment(c.Description, "", cmdName + " ") %}
 //
-// See: {%s= DocRefLink(c) %}
+// See: {%s= DocRefLink(c) %}{% if len(c.Parameters) > 0 %}
 //
 // parameters:{% for _, p := range c.Parameters %}{% if p.Optional %}{% continue %}{% endif %}
 //   {%s= ParamDesc(p) %}{% if p.Optional %} (optional){% endif %}{% endfor %}{% endif %}
