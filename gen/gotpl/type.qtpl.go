@@ -39,26 +39,38 @@ func StreamTypeTemplate(qw422016 *qt422016.Writer, t *pdl.Type, prefix, suffix s
 		extra = x
 	}
 
-	//line gen/gotpl/type.qtpl:18
-	qw422016.N().S(`
-`)
-	//line gen/gotpl/type.qtpl:19
-	qw422016.N().S(genutil.FormatComment(t.Description, "", typ+" "))
-	//line gen/gotpl/type.qtpl:19
-	qw422016.N().S(`
-type `)
-	//line gen/gotpl/type.qtpl:20
-	qw422016.N().S(typ)
-	//line gen/gotpl/type.qtpl:20
-	qw422016.N().S(` `)
-	//line gen/gotpl/type.qtpl:20
-	qw422016.N().S(GoTypeDef(t, d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional))
+	docRefLink := DocRefLink(t)
+
 	//line gen/gotpl/type.qtpl:20
 	qw422016.N().S(`
 `)
 	//line gen/gotpl/type.qtpl:21
+	qw422016.N().S(genutil.FormatComment(t.Description, "", typ+" "))
+	//line gen/gotpl/type.qtpl:21
+	if t.RawType != "command" && docRefLink != "" {
+		//line gen/gotpl/type.qtpl:21
+		qw422016.N().S(`
+//
+// See: `)
+		//line gen/gotpl/type.qtpl:23
+		qw422016.N().S(docRefLink)
+		//line gen/gotpl/type.qtpl:23
+	}
+	//line gen/gotpl/type.qtpl:23
+	qw422016.N().S(`
+type `)
+	//line gen/gotpl/type.qtpl:24
+	qw422016.N().S(typ)
+	//line gen/gotpl/type.qtpl:24
+	qw422016.N().S(` `)
+	//line gen/gotpl/type.qtpl:24
+	qw422016.N().S(GoTypeDef(t, d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional))
+	//line gen/gotpl/type.qtpl:24
+	qw422016.N().S(`
+`)
+	//line gen/gotpl/type.qtpl:25
 	if t.Parameters == nil && t.Type != pdl.TypeArray && t.Type != pdl.TypeObject && t.Type != pdl.TypeAny {
-		//line gen/gotpl/type.qtpl:22
+		//line gen/gotpl/type.qtpl:26
 		gz := GoEnumType(t.Type)
 		z := gz
 		if strings.Contains(z, ".") {
@@ -66,49 +78,49 @@ type `)
 		}
 		z = strings.ToUpper(z[:1]) + z[1:]
 
-		//line gen/gotpl/type.qtpl:28
+		//line gen/gotpl/type.qtpl:32
 		qw422016.N().S(`
 // `)
-		//line gen/gotpl/type.qtpl:29
+		//line gen/gotpl/type.qtpl:33
 		qw422016.N().S(z)
-		//line gen/gotpl/type.qtpl:29
+		//line gen/gotpl/type.qtpl:33
 		qw422016.N().S(` returns the `)
-		//line gen/gotpl/type.qtpl:29
+		//line gen/gotpl/type.qtpl:33
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:29
+		//line gen/gotpl/type.qtpl:33
 		qw422016.N().S(` as `)
-		//line gen/gotpl/type.qtpl:29
+		//line gen/gotpl/type.qtpl:33
 		qw422016.N().S(gz)
-		//line gen/gotpl/type.qtpl:29
+		//line gen/gotpl/type.qtpl:33
 		qw422016.N().S(` value.
 func (t `)
-		//line gen/gotpl/type.qtpl:30
+		//line gen/gotpl/type.qtpl:34
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:30
+		//line gen/gotpl/type.qtpl:34
 		qw422016.N().S(`) `)
-		//line gen/gotpl/type.qtpl:30
+		//line gen/gotpl/type.qtpl:34
 		qw422016.N().S(z)
-		//line gen/gotpl/type.qtpl:30
+		//line gen/gotpl/type.qtpl:34
 		qw422016.N().S(`() `)
-		//line gen/gotpl/type.qtpl:30
+		//line gen/gotpl/type.qtpl:34
 		qw422016.N().S(gz)
-		//line gen/gotpl/type.qtpl:30
+		//line gen/gotpl/type.qtpl:34
 		qw422016.N().S(` {
 	return `)
-		//line gen/gotpl/type.qtpl:31
+		//line gen/gotpl/type.qtpl:35
 		qw422016.N().S(gz)
-		//line gen/gotpl/type.qtpl:31
+		//line gen/gotpl/type.qtpl:35
 		qw422016.N().S(`(t)
 }
 `)
-		//line gen/gotpl/type.qtpl:33
+		//line gen/gotpl/type.qtpl:37
 	}
-	//line gen/gotpl/type.qtpl:33
+	//line gen/gotpl/type.qtpl:37
 	qw422016.N().S(`
 `)
-	//line gen/gotpl/type.qtpl:34
+	//line gen/gotpl/type.qtpl:38
 	if ev := t.Enum; ev != nil {
-		//line gen/gotpl/type.qtpl:35
+		//line gen/gotpl/type.qtpl:39
 		gz := GoEnumType(t.Type)
 		z := gz
 		if strings.Contains(z, ".") {
@@ -116,16 +128,16 @@ func (t `)
 		}
 		z = strings.ToUpper(z[:1]) + z[1:]
 
-		//line gen/gotpl/type.qtpl:41
+		//line gen/gotpl/type.qtpl:45
 		qw422016.N().S(`// `)
-		//line gen/gotpl/type.qtpl:41
+		//line gen/gotpl/type.qtpl:45
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:41
+		//line gen/gotpl/type.qtpl:45
 		qw422016.N().S(` values.
 const (`)
-		//line gen/gotpl/type.qtpl:42
+		//line gen/gotpl/type.qtpl:46
 		for i, e := range ev {
-			//line gen/gotpl/type.qtpl:43
+			//line gen/gotpl/type.qtpl:47
 			n := EnumValueName(t, e)
 			val := `"` + e + `"`
 			if t.Type == pdl.TypeInteger && t.EnumBitMask {
@@ -134,190 +146,190 @@ const (`)
 				val = strconv.Itoa(i + 1)
 			}
 
-			//line gen/gotpl/type.qtpl:50
+			//line gen/gotpl/type.qtpl:54
 			qw422016.N().S(`
 	`)
-			//line gen/gotpl/type.qtpl:51
+			//line gen/gotpl/type.qtpl:55
 			qw422016.N().S(n)
-			//line gen/gotpl/type.qtpl:51
+			//line gen/gotpl/type.qtpl:55
 			qw422016.N().S(` `)
-			//line gen/gotpl/type.qtpl:51
+			//line gen/gotpl/type.qtpl:55
 			qw422016.N().S(typ)
-			//line gen/gotpl/type.qtpl:51
+			//line gen/gotpl/type.qtpl:55
 			qw422016.N().S(` = `)
-			//line gen/gotpl/type.qtpl:51
+			//line gen/gotpl/type.qtpl:55
 			qw422016.N().S(val)
-			//line gen/gotpl/type.qtpl:51
+			//line gen/gotpl/type.qtpl:55
 		}
-		//line gen/gotpl/type.qtpl:51
+		//line gen/gotpl/type.qtpl:55
 		qw422016.N().S(`
 )
 `)
-		//line gen/gotpl/type.qtpl:53
+		//line gen/gotpl/type.qtpl:57
 		if t.Type != pdl.TypeString {
-			//line gen/gotpl/type.qtpl:53
+			//line gen/gotpl/type.qtpl:57
 			qw422016.N().S(`
 // String returns the `)
-			//line gen/gotpl/type.qtpl:54
+			//line gen/gotpl/type.qtpl:58
 			qw422016.N().S(typ)
-			//line gen/gotpl/type.qtpl:54
+			//line gen/gotpl/type.qtpl:58
 			qw422016.N().S(` as string value.
 func (t `)
-			//line gen/gotpl/type.qtpl:55
+			//line gen/gotpl/type.qtpl:59
 			qw422016.N().S(typ)
-			//line gen/gotpl/type.qtpl:55
+			//line gen/gotpl/type.qtpl:59
 			qw422016.N().S(`) String() string {
 	switch t {`)
-			//line gen/gotpl/type.qtpl:56
+			//line gen/gotpl/type.qtpl:60
 			for _, e := range t.Enum {
-				//line gen/gotpl/type.qtpl:56
+				//line gen/gotpl/type.qtpl:60
 				qw422016.N().S(`
 	case `)
-				//line gen/gotpl/type.qtpl:57
+				//line gen/gotpl/type.qtpl:61
 				qw422016.N().S(EnumValueName(t, e))
-				//line gen/gotpl/type.qtpl:57
+				//line gen/gotpl/type.qtpl:61
 				qw422016.N().S(`:
 		return `)
-				//line gen/gotpl/type.qtpl:58
+				//line gen/gotpl/type.qtpl:62
 				qw422016.N().Q(e)
-				//line gen/gotpl/type.qtpl:58
+				//line gen/gotpl/type.qtpl:62
 			}
-			//line gen/gotpl/type.qtpl:58
+			//line gen/gotpl/type.qtpl:62
 			qw422016.N().S(`
 	}
 
 	return fmt.Sprintf("`)
-			//line gen/gotpl/type.qtpl:61
+			//line gen/gotpl/type.qtpl:65
 			qw422016.N().S(typ)
-			//line gen/gotpl/type.qtpl:61
+			//line gen/gotpl/type.qtpl:65
 			qw422016.N().S(`(%d)", t)
 }
 `)
-			//line gen/gotpl/type.qtpl:63
+			//line gen/gotpl/type.qtpl:67
 		}
-		//line gen/gotpl/type.qtpl:63
+		//line gen/gotpl/type.qtpl:67
 		qw422016.N().S(`
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
 func (t `)
-		//line gen/gotpl/type.qtpl:66
+		//line gen/gotpl/type.qtpl:70
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:66
+		//line gen/gotpl/type.qtpl:70
 		qw422016.N().S(`) MarshalEasyJSON(out *jwriter.Writer) {
 	out.`)
-		//line gen/gotpl/type.qtpl:67
+		//line gen/gotpl/type.qtpl:71
 		qw422016.N().S(z)
-		//line gen/gotpl/type.qtpl:67
+		//line gen/gotpl/type.qtpl:71
 		qw422016.N().S(`(`)
-		//line gen/gotpl/type.qtpl:67
+		//line gen/gotpl/type.qtpl:71
 		qw422016.N().S(gz)
-		//line gen/gotpl/type.qtpl:67
+		//line gen/gotpl/type.qtpl:71
 		qw422016.N().S(`(t))
 }
 
 // MarshalJSON satisfies json.Marshaler.
 func (t `)
-		//line gen/gotpl/type.qtpl:71
+		//line gen/gotpl/type.qtpl:75
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:71
+		//line gen/gotpl/type.qtpl:75
 		qw422016.N().S(`) MarshalJSON() ([]byte, error) {
 	return easyjson.Marshal(t)
 }
 
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
 func (t *`)
-		//line gen/gotpl/type.qtpl:76
+		//line gen/gotpl/type.qtpl:80
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:76
+		//line gen/gotpl/type.qtpl:80
 		qw422016.N().S(`) UnmarshalEasyJSON(in *jlexer.Lexer) {
 	switch `)
-		//line gen/gotpl/type.qtpl:77
+		//line gen/gotpl/type.qtpl:81
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:77
+		//line gen/gotpl/type.qtpl:81
 		qw422016.N().S(`(in.`)
-		//line gen/gotpl/type.qtpl:77
+		//line gen/gotpl/type.qtpl:81
 		qw422016.N().S(z)
-		//line gen/gotpl/type.qtpl:77
+		//line gen/gotpl/type.qtpl:81
 		qw422016.N().S(`()) {`)
-		//line gen/gotpl/type.qtpl:77
+		//line gen/gotpl/type.qtpl:81
 		for _, e := range t.Enum {
-			//line gen/gotpl/type.qtpl:78
+			//line gen/gotpl/type.qtpl:82
 			n := EnumValueName(t, e)
 
-			//line gen/gotpl/type.qtpl:79
+			//line gen/gotpl/type.qtpl:83
 			qw422016.N().S(`
 	case `)
-			//line gen/gotpl/type.qtpl:80
+			//line gen/gotpl/type.qtpl:84
 			qw422016.N().S(n)
-			//line gen/gotpl/type.qtpl:80
+			//line gen/gotpl/type.qtpl:84
 			qw422016.N().S(`:
 		*t = `)
-			//line gen/gotpl/type.qtpl:81
+			//line gen/gotpl/type.qtpl:85
 			qw422016.N().S(n)
-			//line gen/gotpl/type.qtpl:81
+			//line gen/gotpl/type.qtpl:85
 		}
-		//line gen/gotpl/type.qtpl:81
+		//line gen/gotpl/type.qtpl:85
 		qw422016.N().S(`
 
 	default:
 		in.AddError(errors.New("unknown `)
-		//line gen/gotpl/type.qtpl:84
+		//line gen/gotpl/type.qtpl:88
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:84
+		//line gen/gotpl/type.qtpl:88
 		qw422016.N().S(` value"))
 	}
 }
 
 // UnmarshalJSON satisfies json.Unmarshaler.
 func (t *`)
-		//line gen/gotpl/type.qtpl:89
+		//line gen/gotpl/type.qtpl:93
 		qw422016.N().S(typ)
-		//line gen/gotpl/type.qtpl:89
+		//line gen/gotpl/type.qtpl:93
 		qw422016.N().S(`) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }`)
-		//line gen/gotpl/type.qtpl:91
+		//line gen/gotpl/type.qtpl:95
 	}
-	//line gen/gotpl/type.qtpl:91
+	//line gen/gotpl/type.qtpl:95
 	qw422016.N().S(`
 `)
-	//line gen/gotpl/type.qtpl:92
+	//line gen/gotpl/type.qtpl:96
 	if t.Extra != "" {
-		//line gen/gotpl/type.qtpl:92
+		//line gen/gotpl/type.qtpl:96
 		qw422016.N().S(`
 `)
-		//line gen/gotpl/type.qtpl:93
+		//line gen/gotpl/type.qtpl:97
 		qw422016.N().S(t.Extra)
-		//line gen/gotpl/type.qtpl:93
+		//line gen/gotpl/type.qtpl:97
 	}
-	//line gen/gotpl/type.qtpl:93
+	//line gen/gotpl/type.qtpl:97
 	qw422016.N().S(`
 `)
-//line gen/gotpl/type.qtpl:94
+//line gen/gotpl/type.qtpl:98
 }
 
-//line gen/gotpl/type.qtpl:94
+//line gen/gotpl/type.qtpl:98
 func WriteTypeTemplate(qq422016 qtio422016.Writer, t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) {
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	qw422016 := qt422016.AcquireWriter(qq422016)
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	StreamTypeTemplate(qw422016, t, prefix, suffix, d, domains, sharedFunc, v, noExposeOverride, omitOnlyWhenOptional)
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/type.qtpl:94
+//line gen/gotpl/type.qtpl:98
 }
 
-//line gen/gotpl/type.qtpl:94
+//line gen/gotpl/type.qtpl:98
 func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) string {
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	qb422016 := qt422016.AcquireByteBuffer()
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	WriteTypeTemplate(qb422016, t, prefix, suffix, d, domains, sharedFunc, v, noExposeOverride, omitOnlyWhenOptional)
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	qs422016 := string(qb422016.B)
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	qt422016.ReleaseByteBuffer(qb422016)
-	//line gen/gotpl/type.qtpl:94
+	//line gen/gotpl/type.qtpl:98
 	return qs422016
-//line gen/gotpl/type.qtpl:94
+//line gen/gotpl/type.qtpl:98
 }

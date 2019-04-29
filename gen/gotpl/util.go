@@ -34,6 +34,12 @@ const (
 	// Base64EncodedDescriptionPrefix is the prefix for command return
 	// description prefix when base64 encoded.
 	Base64EncodedDescriptionPrefix = "Base64-encoded"
+
+	// ChromeDevToolsDocBase is the base URL for the Chrome DevTools
+	// documentation site.
+	//
+	// tot is "tip-of-tree"
+	ChromeDevToolsDocBase = "https://chromedevtools.github.io/devtools-protocol/tot"
 )
 
 // ProtoName returns the protocol name of the type.
@@ -471,4 +477,24 @@ func GoEnumEmptyValue(te pdl.TypeEnum) string {
 	}
 
 	return `nil`
+}
+
+// DocRefLink returns the reference documentation link for the type.
+func DocRefLink(t *pdl.Type) string {
+	typ := "type"
+	switch t.RawType {
+	case "command":
+		typ = "method"
+	case "event":
+		typ = "event"
+	}
+
+	i := strings.Index(t.RawName, ".")
+	if i == -1 {
+		return ""
+	}
+
+	domain := t.RawName[:i]
+	name := t.RawName[i+1:]
+	return ChromeDevToolsDocBase + "/" + domain + "#" + typ + "-" + name
 }

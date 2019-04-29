@@ -15,8 +15,12 @@
 	case []*pdl.Type:
 		extra = x
 	}
+
+	docRefLink := DocRefLink(t)
 %}
-{%s= genutil.FormatComment(t.Description, "", typ + " ") %}
+{%s= genutil.FormatComment(t.Description, "", typ + " ") %}{% if t.RawType != "command" && docRefLink != "" %}
+//
+// See: {%s= docRefLink %}{% endif %}
 type {%s= typ %} {%s= GoTypeDef(t, d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional) %}
 {% if t.Parameters == nil && t.Type != pdl.TypeArray && t.Type != pdl.TypeObject && t.Type != pdl.TypeAny %}{%code
 	gz := GoEnumType(t.Type)

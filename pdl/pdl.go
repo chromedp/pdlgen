@@ -109,6 +109,8 @@ func Parse(buf []byte) (*PDL, error) {
 		// type
 		if matches := typeRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item = &Type{
+				RawType:      "type",
+				RawName:      domain.Domain.String() + "." + matches[0][3],
 				Name:         matches[0][3],
 				Experimental: matches[0][1] != "",
 				Deprecated:   matches[0][2] != "",
@@ -122,14 +124,17 @@ func Parse(buf []byte) (*PDL, error) {
 		// command or event
 		if matches := commandEventRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item = &Type{
+				RawName:      domain.Domain.String() + "." + matches[0][4],
 				Name:         matches[0][4],
 				Experimental: matches[0][1] != "",
 				Deprecated:   matches[0][2] != "",
 				Description:  strings.TrimSpace(desc),
 			}
 			if matches[0][3] == "command" {
+				item.RawType = "command"
 				domain.Commands = append(domain.Commands, item)
 			} else {
+				item.RawType = "event"
 				domain.Events = append(domain.Events, item)
 			}
 			continue
@@ -138,6 +143,7 @@ func Parse(buf []byte) (*PDL, error) {
 		// member to params / returns / properties
 		if matches := memberRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			param := &Type{
+				RawName:      domain.Domain.String() + "." + matches[0][6],
 				Name:         matches[0][6],
 				Experimental: matches[0][1] != "",
 				Deprecated:   matches[0][2] != "",
@@ -562,6 +568,12 @@ type Type struct {
 
 	// ---------------------------------
 	// additional fields
+
+	// RawType is the raw type.
+	RawType string `json:"-"`
+
+	// RawName is the raw type name.
+	RawName string `json:"-"`
 
 	// TimestampType is the timestamp subtype.
 	TimestampType TimestampType `json:"-"`
