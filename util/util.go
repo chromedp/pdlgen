@@ -19,7 +19,10 @@ const (
 	ChromiumURL  = ChromiumBase + "/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
 
 	V8Base = "https://chromium.googlesource.com/v8/v8"
-	V8URL  = V8Base + "/+/%s/src/inspector/js_protocol.pdl"
+	V8URL  = V8Base + "/+/%s/include/js_protocol.pdl"
+
+	// v8 <= 7.6.303.13 has this URL. left here for posterity
+	V8URLOld = V8Base + "/+/%s/src/inspector/js_protocol.pdl"
 )
 
 // Logf is a shared logging function.
