@@ -57,7 +57,13 @@ func FormatComment(s, chop, newstr string) string {
 	}
 	s += "."
 
-	return Wrap(s, CommentWidth-len(CommentPrefix), CommentPrefix)
+	w := ""
+	for i := strings.Index(s, "\n\n"); i != -1; i = strings.Index(s, "\n\n") {
+		w += Wrap(s[:i], CommentWidth-len(CommentPrefix), CommentPrefix) + "\n" + CommentPrefix + "\n"
+		s = s[i+2:]
+	}
+
+	return w + Wrap(s, CommentWidth-len(CommentPrefix), CommentPrefix)
 }
 
 // Wrap wraps a line of text to the specified width, and adding the prefix to
@@ -90,7 +96,9 @@ func init() {
 // description replacers.
 var (
 	misspellReplacer = misspell.New()
-	codeRE           = regexp.MustCompile(`<\/?code>`)
+	codeRE           = regexp.MustCompile(`(?i)<\/?code>`)
+	pStartRE         = regexp.MustCompile(`(?i)<p>`)
+	pEndRE           = regexp.MustCompile(`(?i)</p>`)
 	descReplacer     = strings.NewReplacer(
 		"&lt;", "<",
 		"&gt;", ">",
@@ -104,7 +112,10 @@ var (
 // and "`" characters, and fixes common misspellings.
 func CleanDesc(s string) string {
 	s, _ = misspellReplacer.Replace(codeRE.ReplaceAllString(s, ""))
-	return descReplacer.Replace(s)
+	s = descReplacer.Replace(s)
+	s = pStartRE.ReplaceAllString(s, "\n\n")
+	s = pEndRE.ReplaceAllString(s, "")
+	return s
 }
 
 // PackageName returns the package name to use for a domain.
