@@ -337,7 +337,7 @@ func cleanupTypes(n string, dtyp string, typs []*pdl.Type) []*pdl.Type {
 
 	for _, t := range typs {
 		typ := dtyp + "." + t.Name
-		if t.Deprecated {
+		if t.Deprecated && dtyp != "command" && t.Name != "sendMessageToTarget" {
 			util.Logf("SKIPPING(%s): %s [deprecated]", pad(n, 7), typ)
 			continue
 		}
