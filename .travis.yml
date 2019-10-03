@@ -16,9 +16,11 @@ before_install:
   - git clone https://github.com/chromedp/cdproto.git $GOPATH/src/github.com/chromedp/cdproto
   - cd $GOPATH/src/github.com/chromedp/cdproto
   - go get -d -t
+  - go install
   - git clone https://github.com/chromedp/chromedp.git $GOPATH/src/github.com/chromedp/chromedp
   - cd $GOPATH/src/github.com/chromedp/chromedp
   - go get -d -t
+  - go install
 script:
   - cd $GOPATH/src/github.com/chromedp/cdproto-gen
   - go build
