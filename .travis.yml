@@ -14,7 +14,7 @@ before_install:
   - go get -d -t
   - mkdir -p $GOPATH/src/github.com/chromedp
   - git clone https://github.com/chromedp/cdproto.git $GOPATH/src/github.com/chromedp/cdproto
-  - cd $GOPATH/src/github.com/cdproto
+  - cd $GOPATH/src/github.com/chromedp/cdproto
   - go get -d -t
   - git clone https://github.com/chromedp/chromedp.git $GOPATH/src/github.com/chromedp/chromedp
   - cd $GOPATH/src/github.com/chromedp/chromedp
