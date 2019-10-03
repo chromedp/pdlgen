@@ -13,6 +13,7 @@ addons:
 before_install:
   - go get -d -t
   - mkdir -p $GOPATH/src/github.com/mailru $GOPATH/src/github.com/chromedp
+  - rm -rf $GOPATH/src/github.com/mailru/easyjson
   - git clone https://github.com/kenshaw/easyjson.git $GOPATH/src/github.com/mailru/easyjson
   - cd $GOPATH/src/github.com/mailru/easyjson
   - go get -d -t
