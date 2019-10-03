@@ -11,7 +11,9 @@ require (
 	github.com/valyala/quicktemplate v1.2.0
 	golang.org/x/net v0.0.0-20191002035440-2ec189313ef0 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/tools v0.0.0-20191002212750-6fe9ea94a73d
+	golang.org/x/tools v0.0.0-20191002234911-9ade4c73f2af
 )
 
 go 1.13
+
+replace github.com/mailru/easyjson => github.com/kenshaw/easyjson v0.7.1-0.20191003004850-b47b598a4702

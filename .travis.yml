@@ -12,7 +12,10 @@ addons:
     chrome: stable
 before_install:
   - go get -d -t
-  - mkdir -p $GOPATH/src/github.com/chromedp
+  - mkdir -p $GOPATH/src/github.com/mailru $GOPATH/src/github.com/chromedp
+  - git clone https://github.com/kenshaw/easyjson.git $GOPATH/src/github.com/mailru/easyjson
+  - cd $GOPATH/src/github.com/mailru/easyjson
+  - go get -d -t
   - git clone https://github.com/chromedp/cdproto.git $GOPATH/src/github.com/chromedp/cdproto
   - cd $GOPATH/src/github.com/chromedp/cdproto
   - go get -d -t
