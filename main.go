@@ -95,11 +95,6 @@ func run() error {
 		*flagCache = filepath.Join(cacheDir, "cdproto-gen")
 	}
 
-	// force GO111MODULE=off
-	if err = os.Setenv("GO111MODULE", "off"); err != nil {
-		return err
-	}
-
 	// get latest versions
 	if *flagChromium == "" {
 		if *flagChromium, err = util.GetLatestVersion(util.Cache{
@@ -146,6 +141,11 @@ func run() error {
 
 	if *flagOut == "" {
 		*flagOut = filepath.Join(os.Getenv("GOPATH"), "src", *flagGoPkg)
+	} else {
+		*flagOut, err = filepath.Abs(*flagOut)
+		if err != nil {
+			return err
+		}
 	}
 
 	// create out directory
