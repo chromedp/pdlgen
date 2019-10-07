@@ -253,6 +253,11 @@ func (e *Error) Error() string {
 			Description: "Unique message identifier.",
 			Optional:    true,
 		}, {
+			Name:        "sessionId",
+			Ref:         "Target.SessionID",
+			Description: "Session that the message belongs to when using flat access.",
+			Optional:    true,
+		}, {
 			Name:        "method",
 			Ref:         "MethodType",
 			Description: "Event or command type.",
