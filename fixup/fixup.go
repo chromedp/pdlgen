@@ -264,6 +264,18 @@ const ModifierCommand Modifier = ModifierMeta
 				}
 			}
 
+			for _, c := range d.Commands {
+				switch c.Name {
+				case "printToPDF":
+					for _, p := range c.Parameters {
+						switch p.Name {
+						case "marginTop", "marginBottom", "marginLeft", "marginRight":
+							p.AlwaysEmit = true
+						}
+					}
+				}
+			}
+
 		case "Runtime":
 			var typs []*pdl.Type
 			for _, t := range d.Types {
