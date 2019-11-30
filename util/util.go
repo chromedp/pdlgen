@@ -16,7 +16,7 @@ import (
 const (
 	ChromiumBase = "https://chromium.googlesource.com/chromium/src"
 	ChromiumDeps = ChromiumBase + "/+/%s/DEPS"
-	ChromiumURL  = ChromiumBase + "/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
+	ChromiumURL  = ChromiumBase + "/+/%s/third_party/blink/public/devtools_protocol/browser_protocol.pdl"
 
 	V8Base = "https://chromium.googlesource.com/v8/v8"
 	V8URL  = V8Base + "/+/%s/include/js_protocol.pdl"
