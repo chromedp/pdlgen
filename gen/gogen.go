@@ -20,32 +20,12 @@ type GoGenerator struct {
 // NewGoGenerator creates a Go source code generator for the Chrome DevTools
 // Protocol domain definitions.
 func NewGoGenerator(domains []*pdl.Domain, basePkg string) (Emitter, error) {
-	// setup shared types
-	sharedTypes := map[string]bool{
-		"DOM.BackendNodeId":      true,
-		"DOM.BackendNode":        true,
-		"DOM.NodeId":             true,
-		"DOM.Node":               true,
-		"DOM.NodeType":           true,
-		"DOM.PseudoType":         true,
-		"DOM.RGBA":               true,
-		"DOM.ShadowRootType":     true,
-		"Network.LoaderId":       true,
-		"Network.MonotonicTime":  true,
-		"Network.TimeSinceEpoch": true,
-		"Page.FrameId":           true,
-		"Page.Frame":             true,
-	}
-	sharedFunc := func(dtyp string, typ string) bool {
-		return sharedTypes[dtyp+"."+typ]
-	}
+	var w *qtpl.Writer
 
 	fb := make(fileBuffers)
 
-	var w *qtpl.Writer
-
 	// generate shared types
-	fb.generateSharedTypes(domains, sharedFunc, basePkg)
+	fb.generateSharedTypes(domains, basePkg)
 
 	// generate util package
 	fb.generateRootPackage(domains, basePkg)
@@ -57,7 +37,7 @@ func NewGoGenerator(domains []*pdl.Domain, basePkg string) (Emitter, error) {
 
 		// do command template
 		w = fb.get(pkgOut, pkgName, d, domains, basePkg)
-		gotpl.StreamDomainTemplate(w, d, domains, sharedFunc)
+		gotpl.StreamDomainTemplate(w, d, domains)
 		fb.release(w)
 
 		// generate domain types
@@ -65,7 +45,7 @@ func NewGoGenerator(domains []*pdl.Domain, basePkg string) (Emitter, error) {
 			fb.generateTypes(
 				filepath.Join(pkgName, "types.go"),
 				d.Types, gotpl.TypePrefix, gotpl.TypeSuffix,
-				d, domains, sharedFunc,
+				d, domains,
 				basePkg,
 			)
 		}
@@ -75,7 +55,7 @@ func NewGoGenerator(domains []*pdl.Domain, basePkg string) (Emitter, error) {
 			fb.generateTypes(
 				filepath.Join(pkgName, "events.go"),
 				d.Events, gotpl.EventTypePrefix, gotpl.EventTypeSuffix,
-				d, domains, sharedFunc,
+				d, domains,
 				basePkg,
 			)
 		}
@@ -98,12 +78,12 @@ type fileBuffers map[string]*bytes.Buffer
 //
 // Because there are circular package dependencies, some types need to be moved
 // to eliminate circular dependencies.
-func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, sharedFunc func(string, string) bool, basePkg string) {
+func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string) {
 	// determine shared types
 	var typs []*pdl.Type
 	for _, d := range domains {
 		for _, t := range d.Types {
-			if sharedFunc(d.Domain.String(), t.Name) {
+			if t.IsCircularDep {
 				typs = append(typs, t)
 			}
 		}
@@ -124,7 +104,7 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, sharedFunc func
 	for _, t := range typs {
 		gotpl.StreamTypeTemplate(
 			w, t, gotpl.TypePrefix, gotpl.TypeSuffix,
-			d, append(domains, d), sharedFunc,
+			d, append(domains, d),
 			nil, false, true,
 		)
 	}
@@ -146,7 +126,7 @@ func (fb fileBuffers) generateRootPackage(domains []*pdl.Domain, basePkg string)
 	for _, t := range rootPackageTypes(domains) {
 		gotpl.StreamTypeTemplate(
 			w, t, "", "",
-			d, domains, func(string, string) bool { return false },
+			d, domains,
 			nil, false, true,
 		)
 	}
@@ -157,19 +137,19 @@ func (fb fileBuffers) generateRootPackage(domains []*pdl.Domain, basePkg string)
 func (fb fileBuffers) generateTypes(
 	path string,
 	types []*pdl.Type, prefix, suffix string,
-	d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool,
+	d *pdl.Domain, domains []*pdl.Domain,
 	basePkg string,
 ) {
 	w := fb.get(path, genutil.PackageName(d), d, domains, basePkg)
 
 	// process type list
 	for _, t := range types {
-		if sharedFunc(d.Domain.String(), t.Name) {
+		if t.IsCircularDep {
 			continue
 		}
 		gotpl.StreamTypeTemplate(
 			w, t, prefix, suffix,
-			d, domains, sharedFunc,
+			d, domains,
 			nil, false, true,
 		)
 	}

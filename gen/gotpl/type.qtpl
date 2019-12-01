@@ -6,8 +6,8 @@
 	"github.com/chromedp/cdproto-gen/pdl"
 ) %}
 
-// TypeTemplate is a template for a Typable type.
-{% func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
+// TypeTemplate is a template for a pdl type.
+{% func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
 	typ := prefix + CamelName(t) + suffix
 
 	var extra []*pdl.Type
@@ -21,7 +21,7 @@
 {%s= genutil.FormatComment(t.Description, "", typ + " ") %}{% if t.RawType != "command" && t.RawType != "returns" && docRefLink != "" %}
 //
 // See: {%s= docRefLink %}{% endif %}
-type {%s= typ %} {%s= GoTypeDef(t, d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional) %}
+type {%s= typ %} {%s= GoTypeDef(t, d, domains, extra, noExposeOverride, omitOnlyWhenOptional) %}
 {% if t.Parameters == nil && t.Type != pdl.TypeArray && t.Type != pdl.TypeObject && t.Type != pdl.TypeAny %}{%code
 	gz := GoEnumType(t.Type)
 	z := gz

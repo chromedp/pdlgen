@@ -9,9 +9,9 @@ require (
 	github.com/mailru/easyjson v0.7.0
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/valyala/quicktemplate v1.4.1
-	golang.org/x/net v0.0.0-20191112182307-2180aed22343 // indirect
+	golang.org/x/net v0.0.0-20191126235420-ef20fe5d7933 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/tools v0.0.0-20191114222411-4191b8cbba09
+	golang.org/x/tools v0.0.0-20191130070609-6e064ea0cf2d
 )
 
 go 1.13

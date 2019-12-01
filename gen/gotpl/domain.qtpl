@@ -4,9 +4,9 @@
 ) %}
 
 // DomainTemplate is the template for a single domain.
-{% func DomainTemplate(d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}
+{% func DomainTemplate(d *pdl.Domain, domains []*pdl.Domain) %}
 {% for _, c := range d.Commands %}
-{%s= CommandTemplate(c, d, domains, sharedFunc) %}
+{%s= CommandTemplate(c, d, domains) %}
 {% endfor %}
 {% if len(d.Commands) > 0 %}
 // Command names.
@@ -17,16 +17,16 @@ const (
 {% endfunc %}
 
 // CommandTemplate is the general command template.
-{% func CommandTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}
+{% func CommandTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) %}
 {% code /* add *Param type */ %}
-{%s= TypeTemplate(c, CommandTypePrefix, CommandTypeSuffix, d, domains, sharedFunc, nil, false, true) %}
+{%s= TypeTemplate(c, CommandTypePrefix, CommandTypeSuffix, d, domains, nil, false, true) %}
 
 {% code /* add Command func */ %}
-{%s= CommandFuncTemplate(c, d, domains, sharedFunc) %}
+{%s= CommandFuncTemplate(c, d, domains) %}
 
 {% code /* add param funcs (only if it has parameters and a returns). */ %}
 {% if len(c.Parameters) != 0 %}{% for _, p := range c.Parameters %}{% if !p.Optional %}{% continue %}{% endif %}
-{%s= CommandOptionFuncTemplate(p, c, d, domains, sharedFunc) %}
+{%s= CommandOptionFuncTemplate(p, c, d, domains) %}
 {% endfor %}{% endif %}
 
 {% code /* add *Returns type */ %}
@@ -38,15 +38,15 @@ const (
 	Type: pdl.TypeObject,
 	Description: "Return values.",
 	Properties: c.Returns,
-}, CommandReturnsPrefix, CommandReturnsSuffix, d, domains, sharedFunc, nil, false, false) %}
+}, CommandReturnsPrefix, CommandReturnsSuffix, d, domains, nil, false, false) %}
 {% endif %}
 
 {% code /* add CommandParams.Do func */ %}
-{%s= CommandDoFuncTemplate(c, d, domains, sharedFunc) %}
+{%s= CommandDoFuncTemplate(c, d, domains) %}
 {% endfunc %}
 
 // CommandFuncTemplate is the command func template.
-{% func CommandFuncTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}{% code
+{% func CommandFuncTemplate(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) %}{% code
 	cmdName := CamelName(c)
 	typ := CommandType(c)
 %}
@@ -56,7 +56,7 @@ const (
 //
 // parameters:{% for _, p := range c.Parameters %}{% if p.Optional %}{% continue %}{% endif %}
 //   {%s= ParamDesc(p) %}{% if p.Optional %} (optional){% endif %}{% endfor %}{% endif %}
-func {%s= cmdName %}({%s= ParamList(c, d, domains, sharedFunc, false) %}) *{%s= typ %}{
+func {%s= cmdName %}({%s= ParamList(c, d, domains, false) %}) *{%s= typ %}{
 	return &{%s= typ %}{{% for _, t := range c.Parameters %}{% if !t.Optional %}
 		{%s= GoName(t, false) %}: {%s= GoName(t, true) %},{% endif %}{% endfor %}
 	}
@@ -64,32 +64,32 @@ func {%s= cmdName %}({%s= ParamList(c, d, domains, sharedFunc, false) %}) *{%s= 
 {% endfunc %}
 
 // CommandOptionFuncTemplate is the command option func template.
-{% func CommandOptionFuncTemplate(t *pdl.Type, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) %}{% code
+{% func CommandOptionFuncTemplate(t *pdl.Type, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) %}{% code
 	n := GoName(t, false)
 	optName := OptionFuncPrefix+n+OptionFuncSuffix
 	typ := CommandType(c)
 	v := GoName(t, true)
 %}
 {%s= genutil.FormatComment(t.Description, "", optName + " ") %}
-func (p {%s= typ %}) {%s= optName %}({%s= v %} {%s= GoType(t, d, domains, sharedFunc) %}) *{%s= typ %}{
+func (p {%s= typ %}) {%s= optName %}({%s= v %} {%s= GoType(t, d, domains) %}) *{%s= typ %}{
 	p.{%s= n %} = {%s= v %}
 	return &p
 }
 {% endfunc %}
 
 // CommandDoFuncTemplate is the command do func template.
-{% func CommandDoFuncTemplate(c *pdl.Type, d *pdl.Domain, domains[]*pdl.Domain, sharedFunc func(string, string) bool) %}{% code
+{% func CommandDoFuncTemplate(c *pdl.Type, d *pdl.Domain, domains[]*pdl.Domain) %}{% code
 	typ := CommandType(c)
 
 	hasEmptyParams := len(c.Parameters) == 0
 	hasEmptyRet := len(c.Returns) == 0
 
-	emptyRet := EmptyRetList(c, d, domains, sharedFunc)
+	emptyRet := EmptyRetList(c, d, domains)
 	if emptyRet != "" {
 		emptyRet += ", "
 	}
 
-	retTypeList := RetTypeList(c, d, domains, sharedFunc)
+	retTypeList := RetTypeList(c, d, domains)
 	if retTypeList != "" {
 		retTypeList += ", "
 	}

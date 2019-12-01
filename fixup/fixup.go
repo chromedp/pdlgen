@@ -39,6 +39,7 @@ package fixup
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/knq/snaker"
@@ -56,6 +57,8 @@ const (
 	domNodeRef   = "*Node"
 )
 
+var axRE = regexp.MustCompile(`^AX`)
+
 // FixDomains modifies, updates, alters, fixes, and adds to the types defined
 // in the domains, so that the generated Chrome DevTools Protocol domain code
 // is more Go-like and easier to use.
@@ -66,11 +69,6 @@ func FixDomains(domains []*pdl.Domain) {
 	// process domains
 	for _, d := range domains {
 		switch d.Domain {
-		case "Accessibility":
-			for _, t := range d.Types {
-				t.Name = strings.Replace(t.Name, "AX", "", -1)
-			}
-
 		case "CSS":
 			for _, t := range d.Types {
 				if t.Name == "CSSComputedStyleProperty" {
@@ -81,10 +79,12 @@ func FixDomains(domains []*pdl.Domain) {
 		case "DOM":
 			// add DOM types
 			d.Types = append(d.Types, &pdl.Type{
-				RawSee:      "https://developer.mozilla.org/en/docs/Web/API/Node/nodeType",
-				Name:        "NodeType",
-				Type:        pdl.TypeInteger,
-				Description: "Node type.",
+				RawName:       "DOM.NodeType",
+				RawSee:        "https://developer.mozilla.org/en/docs/Web/API/Node/nodeType",
+				IsCircularDep: true,
+				Name:          "NodeType",
+				Type:          pdl.TypeInteger,
+				Description:   "Node type.",
 				Enum: []string{
 					"Element", "Attribute", "Text", "CDATA", "EntityReference",
 					"Entity", "ProcessingInstruction", "Comment", "Document",
@@ -95,6 +95,7 @@ func FixDomains(domains []*pdl.Domain) {
 			for _, t := range d.Types {
 				switch t.Name {
 				case "NodeId", "BackendNodeId":
+					t.RawName = d.Domain.String() + "." + t.Name
 					t.Extra += gotpl.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.Name), "ParseInt", ", 10, 64")
 
 				case "Node":
@@ -135,6 +136,8 @@ func FixDomains(domains []*pdl.Domain) {
 		case "Input":
 			// add Input types
 			d.Types = append(d.Types, &pdl.Type{
+				RawName:     "Input.Modifier",
+				RawSee:      "https://chromedevtools.github.io/devtools-protocol/tot/Input#method-dispatchKeyEvent",
 				Name:        "Modifier",
 				Type:        pdl.TypeInteger,
 				EnumBitMask: true,
@@ -172,6 +175,8 @@ const ModifierCommand Modifier = ModifierMeta
 		case "Inspector":
 			// add Inspector types
 			d.Types = append(d.Types, &pdl.Type{
+				RawName:     "Inspector.DetachReason",
+				RawSee:      "( -- none -- )",
 				Name:        "DetachReason",
 				Type:        pdl.TypeString,
 				Enum:        []string{"target_closed", "canceled_by_user", "replaced_with_devtools", "Render process gone."},
@@ -303,7 +308,7 @@ func (e *ExceptionDetails) Error() string {
 		for _, t := range d.Types {
 			// convert object properties
 			if t.Properties != nil {
-				t.Properties = convertObjectProperties(t.Properties, d, t.Name)
+				t.Properties = convertObjectProperties(t.Properties, t, d, t.Name)
 			}
 		}
 
@@ -336,12 +341,15 @@ func (e *ExceptionDetails) Error() string {
 
 		// fix type stuttering
 		for _, t := range d.Types {
-			if !t.NoExpose && !t.NoResolve {
-				id := strings.TrimPrefix(t.Name, d.Domain.String())
-				if id == "" {
-					continue
+			if !t.NoExpose && !t.NoResolve && !t.IsCircularDep {
+				name := strings.TrimPrefix(t.RawName, d.Domain.String()+".")
+				name = strings.TrimPrefix(name, d.Domain.String())
+				if strings.HasPrefix(t.RawName, "Accessibility.") {
+					name = axRE.ReplaceAllString(strings.TrimPrefix(t.RawName, "Accessibility."), "")
 				}
-				t.Name = id
+				if t.Name != name && name != "" {
+					t.Name = name
+				}
 			}
 		}
 	}
@@ -351,99 +359,68 @@ func (e *ExceptionDetails) Error() string {
 // types.
 func convertObjects(d *pdl.Domain, typs []*pdl.Type) {
 	for _, t := range typs {
-		t.Parameters = convertObjectProperties(t.Parameters, d, t.Name)
+		t.Parameters = convertObjectProperties(t.Parameters, t, d, t.Name)
 		if t.Returns != nil {
-			t.Returns = convertObjectProperties(t.Returns, d, t.Name)
+			t.Returns = convertObjectProperties(t.Returns, t, d, t.Name)
 		}
 	}
 }
 
 // convertObjectProperties converts object properties.
-func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*pdl.Type {
+func convertObjectProperties(params []*pdl.Type, parent *pdl.Type, d *pdl.Domain, name string) []*pdl.Type {
 	r := make([]*pdl.Type, 0)
 	for _, p := range params {
 		switch {
 		case p.Items != nil:
 			r = append(r, &pdl.Type{
-				RawType:     p.RawType,
-				RawName:     p.RawName,
-				Name:        p.Name,
-				Type:        pdl.TypeArray,
-				Description: p.Description,
-				Optional:    p.Optional,
-				AlwaysEmit:  p.AlwaysEmit,
-				Items:       convertObjectProperties([]*pdl.Type{p.Items}, d, name+"."+p.Name)[0],
+				RawType:       p.RawType,
+				RawName:       p.RawName,
+				IsCircularDep: p.IsCircularDep,
+				Name:          p.Name,
+				Type:          pdl.TypeArray,
+				Description:   p.Description,
+				Optional:      p.Optional,
+				AlwaysEmit:    p.AlwaysEmit,
+				Items:         convertObjectProperties([]*pdl.Type{p.Items}, parent, d, name+"."+p.Name)[0],
 			})
 
 		case p.Enum != nil:
-			r = append(r, fixupEnumParameter(name, p, d))
+			r = append(r, fixupEnumParameter(name, p, parent, d))
 
 		case p.Name == "modifiers":
 			r = append(r, &pdl.Type{
-				RawType:     p.RawType,
-				RawName:     p.RawName,
-				Name:        p.Name,
-				Ref:         "Modifier",
-				Description: p.Description,
-				Optional:    p.Optional,
-				AlwaysEmit:  true,
+				RawType:       p.RawType,
+				RawName:       p.RawName,
+				IsCircularDep: p.IsCircularDep,
+				Name:          p.Name,
+				Ref:           "Modifier",
+				Description:   p.Description,
+				Optional:      p.Optional,
+				AlwaysEmit:    true,
 			})
 
 		case p.Name == "nodeType":
 			r = append(r, &pdl.Type{
-				RawType:     p.RawType,
-				RawName:     p.RawName,
-				Name:        p.Name,
-				Ref:         "DOM.NodeType",
-				Description: p.Description,
-				Optional:    p.Optional,
-				AlwaysEmit:  p.AlwaysEmit,
-			})
-
-		case p.Ref == "GestureSourceType":
-			r = append(r, &pdl.Type{
-				RawType:     p.RawType,
-				RawName:     p.RawName,
-				Name:        p.Name,
-				Ref:         "GestureType",
-				Description: p.Description,
-				Optional:    p.Optional,
-				AlwaysEmit:  p.AlwaysEmit,
-			})
-
-		case p.Ref == "CSSComputedStyleProperty":
-			r = append(r, &pdl.Type{
-				RawType:     p.RawType,
-				RawName:     p.RawName,
-				Name:        p.Name,
-				Ref:         "ComputedProperty",
-				Description: p.Description,
-				Optional:    p.Optional,
-				AlwaysEmit:  p.AlwaysEmit,
+				RawType:       p.RawType,
+				RawName:       strings.Replace(p.RawName, "nodeType", "NodeType", -1),
+				IsCircularDep: p.IsCircularDep,
+				Name:          p.Name,
+				Ref:           "DOM.NodeType",
+				Description:   p.Description,
+				Optional:      p.Optional,
+				AlwaysEmit:    p.AlwaysEmit,
 			})
 
 		case p.Ref != "" && !p.NoExpose && !p.NoResolve:
-			ref := strings.SplitN(p.Ref, ".", 2)
-			if len(ref) == 1 {
-				ref[0] = strings.TrimPrefix(ref[0], d.Domain.String())
-			} else {
-				ref[1] = strings.TrimPrefix(ref[1], ref[0])
-			}
-
-			z := strings.Join(ref, ".")
-			if z == "" {
-				z = p.Ref
-			}
-			z = strings.Replace(z, "AX", "", -1)
-
 			r = append(r, &pdl.Type{
-				RawType:     p.RawType,
-				RawName:     p.RawName,
-				Name:        p.Name,
-				Ref:         z,
-				Description: p.Description,
-				Optional:    p.Optional,
-				AlwaysEmit:  p.AlwaysEmit,
+				RawType:       p.RawType,
+				RawName:       p.RawName,
+				IsCircularDep: p.IsCircularDep,
+				Name:          p.Name,
+				Ref:           p.Ref,
+				Description:   p.Description,
+				Optional:      p.Optional,
+				AlwaysEmit:    p.AlwaysEmit,
 			})
 
 		default:
@@ -455,24 +432,34 @@ func convertObjectProperties(params []*pdl.Type, d *pdl.Domain, name string) []*
 }
 
 // addEnumValues adds orig.Enum values to type named n's Enum values in domain.
-func addEnumValues(d *pdl.Domain, n string, p *pdl.Type) {
+func addEnumValues(n string, p *pdl.Type, parent *pdl.Type, d *pdl.Domain) {
 	// find type
 	var typ *pdl.Type
 	for _, t := range d.Types {
-		if t.Name == n {
+		if t.RawName == n {
 			typ = t
 			break
 		}
 	}
 	if typ == nil {
+		seeType := "type"
+		switch {
+		case parent.RawType == "command":
+			seeType = "method"
+		case parent.RawType == "event":
+			seeType = "event"
+		}
+
 		typ = &pdl.Type{
-			RawType:     p.RawType,
-			RawName:     p.RawName,
-			Name:        n,
-			Type:        pdl.TypeString,
-			Description: p.Description,
-			Optional:    p.Optional,
-			AlwaysEmit:  p.AlwaysEmit,
+			RawSee:        "https://chromedevtools.github.io/devtools-protocol/tot/" + strings.Replace(parent.RawName, ".", "#"+seeType+"-", -1),
+			RawType:       p.RawType,
+			RawName:       n,
+			IsCircularDep: p.IsCircularDep,
+			Name:          strings.TrimPrefix(n, d.Domain.String()+"."),
+			Type:          pdl.TypeString,
+			Description:   p.Description,
+			Optional:      p.Optional,
+			AlwaysEmit:    p.AlwaysEmit,
 		}
 		d.Types = append(d.Types, typ)
 	}
@@ -531,19 +518,20 @@ var enumRefMap = map[string]string{
 
 // fixupEnumParameter takes an enum parameter, adds it to the domain and
 // returns a type suitable for use in place of the type.
-func fixupEnumParameter(typ string, p *pdl.Type, d *pdl.Domain) *pdl.Type {
+func fixupEnumParameter(typ string, p *pdl.Type, parent *pdl.Type, d *pdl.Domain) *pdl.Type {
 	fqname := strings.TrimSuffix(fmt.Sprintf("%s.%s.%s", d.Domain, typ, p.Name), ".")
 	ref := snaker.ForceCamelIdentifier(typ + "." + p.Name)
 	if n, ok := enumRefMap[fqname]; ok {
 		ref = n
 	}
+	rawName := d.Domain.String() + "." + ref
 
 	// add enum values to type name
-	addEnumValues(d, ref, p)
+	addEnumValues(rawName, p, parent, d)
 
 	return &pdl.Type{
 		RawType:     p.RawType,
-		RawName:     p.RawName,
+		RawName:     rawName,
 		Name:        p.Name,
 		Ref:         ref,
 		Description: p.Description,

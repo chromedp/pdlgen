@@ -13,7 +13,7 @@ import (
 	"github.com/chromedp/cdproto-gen/pdl"
 )
 
-// TypeTemplate is a template for a Typable type.
+// TypeTemplate is a template for a pdl type.
 
 //line gen/gotpl/type.qtpl:10
 import (
@@ -29,7 +29,7 @@ var (
 )
 
 //line gen/gotpl/type.qtpl:10
-func StreamTypeTemplate(qw422016 *qt422016.Writer, t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) {
+func StreamTypeTemplate(qw422016 *qt422016.Writer, t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) {
 //line gen/gotpl/type.qtpl:11
 	typ := prefix + CamelName(t) + suffix
 
@@ -64,7 +64,7 @@ type `)
 //line gen/gotpl/type.qtpl:24
 	qw422016.N().S(` `)
 //line gen/gotpl/type.qtpl:24
-	qw422016.N().S(GoTypeDef(t, d, domains, sharedFunc, extra, noExposeOverride, omitOnlyWhenOptional))
+	qw422016.N().S(GoTypeDef(t, d, domains, extra, noExposeOverride, omitOnlyWhenOptional))
 //line gen/gotpl/type.qtpl:24
 	qw422016.N().S(`
 `)
@@ -309,22 +309,22 @@ func (t *`)
 }
 
 //line gen/gotpl/type.qtpl:98
-func WriteTypeTemplate(qq422016 qtio422016.Writer, t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) {
+func WriteTypeTemplate(qq422016 qtio422016.Writer, t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) {
 //line gen/gotpl/type.qtpl:98
 	qw422016 := qt422016.AcquireWriter(qq422016)
 //line gen/gotpl/type.qtpl:98
-	StreamTypeTemplate(qw422016, t, prefix, suffix, d, domains, sharedFunc, v, noExposeOverride, omitOnlyWhenOptional)
+	StreamTypeTemplate(qw422016, t, prefix, suffix, d, domains, v, noExposeOverride, omitOnlyWhenOptional)
 //line gen/gotpl/type.qtpl:98
 	qt422016.ReleaseWriter(qw422016)
 //line gen/gotpl/type.qtpl:98
 }
 
 //line gen/gotpl/type.qtpl:98
-func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) string {
+func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) string {
 //line gen/gotpl/type.qtpl:98
 	qb422016 := qt422016.AcquireByteBuffer()
 //line gen/gotpl/type.qtpl:98
-	WriteTypeTemplate(qb422016, t, prefix, suffix, d, domains, sharedFunc, v, noExposeOverride, omitOnlyWhenOptional)
+	WriteTypeTemplate(qb422016, t, prefix, suffix, d, domains, v, noExposeOverride, omitOnlyWhenOptional)
 //line gen/gotpl/type.qtpl:98
 	qs422016 := string(qb422016.B)
 //line gen/gotpl/type.qtpl:98

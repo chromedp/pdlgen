@@ -92,44 +92,46 @@ func ParamDesc(t *pdl.Type) string {
 	if desc != "" {
 		desc = " - " + genutil.CleanDesc(desc)
 	}
-
 	return snaker.ForceLowerCamelIdentifier(t.Name) + desc
 }
 
 // ParamList returns the list of parameters.
-func ParamList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, all bool) string {
+func ParamList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, all bool) string {
 	var s string
 	for _, p := range t.Parameters {
 		if !all && p.Optional {
 			continue
 		}
-
-		_, _, z := ResolveType(p, d, domains, sharedFunc)
+		_, _, z := ResolveType(p, d, domains)
 		s += GoName(p, true) + " " + z + ","
 	}
-
 	return strings.TrimSuffix(s, ",")
 }
 
-// Resolve is a utility func to resolve the fully qualified name of a type's
+// ResolveRef is a utility func to resolve the fully qualified name of a type's
 // ref from the list of provided domains, relative to domain d when ref is not
 // namespaced.
-func Resolve(ref string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) (pdl.DomainType, *pdl.Type, string) {
-	n := strings.SplitN(ref, ".", 2)
+func ResolveRef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainType, *pdl.Type) {
+	n := strings.SplitN(t.Ref, ".", 2)
 
 	// determine domain
 	dtyp, typ := d.Domain, n[0]
 	if len(n) == 2 {
 		dtyp, typ = pdl.DomainType(n[0]), n[1]
 	}
+	ref := strings.ToLower(dtyp.String() + "." + typ)
+	shortRef := strings.ToLower(typ)
 
 	// determine if ref points to an object
-	var other *pdl.Type
+	var resolved *pdl.Type
 	for _, z := range domains {
 		if dtyp == z.Domain {
 			for _, j := range z.Types {
-				if j.Name == typ {
-					other = j
+				if z.Domain == "cdp" && shortRef == strings.ToLower(strings.SplitN(j.RawName, ".", 2)[1]) {
+					resolved = j
+					break
+				} else if ref == strings.ToLower(j.RawName) {
+					resolved = j
 					break
 				}
 			}
@@ -137,21 +139,11 @@ func Resolve(ref string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(s
 		}
 	}
 
-	if other == nil {
+	if resolved == nil {
 		panic(fmt.Sprintf("could not resolve type %s in domain %s", ref, d.Domain))
 	}
 
-	var s string
-	// add prefix if not an internal type and not defined in the domain
-	if sharedFunc(dtyp.String(), typ) {
-		if d.Domain != pdl.DomainType("cdp") {
-			s += "cdp."
-		}
-	} else if dtyp != d.Domain {
-		s += strings.ToLower(dtyp.String()) + "."
-	}
-
-	return dtyp, other, s + snaker.ForceCamelIdentifier(typ)
+	return dtyp, resolved
 }
 
 // ResolveType resolves the type relative to the Go domain.
@@ -159,13 +151,23 @@ func Resolve(ref string, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(s
 // Returns the DomainType of the underlying type, the underlying type (or the
 // original passed type if not a reference) and the fully qualified name type
 // name.
-func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) (pdl.DomainType, *pdl.Type, string) {
+func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainType, *pdl.Type, string) {
 	switch {
 	case t.NoExpose || t.NoResolve || strings.HasPrefix(t.Ref, "*"):
 		return d.Domain, t, t.Ref
 
 	case t.Ref != "":
-		dtyp, typ, z := Resolve(t.Ref, d, domains, sharedFunc)
+		dtyp, typ := ResolveRef(t, d, domains)
+
+		// add prefix if is a type defined as having circular dependency issues
+		var s string
+		switch {
+		case typ.IsCircularDep && d.Domain == "cdp":
+		case typ.IsCircularDep && d.Domain != "cdp":
+			s = "cdp."
+		case dtyp != d.Domain:
+			s = strings.ToLower(dtyp.String()) + "."
+		}
 
 		// add ptr if object
 		var ptr string
@@ -174,10 +176,10 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc f
 			ptr = "*"
 		}
 
-		return dtyp, typ, ptr + z
+		return dtyp, typ, ptr + s + snaker.ForceCamelIdentifier(typ.Name)
 
 	case t.Type == pdl.TypeArray:
-		dtyp, typ, z := ResolveType(t.Items, d, domains, sharedFunc)
+		dtyp, typ, z := ResolveType(t.Items, d, domains)
 		return dtyp, typ, "[]" + z
 
 	case t.Type == pdl.TypeObject && (t.Properties == nil || len(t.Properties) == 0):
@@ -208,28 +210,25 @@ func GoName(t *pdl.Type, noExposeOverride bool) string {
 }
 
 // GoTypeDef returns the Go type definition for the type.
-func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, extra []*pdl.Type, noExposeOverride, omitOnlyWhenOptional bool) string {
+func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, extra []*pdl.Type, noExposeOverride, omitOnlyWhenOptional bool) string {
 	switch {
 	case t.Parameters != nil:
-		return StructDef(append(extra, t.Parameters...), d, domains, sharedFunc, noExposeOverride, omitOnlyWhenOptional)
+		return StructDef(append(extra, t.Parameters...), d, domains, noExposeOverride, omitOnlyWhenOptional)
 
 	case t.Type == pdl.TypeArray:
-		_, o, _ := ResolveType(t.Items, d, domains, sharedFunc)
-		return "[]" + GoTypeDef(o, d, domains, sharedFunc, nil, false, false)
+		_, o, _ := ResolveType(t.Items, d, domains)
+		return "[]" + GoTypeDef(o, d, domains, nil, false, false)
 
 	case t.Type == pdl.TypeObject:
-		return StructDef(append(extra, t.Properties...), d, domains, sharedFunc, noExposeOverride, omitOnlyWhenOptional)
-
-	case t.Type == pdl.TypeAny && t.Ref != "":
-		return t.Ref
+		return StructDef(append(extra, t.Properties...), d, domains, noExposeOverride, omitOnlyWhenOptional)
 	}
 
 	return GoEnumType(t.Type)
 }
 
 // GoType returns the Go type for the type.
-func GoType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
-	_, _, z := ResolveType(t, d, domains, sharedFunc)
+func GoType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
+	_, _, z := ResolveType(t, d, domains)
 	return z
 }
 
@@ -251,8 +250,8 @@ func EnumValueName(t *pdl.Type, v string) string {
 }
 
 // GoEmptyValue returns the empty Go value for the type.
-func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
-	typ := GoType(t, d, domains, sharedFunc)
+func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
+	typ := GoType(t, d, domains)
 
 	switch {
 	case strings.HasPrefix(typ, "[]") || strings.HasPrefix(typ, "*"):
@@ -263,7 +262,7 @@ func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc 
 }
 
 // RetTypeList returns a list of the return types.
-func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
+func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 	var s string
 
 	b64ret := Base64EncodedRetParam(t)
@@ -273,7 +272,7 @@ func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc f
 		}
 
 		n := p.Name
-		_, _, z := ResolveType(p, d, domains, sharedFunc)
+		_, _, z := ResolveType(p, d, domains)
 
 		// if this is a base64 encoded item
 		if b64ret != nil && b64ret.Name == p.Name {
@@ -287,7 +286,7 @@ func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc f
 }
 
 // EmptyRetList returns a list of the empty return values.
-func EmptyRetList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool) string {
+func EmptyRetList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 	var s string
 
 	b64ret := Base64EncodedRetParam(t)
@@ -296,7 +295,7 @@ func EmptyRetList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc 
 			continue
 		}
 
-		_, o, z := ResolveType(p, d, domains, sharedFunc)
+		_, o, z := ResolveType(p, d, domains)
 		v := GoEnumEmptyValue(o.Type)
 		if strings.HasPrefix(z, "*") || strings.HasPrefix(z, "[]") || (b64ret != nil && b64ret.Name == p.Name) {
 			v = "nil"
@@ -345,14 +344,14 @@ func Base64EncodedRetParam(t *pdl.Type) *pdl.Type {
 }
 
 // StructDef returns a struct definition for a list of types.
-func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, sharedFunc func(string, string) bool, noExposeOverride, omitOnlyWhenOptional bool) string {
+func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) string {
 	s := "struct"
 	if len(types) > 0 {
 		s += " "
 	}
 	s += "{"
 	for _, v := range types {
-		s += "\n\t" + GoName(v, noExposeOverride) + " " + GoType(v, d, domains, sharedFunc)
+		s += "\n\t" + GoName(v, noExposeOverride) + " " + GoType(v, d, domains)
 
 		omit := ",omitempty"
 		if (omitOnlyWhenOptional && !v.Optional) || v.AlwaysEmit {
@@ -498,7 +497,6 @@ func DocRefLink(t *pdl.Type) string {
 		return ""
 	}
 
-	domain := t.RawName[:i]
-	name := t.RawName[i+1:]
+	domain, name := t.RawName[:i], t.RawName[i+1:]
 	return ChromeDevToolsDocBase + "/" + domain + "#" + typ + "-" + name
 }

@@ -109,12 +109,13 @@ func Parse(buf []byte) (*PDL, error) {
 		// type
 		if matches := typeRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item = &Type{
-				RawType:      "type",
-				RawName:      domain.Domain.String() + "." + matches[0][3],
-				Name:         matches[0][3],
-				Experimental: matches[0][1] != "",
-				Deprecated:   matches[0][2] != "",
-				Description:  strings.TrimSpace(desc),
+				RawType:       "type",
+				RawName:       domain.Domain.String() + "." + matches[0][3],
+				IsCircularDep: IsCircularDep(domain.Domain.String(), matches[0][3]),
+				Name:          matches[0][3],
+				Experimental:  matches[0][1] != "",
+				Deprecated:    matches[0][2] != "",
+				Description:   strings.TrimSpace(desc),
 			}
 			assignType(item, matches[0][5], matches[0][4] != "")
 			domain.Types = append(domain.Types, item)
@@ -124,11 +125,12 @@ func Parse(buf []byte) (*PDL, error) {
 		// command or event
 		if matches := commandEventRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item = &Type{
-				RawName:      domain.Domain.String() + "." + matches[0][4],
-				Name:         matches[0][4],
-				Experimental: matches[0][1] != "",
-				Deprecated:   matches[0][2] != "",
-				Description:  strings.TrimSpace(desc),
+				RawName:       domain.Domain.String() + "." + matches[0][4],
+				IsCircularDep: IsCircularDep(domain.Domain.String(), matches[0][4]),
+				Name:          matches[0][4],
+				Experimental:  matches[0][1] != "",
+				Deprecated:    matches[0][2] != "",
+				Description:   strings.TrimSpace(desc),
 			}
 			if matches[0][3] == "command" {
 				item.RawType = "command"
@@ -143,12 +145,13 @@ func Parse(buf []byte) (*PDL, error) {
 		// member to params / returns / properties
 		if matches := memberRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			param := &Type{
-				RawName:      domain.Domain.String() + "." + matches[0][6],
-				Name:         matches[0][6],
-				Experimental: matches[0][1] != "",
-				Deprecated:   matches[0][2] != "",
-				Description:  strings.TrimSpace(desc),
-				Optional:     matches[0][3] != "",
+				RawName:       domain.Domain.String() + "." + matches[0][6],
+				IsCircularDep: IsCircularDep(domain.Domain.String(), matches[0][6]),
+				Name:          matches[0][6],
+				Experimental:  matches[0][1] != "",
+				Deprecated:    matches[0][2] != "",
+				Description:   strings.TrimSpace(desc),
+				Optional:      matches[0][3] != "",
 			}
 			assignType(param, matches[0][5], matches[0][4] != "")
 			if matches[0][5] == "enum" {
@@ -580,6 +583,9 @@ type Type struct {
 
 	// TimestampType is the timestamp subtype.
 	TimestampType TimestampType `json:"-"`
+
+	// IsCircularDep indicates a type that causes circular dependencies.
+	IsCircularDep bool `json:"-"`
 
 	// NoExpose toggles whether or not to expose the type.
 	NoExpose bool `json:"-"`

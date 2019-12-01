@@ -61,7 +61,7 @@ var (
 	flagGoPkg = flag.String("go-pkg", "github.com/chromedp/cdproto", "go base package name")
 	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,*.pdl,go.mod,go.sum,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
 
-	//flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
+	// flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
 )
 
 func main() {
