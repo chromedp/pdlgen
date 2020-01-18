@@ -221,6 +221,9 @@ func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, extra []*pdl.T
 
 	case t.Type == pdl.TypeObject:
 		return StructDef(append(extra, t.Properties...), d, domains, noExposeOverride, omitOnlyWhenOptional)
+
+	case t.Type == pdl.TypeAny && t.Ref != "":
+		return t.Ref
 	}
 
 	return GoEnumType(t.Type)
