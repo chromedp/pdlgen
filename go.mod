@@ -11,7 +11,7 @@ require (
 	github.com/valyala/quicktemplate v1.4.1
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/tools v0.0.0-20200116225955-84cebe10344f
+	golang.org/x/tools v0.0.0-20200125223703-d33eef8e6825
 )
 
 go 1.13

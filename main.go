@@ -502,7 +502,11 @@ func contains(m map[string]*bytes.Buffer, n string) bool {
 
 // pad pads a string.
 func pad(s string, n int) string {
-	return s + strings.Repeat(" ", n-len(s))
+	n = n - len(s)
+	if n < 0 {
+		return s
+	}
+	return s + strings.Repeat(" ", n)
 }
 
 // whitelisted checks if n is a whitelisted file.
