@@ -18,10 +18,8 @@ import (
 type PDL struct {
 	// Copyright is the file copyright.
 	Copyright string
-
 	// Version is the file version information.
 	Version *Version
-
 	// Domains are the available domains.
 	Domains []*Domain
 }
@@ -49,9 +47,7 @@ func Parse(buf []byte) (*PDL, error) {
 		redirectCommentRE = regexp.MustCompile(`^Use '([^']+)' instead$`)
 		enumLiteralRE     = regexp.MustCompile(`^      (  )?[^\s]+$`)
 	)
-
 	pdl := new(PDL)
-
 	// state objects
 	var domain *Domain
 	var item *Type
@@ -59,16 +55,13 @@ func Parse(buf []byte) (*PDL, error) {
 	var enumliterals *[]string
 	var desc string
 	var copyright, clearDesc bool
-
 	for i, line := range strings.Split(string(buf), "\n") {
 		// clear the description if toggled
 		if clearDesc {
 			desc, clearDesc = "", false
 		}
-
 		// trim the line
 		trimmed := strings.TrimSpace(line)
-
 		// add to desc
 		if strings.HasPrefix(trimmed, "#") {
 			if len(desc) != 0 {
@@ -82,12 +75,10 @@ func Parse(buf []byte) (*PDL, error) {
 			}
 			clearDesc = true
 		}
-
 		// skip empty line
 		if len(trimmed) == 0 {
 			continue
 		}
-
 		// domain
 		if matches := domainRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			domain = &Domain{
@@ -99,13 +90,11 @@ func Parse(buf []byte) (*PDL, error) {
 			pdl.Domains = append(pdl.Domains, domain)
 			continue
 		}
-
 		// dependencies
 		if matches := dependsRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			domain.Dependencies = append(domain.Dependencies, matches[0][1])
 			continue
 		}
-
 		// type
 		if matches := typeRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item = &Type{
@@ -121,7 +110,6 @@ func Parse(buf []byte) (*PDL, error) {
 			domain.Types = append(domain.Types, item)
 			continue
 		}
-
 		// command or event
 		if matches := commandEventRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item = &Type{
@@ -141,7 +129,6 @@ func Parse(buf []byte) (*PDL, error) {
 			}
 			continue
 		}
-
 		// member to params / returns / properties
 		if matches := memberRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			param := &Type{
@@ -161,7 +148,6 @@ func Parse(buf []byte) (*PDL, error) {
 			*subitems = append(*subitems, param)
 			continue
 		}
-
 		// parameters, returns, properties definition
 		if matches := paramsRetsPropsRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			switch matches[0][1] {
@@ -177,32 +163,27 @@ func Parse(buf []byte) (*PDL, error) {
 			}
 			continue
 		}
-
 		// enum
 		if matches := enumRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item.Enum = make([]string, 0)
 			enumliterals = &item.Enum
 			continue
 		}
-
 		// version
 		if matches := versionRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			pdl.Version = new(Version)
 			continue
 		}
-
 		// version major
 		if matches := majorRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			pdl.Version.Major, _ = strconv.Atoi(matches[0][1])
 			continue
 		}
-
 		// version minor
 		if matches := minorRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			pdl.Version.Minor, _ = strconv.Atoi(matches[0][1])
 			continue
 		}
-
 		// redirect
 		if matches := redirectRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			item.Redirect = &Redirect{
@@ -217,16 +198,13 @@ func Parse(buf []byte) (*PDL, error) {
 			}
 			continue
 		}
-
 		// enum literal
 		if matches := enumLiteralRE.FindAllStringSubmatch(line, -1); len(matches) != 0 {
 			*enumliterals = append(*enumliterals, trimmed)
 			continue
 		}
-
 		return nil, fmt.Errorf("line %d unknown token %q", i, line)
 	}
-
 	return pdl, nil
 }
 
@@ -250,11 +228,9 @@ func assignType(item *Type, typ string, isArray bool) {
 		assignType(item.Items, typ, false)
 		return
 	}
-
 	if typ == "enum" {
 		typ = "string"
 	}
-
 	if pt, ok := primitiveTypes[typ]; ok {
 		item.Type = pt
 	} else {
@@ -311,7 +287,6 @@ func CombineBytes(buffers ...[]byte) ([]byte, error) {
 // Bytes generates file contents for the PDL.
 func (pdl *PDL) Bytes() []byte {
 	buf := new(bytes.Buffer)
-
 	// writeDesc conditionally writes a description.
 	writeDesc := func(desc, indent string) {
 		if desc == "" {
@@ -324,7 +299,6 @@ func (pdl *PDL) Bytes() []byte {
 			fmt.Fprintln(buf, indent+"#"+line)
 		}
 	}
-
 	// writeDecl writes a declaration line.
 	writeDecl := func(typ, name, desc, indent string, experimental, deprecated, optional bool, extra ...string) {
 		writeDesc(desc, indent)
@@ -341,7 +315,6 @@ func (pdl *PDL) Bytes() []byte {
 		v = append(v, typ, name)
 		fmt.Fprintln(buf, indent+strings.Join(append(v, extra...), " "))
 	}
-
 	writeRedirect := func(typ *Type, indent string) {
 		if typ.Redirect == nil {
 			return
@@ -351,7 +324,6 @@ func (pdl *PDL) Bytes() []byte {
 		}
 		fmt.Fprintln(buf, indent+"redirect "+typ.Redirect.Domain.String())
 	}
-
 	// writeProps writes a list of types for object properties.
 	writeProps := func(typ string, indent string, props []*Type) {
 		if len(props) == 0 {
@@ -384,13 +356,11 @@ func (pdl *PDL) Bytes() []byte {
 			}
 		}
 	}
-
 	// add copyright
 	if pdl.Copyright != "" {
 		writeDesc(pdl.Copyright, "")
 		fmt.Fprintln(buf)
 	}
-
 	// add version
 	if pdl.Version != nil {
 		fmt.Fprintln(buf, "version")
@@ -398,32 +368,27 @@ func (pdl *PDL) Bytes() []byte {
 		fmt.Fprintln(buf, "  minor "+strconv.Itoa(pdl.Version.Minor))
 		fmt.Fprintln(buf)
 	}
-
 	// copy and sort domains
 	domains := make([]*Domain, len(pdl.Domains))
 	copy(domains, pdl.Domains)
 	sort.Slice(domains, func(i, j int) bool {
 		return strings.Compare(domains[i].Domain.String(), domains[j].Domain.String()) < 0
 	})
-
 	// write each domain
 	for _, d := range domains {
 		// write domain stanza
 		writeDecl("domain", d.Domain.String(), d.Description, "", d.Experimental, d.Deprecated, false)
-
 		// write depends
 		for _, dep := range d.Dependencies {
 			fmt.Fprintln(buf, "  depends on "+dep)
 		}
 		fmt.Fprintln(buf)
-
 		// sort types
 		types := make([]*Type, len(d.Types))
 		copy(types, d.Types)
 		sort.Slice(types, func(i, j int) bool {
 			return strings.Compare(types[i].Name, types[i].Name) < 0
 		})
-
 		// write types
 		for _, typ := range types {
 			extends := typ.Type.String()
@@ -447,14 +412,12 @@ func (pdl *PDL) Bytes() []byte {
 			writeProps("properties", "    ", typ.Properties)
 			fmt.Fprintln(buf)
 		}
-
 		// sort commands
 		commands := make([]*Type, len(d.Commands))
 		copy(commands, d.Commands)
 		sort.Slice(commands, func(i, j int) bool {
 			return strings.Compare(commands[i].Name, commands[i].Name) < 0
 		})
-
 		// write commands
 		for _, c := range commands {
 			writeDecl("command", c.Name, c.Description, "  ", c.Experimental, c.Deprecated, c.Optional)
@@ -463,14 +426,12 @@ func (pdl *PDL) Bytes() []byte {
 			writeProps("returns", "    ", c.Returns)
 			fmt.Fprintln(buf)
 		}
-
 		// sort events
 		events := make([]*Type, len(d.Events))
 		copy(events, d.Events)
 		sort.Slice(events, func(i, j int) bool {
 			return strings.Compare(events[i].Name, events[i].Name) < 0
 		})
-
 		// write events
 		for _, e := range events {
 			writeDecl("event", e.Name, e.Description, "  ", e.Experimental, e.Deprecated, e.Optional)
@@ -479,7 +440,6 @@ func (pdl *PDL) Bytes() []byte {
 			fmt.Fprintln(buf)
 		}
 	}
-
 	return append(bytes.TrimRightFunc(buf.Bytes(), unicode.IsSpace), '\n')
 }
 
@@ -488,7 +448,6 @@ func (pdl *PDL) Bytes() []byte {
 type Version struct {
 	// Major is the major version.
 	Major int
-
 	// Minor is the minor version.
 	Minor int
 }
@@ -497,25 +456,18 @@ type Version struct {
 type Domain struct {
 	// Domain is the name of the domain.
 	Domain DomainType
-
 	// Description is the domain description.
 	Description string
-
 	// Experimental indicates whether or not the domain is experimental.
 	Experimental bool
-
 	// Deprecated indicates whether or not the domain is deprecated.
 	Deprecated bool
-
 	// Dependencies are the domains' dependencies.
 	Dependencies []string
-
 	// Types are the list of types in the domain.
 	Types []*Type
-
 	// Commands are the list of commands in the domain.
 	Commands []*Type
-
 	// Events is the list of events types in the domain.
 	Events []*Type
 }
@@ -532,77 +484,53 @@ func (dt DomainType) String() string {
 type Type struct {
 	// Type is the base type of the type.
 	Type TypeEnum
-
 	// Name is the name of the type.
 	Name string
-
 	// Description is the type description.
 	Description string
-
 	// Experimental indicates whether or not the type is experimental.
 	Experimental bool
-
 	// Deprecated indicates if the type is deprecated. Used for commands and event parameters.
 	Deprecated bool
-
 	// Optional indicates whether or not the type is optional.
 	Optional bool
-
 	// Ref is the type the object refers to.
 	Ref string
-
 	// Items is the contained type for arrays.
 	Items *Type
-
 	// Parameters are object parameters for commands or events.
 	Parameters []*Type
-
 	// Returns are the return values for commands.
 	Returns []*Type
-
 	// Properties are object properties.
 	Properties []*Type
-
 	// Redirect is a type to redirect to, if any.
 	Redirect *Redirect
-
 	// Enum are string enum values.
 	Enum []string
-
 	// ---------------------------------
 	// additional fields
-
 	// RawType is the raw type.
 	RawType string `json:"-"`
-
 	// RawName is the raw type name.
 	RawName string `json:"-"`
-
 	// RawSee is a raw see url reference.
 	RawSee string `json:"-"`
-
 	// TimestampType is the timestamp subtype.
 	TimestampType TimestampType `json:"-"`
-
 	// IsCircularDep indicates a type that causes circular dependencies.
 	IsCircularDep bool `json:"-"`
-
 	// NoExpose toggles whether or not to expose the type.
 	NoExpose bool `json:"-"`
-
 	// NoResolve toggles not resolving the type to a domain (ie, for special
 	// internal types).
 	NoResolve bool `json:"-"`
-
 	// AlwaysEmit forces the value to always be emitted when marshaled to JSON.
 	AlwaysEmit bool `json:"-"`
-
 	// EnumValueNameMap is a map to override the generated enum value name.
 	EnumValueNameMap map[string]string `json:"-"`
-
 	// EnumBitMask toggles it as a bit mask enum for TypeInteger enums.
 	EnumBitMask bool `json:"-"`
-
 	// Extra will be added as output after the the type is emitted.
 	Extra string `json:"-"`
 }
@@ -623,7 +551,7 @@ const (
 	TypeTimestamp TypeEnum = "timestamp"
 )
 
-// String satisfies stringer.
+// String satisfies the fmt.Stringer interface.
 func (te TypeEnum) String() string {
 	return string(te)
 }
@@ -642,7 +570,6 @@ const (
 type Redirect struct {
 	// Domain is the domain to redirect to.
 	Domain DomainType
-
 	// Name is the name of the command, event, or type to redirect to.
 	Name string
 }

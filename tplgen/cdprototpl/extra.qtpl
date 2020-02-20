@@ -1,6 +1,5 @@
 {% import (
-	"github.com/chromedp/cdproto-gen/gen/genutil"
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/util/pdl"
 ) %}
 
 // ExtraTimestampTemplate is a special template for the Timestamp type that
@@ -369,7 +368,7 @@ func (t MethodType) Domain() string {
 
 // MethodType values.
 const ({% for _, d := range domains %}{% for _, c := range d.Commands %}
-	{%s= CommandMethodType(c, d) %} = {%s= genutil.PackageName(d) %}.{%s= CommandMethodType(c, nil) %}{% endfor %}{% for _, e := range d.Events %}
+	{%s= CommandMethodType(c, d) %} = {%s= PackageName(d) %}.{%s= CommandMethodType(c, nil) %}{% endfor %}{% for _, e := range d.Events %}
 	{%s= EventMethodType(e, d) %} = {%q= ProtoName(e, d) %}{%endfor %}{% endfor %})
 {% endfunc %}
 
@@ -384,10 +383,10 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 	switch msg.Method {{% for _, d := range domains %}{% for _, c := range d.Commands %}
 	case {%s= CommandMethodType(c, d) %}:{% if len(c.Returns) == 0 %}
 		return emptyVal, nil{% else %}
-		v = new({%s= genutil.PackageName(d) %}.{%s= CommandReturnsType(c) %}){% endif %}
+		v = new({%s= PackageName(d) %}.{%s= CommandReturnsType(c) %}){% endif %}
 	{% endfor %}{% for _, e := range d.Events %}
 	case {%s= EventMethodType(e, d) %}:
-		v = new({%s= genutil.PackageName(d) %}.{%s= EventType(e) %})
+		v = new({%s= PackageName(d) %}.{%s= EventType(e) %})
 	{% endfor %}{% endfor %}
 	default:
 		return nil, cdp.ErrUnknownCommandOrEvent(msg.Method)

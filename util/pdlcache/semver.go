@@ -1,4 +1,4 @@
-package util
+package pdlcache
 
 import (
 	"fmt"
@@ -27,5 +27,5 @@ func MakeSemver(v string) *semver.Version {
 
 // CompareSemver returns true if the semver of a is less than the semver of b.
 func CompareSemver(a, b string) bool {
-	return MakeSemver(b).GreaterThan(MakeSemver(a))
+	return MakeSemver(a).LessThan(MakeSemver(b))
 }

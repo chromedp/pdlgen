@@ -1,124 +1,128 @@
 package util
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"log"
 	"regexp"
-	"sort"
 	"strings"
+	"unicode"
 
-	"github.com/Masterminds/semver"
-	"github.com/PuerkitoBio/goquery"
+	"github.com/client9/misspell"
+	"github.com/kenshaw/snaker"
 )
 
-const (
-	ChromiumBase = "https://chromium.googlesource.com/chromium/src"
-	ChromiumDeps = ChromiumBase + "/+/%s/DEPS"
-	ChromiumURL  = ChromiumBase + "/+/%s/third_party/blink/public/devtools_protocol/browser_protocol.pdl"
+// DefaultCommentFormatter is a default comment formatter.
+var DefaultCommentFormatter = &CommentFormatter{
+	Width:  80,
+	Prefix: `// `,
+	Empty:  "[no description]",
+	Pre:    CleanDesc,
+	KeepUpper: map[string]bool{
+		"DOM": true,
+		"X":   true,
+		"Y":   true,
+		"UTC": true,
+	},
+	Keep: map[string]bool{
+		"JavaScript": true,
+	},
+}
 
-	V8Base = "https://chromium.googlesource.com/v8/v8"
-	V8URL  = V8Base + "/+/%s/include/js_protocol.pdl"
+// CommentFormatter is a comment formatter.
+type CommentFormatter struct {
+	Width  int
+	Prefix string
+	Empty  string
+	Pre    func(string) string
+	// KeepUpper are names to keep in upper case.
+	KeepUpper map[string]bool
+	// Keep are names to maintain exact spelling.
+	Keep map[string]bool
+}
 
-	// v8 <= 7.6.303.13 uses this path. left for posterity.
-	V8URLOld = V8Base + "/+/%s/src/inspector/js_protocol.pdl"
+// NewCommentFormatter creates a new comment formatter.
+func NewCommentFormatter(width int, prefix string, empty string) *CommentFormatter {
+	return &CommentFormatter{Width: width, Prefix: prefix, Empty: empty}
+}
 
-	// chromium < 80.0.3978.0 uses this path. left for posterity.
-	ChromiumURLOld = ChromiumBase + "/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
+// Format formats a comment, choping the passed prefix
+func (cf *CommentFormatter) Format(s, chop, newstr string) string {
+	s = strings.TrimPrefix(s, chop)
+	if cf.Pre != nil {
+		s = cf.Pre(s)
+	}
+	s = strings.TrimSpace(s)
+	l := len(s)
+	if newstr != "" && l > 0 {
+		if i := strings.IndexFunc(s, unicode.IsSpace); i != -1 {
+			firstWord, remaining := s[:i], s[i:]
+			if snaker.IsInitialism(firstWord) || cf.KeepUpper[firstWord] {
+				s = strings.ToUpper(firstWord)
+			} else if cf.Keep[firstWord] {
+				s = firstWord
+			} else {
+				s = strings.ToLower(firstWord[:1]) + firstWord[1:]
+			}
+			s += remaining
+		}
+	}
+	s = newstr + strings.TrimSuffix(s, ".")
+	if l < 1 {
+		s += cf.Empty
+	}
+	s += "."
+	var w string
+	for i := strings.Index(s, "\n\n"); i != -1; i = strings.Index(s, "\n\n") {
+		w += Wrap(s[:i], cf.Width-len(cf.Prefix), cf.Prefix) + "\n" + cf.Prefix + "\n"
+		s = s[i+2:]
+	}
+	return w + Wrap(s, cf.Width-len(cf.Prefix), cf.Prefix)
+}
+
+// Wrap wraps a line of text to the specified width, adding the specified
+// prefix to each wrapped line.
+func Wrap(s string, width int, prefix string) string {
+	words := strings.Fields(strings.TrimSpace(s))
+	if len(words) == 0 {
+		return s
+	}
+	wrapped := prefix + words[0]
+	spaceLeft := width - len(wrapped)
+	for _, word := range words[1:] {
+		if len(word)+1 > spaceLeft {
+			wrapped += "\n" + prefix + word
+			spaceLeft = width - len(word)
+		} else {
+			wrapped += " " + word
+			spaceLeft -= 1 + len(word)
+		}
+	}
+	return wrapped
+}
+
+// CleanDesc cleans comments / descriptions of "<code>" and "</code>" strings
+// and "`" characters, and fixes common misspellings.
+func CleanDesc(s string) string {
+	s, _ = misspellReplacer.Replace(codeRE.ReplaceAllString(s, ""))
+	s = descReplacer.Replace(s)
+	s = pStartRE.ReplaceAllString(s, "\n\n")
+	s = pEndRE.ReplaceAllString(s, "")
+	return s
+}
+
+// description replacers.
+var (
+	misspellReplacer = misspell.New()
+	codeRE           = regexp.MustCompile(`(?i)<\/?code>`)
+	pStartRE         = regexp.MustCompile(`(?i)<p>`)
+	pEndRE           = regexp.MustCompile(`(?i)</p>`)
+	descReplacer     = strings.NewReplacer(
+		"&lt;", "<",
+		"&gt;", ">",
+		"&gt", ">",
+		"`", "",
+		"\n", " ",
+	)
 )
 
-// Logf is a shared logging function.
-var Logf = log.Printf
-
-// GetLatestVersion determines the latest tag version listed on the gitiles
-// html page.
-func GetLatestVersion(index Cache) (string, error) {
-	buf, err := Get(index)
-	if err != nil {
-		return "", err
-	}
-
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(buf))
-	if err != nil {
-		return "", err
-	}
-
-	var vers []*semver.Version
-	doc.Find(`h3:contains("Tags") + ul li`).Each(func(i int, s *goquery.Selection) {
-		if t := s.Text(); VerRE.MatchString(t) {
-			vers = append(vers, MakeSemver(t))
-		}
-	})
-	if len(vers) < 1 {
-		return "", fmt.Errorf("could not find a valid tag at %s", index.URL)
-	}
-	sort.Sort(semver.Collection(vers))
-	return strings.Replace(vers[len(vers)-1].String(), "-", ".", -1), nil
-}
-
-// Ref wraps a ref.
-type Ref struct {
-	Value  string `json:"value"`
-	Target string `json:"target"`
-}
-
-// GetRefs returns the refs for the url.
-func GetRefs(c Cache) (map[string]Ref, error) {
-	// grab refs
-	buf, err := Get(c)
-	if err != nil {
-		return nil, err
-	}
-
-	// chop first line
-	buf = buf[bytes.Index(buf, []byte("\n")):]
-
-	// unmarshal
-	var refs map[string]Ref
-	if err = json.Unmarshal(buf, &refs); err != nil {
-		return nil, err
-	}
-	return refs, nil
-}
-
-var revRE = regexp.MustCompile(`(?is)\s+'([0-9a-f]+)'`)
-
-// GetDepVersion version retrieves the v8 version used for the browser version.
-func GetDepVersion(typ, ver string, deps, refs Cache) (string, error) {
-	buf, err := Get(deps)
-	if err != nil {
-		return "", err
-	}
-
-	// determine revision
-	mark := []byte("'" + typ + "_revision':")
-	i := bytes.Index(buf, mark)
-	if i == -1 {
-		return "", fmt.Errorf("could not find revision for %s version %s", typ, ver)
-	}
-	buf = buf[i+len(mark):]
-	m := revRE.FindSubmatch(buf)
-	if m == nil {
-		return "", fmt.Errorf("no revision for %s version %s", typ, ver)
-	}
-	rev := string(m[1])
-
-	// grab refs
-	r, err := GetRefs(refs)
-	if err != nil {
-		return "", err
-	}
-
-	// find tag
-	for k, v := range r {
-		if !strings.HasPrefix(k, "refs/tags/") {
-			continue
-		}
-		if v.Value == rev {
-			return strings.TrimPrefix(k, "refs/tags/"), nil
-		}
-	}
-
-	return "", fmt.Errorf("could not find %s revision tag for rev %s", rev, m[1])
+func init() {
+	misspellReplacer.Compile()
 }

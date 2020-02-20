@@ -1,3 +1,6 @@
-/cdproto-gen
-/cdproto-gen.exe
+/cache/
+/pdlgen
+/pdlgen.exe
 *.json
+*.txt
+*.html

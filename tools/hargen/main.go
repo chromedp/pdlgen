@@ -1,5 +1,4 @@
-// +build ignore
-
+// Command hargen generates the har definition.
 package main
 
 import (
@@ -8,55 +7,55 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/chromedp/pdlgen/util/pdl"
 	"github.com/gedex/inflector"
-	"github.com/knq/snaker"
-
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/kenshaw/snaker"
 )
 
-const (
-	specURL = "http://www.softwareishard.com/blog/har-12-spec/"
-)
-
-var (
-	flagOut = flag.String("o", "har.go", "out file")
-)
+const specURL = "http://www.softwareishard.com/blog/har-12-spec/"
 
 func main() {
+	out := flag.String("out", "", "out path")
 	flag.Parse()
-
-	if err := run(); err != nil {
-		log.Fatal(err)
+	if err := run(*out); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
 // run downloads and generates a HAR definition from the remote website,
 // writing the generated definition to flagOut.
-func run() error {
+func run(out string) error {
+	if out == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		out = filepath.Join(wd, "har.go")
+	}
 	// retrieve
-	buf, err := grab(specURL)
+	spec, err := grab(specURL)
 	if err != nil {
 		return err
 	}
-
-	// generate
-	pdl, err := generate(buf)
+	// generate and escape `
+	def, err := generate(spec)
 	if err != nil {
 		return err
 	}
-
-	// escape
-	pdlBuf := bytes.Replace(pdl.Bytes(), []byte("`"), []byte("\\`"), -1)
-	b := new(bytes.Buffer)
-	fmt.Fprintf(b, harTpl, string(pdlBuf))
-	return ioutil.WriteFile(*flagOut, b.Bytes(), 0644)
+	pdl := bytes.Replace(def.Bytes(), []byte("`"), []byte("\\`"), -1)
+	// write
+	buf := new(bytes.Buffer)
+	fmt.Fprintf(buf, harTpl, string(pdl))
+	return ioutil.WriteFile(out, buf.Bytes(), 0644)
 }
 
 // grab retrieves a url.
@@ -71,13 +70,10 @@ func grab(urlstr string) ([]byte, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
-
 	return ioutil.ReadAll(res.Body)
 }
 
-const (
-	cacheDataID = "CacheData"
-)
+const cacheDataID = "CacheData"
 
 // generate generates a PDL from the supplied HTML page containing a single
 // 'HAR' domain.
@@ -113,23 +109,19 @@ func generate(buf []byte) (*pdl.PDL, error) {
 			}},
 		},
 	}
-
 	// parse file
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(buf))
 	if err != nil {
 		return nil, err
 	}
-
 	// loop over type definitions
 	doc.Find(`h3:contains("HAR Data Structure") + p + p + ul a`).Each(func(i int, s *goquery.Selection) {
 		n := s.Text()
-
 		// skip browser (same as creator)
 		switch n {
 		case "browser", "queryString", "headers":
 			return
 		}
-
 		// generate the object ID
 		id := inflector.Singularize(snaker.ForceCamelIdentifier(n))
 		if strings.HasSuffix(id, "um") {
@@ -138,32 +130,26 @@ func generate(buf []byte) (*pdl.PDL, error) {
 		if strings.HasSuffix(id, "Timing") {
 			id += "s"
 		}
-
 		// base selector
 		sel := fmt.Sprintf(".harType#%s", n)
-
 		// grab description
 		desc := strings.TrimSpace(doc.Find(sel + " + p").Text())
 		if desc == "" {
 			panic(fmt.Sprintf("%s (%s) has no description", n, id))
 		}
-
 		// convert <type> -> [Type] in description
 		desc = typeDescRE.ReplaceAllStringFunc(desc, func(s string) string {
 			s = strings.ToUpper(string(rune(s[1]))) + s[2:len(s)-1]
 			return "[" + s + "]"
 		})
-
 		// clean description
 		desc = descCleanRE.ReplaceAllString(desc, "")
 		desc = strings.ToUpper(desc[0:1]) + desc[1:]
-
 		// grab properties and scan
 		props, err := scanProps(id, readPropText(sel, doc))
 		if err != nil {
 			panic(fmt.Sprintf("could not scan properties for %s (%s): %v", n, id, err))
 		}
-
 		// add to type map
 		typeMap[id] = pdl.Type{
 			Type:        pdl.TypeObject,
@@ -172,7 +158,6 @@ func generate(buf []byte) (*pdl.PDL, error) {
 			Properties:  props,
 		}
 	})
-
 	// grab and scan cachedata properties
 	cacheDataPropText := readPropText(`p:contains("Both beforeRequest and afterRequest object share the following structure.")`, doc)
 	cacheDataProps, err := scanProps(cacheDataID, cacheDataPropText)
@@ -185,21 +170,18 @@ func generate(buf []byte) (*pdl.PDL, error) {
 		Description: "Describes the cache data for beforeRequest and afterRequest.",
 		Properties:  cacheDataProps,
 	}
-
 	// sort by type names
 	var typeNames []string
 	for n := range typeMap {
 		typeNames = append(typeNames, n)
 	}
 	sort.Strings(typeNames)
-
 	// add to type list
 	var typs []*pdl.Type
 	for _, n := range typeNames {
 		typ := typeMap[n]
 		typs = append(typs, &typ)
 	}
-
 	// create the protocol info
 	return &pdl.PDL{
 		Version: &pdl.Version{Major: 1, Minor: 3},
@@ -216,12 +198,10 @@ func generate(buf []byte) (*pdl.PDL, error) {
 func scanProps(id string, propText string) ([]*pdl.Type, error) {
 	var i int
 	var props []*pdl.Type
-
 	// scan properties
 	scanner := bufio.NewScanner(strings.NewReader(propText))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-
 		// grab prop information
 		propName := strings.TrimSpace(line[:strings.IndexAny(line, "[")])
 		propDesc := strings.TrimSpace(line[strings.Index(line, "-")+1:])
@@ -229,26 +209,22 @@ func scanProps(id string, propText string) ([]*pdl.Type, error) {
 			return nil, fmt.Errorf("line %d missing either name or description", i)
 		}
 		opts := strings.TrimSpace(line[strings.Index(line, "[")+1 : strings.Index(line, "]")])
-
 		// convert <type> -> [Type] in prop description
 		propDesc = typeDescRE.ReplaceAllStringFunc(propDesc, func(s string) string {
 			s = strings.ToUpper(string(rune(s[1]))) + s[2:len(s)-1]
 			return "[" + s + "]"
 		})
-
 		// determine type
 		typ := pdl.TypeEnum(opts)
 		if z := strings.Index(opts, ","); z != -1 {
 			typ = pdl.TypeEnum(strings.TrimSpace(opts[:z]))
 		}
-
 		// convert some fields to integers
 		if strings.Contains(strings.ToLower(propName), "size") ||
 			propName == "compression" || propName == "status" ||
 			propName == "hitCount" {
 			typ = pdl.TypeInteger
 		}
-
 		// fix object/array refs
 		var ref string
 		var items *pdl.Type
@@ -257,13 +233,11 @@ func scanProps(id string, propText string) ([]*pdl.Type, error) {
 		case pdl.TypeObject:
 			typ = pdl.TypeEnum("")
 			ref = propRefMap[fqPropName]
-
 		case pdl.TypeArray:
 			items = &pdl.Type{
 				Ref: propRefMap[fqPropName],
 			}
 		}
-
 		// add property
 		props = append(props, &pdl.Type{
 			Name:        propName,
@@ -273,13 +247,11 @@ func scanProps(id string, propText string) ([]*pdl.Type, error) {
 			Items:       items,
 			Optional:    strings.Contains(opts, "optional"),
 		})
-
 		i++
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-
 	return props, nil
 }
 
@@ -314,17 +286,15 @@ var propRefMap = map[string]string{
 	"Cache.beforeRequest": cacheDataID,
 	"Cache.afterRequest":  cacheDataID,
 }
-
 var descCleanRE = regexp.MustCompile(`(?i)^this\s*objects?\s+`)
-
 var typeDescRE = regexp.MustCompile(`(?i)<([a-z]+)>`)
 
 const (
 	harTpl = `package pdl
 
-//go:generate go run gen.go -o har.go
+//go:generate go run ../../tools/hargen
 
-// Generated by gen.go. DO NOT EDIT.
+// Generated by ../../hargen/main.go. DO NOT EDIT.
 
 // HAR is the PDL formatted definition of HTTP Archive (HAR) types.
 const HAR = ` + "`%s`\n"

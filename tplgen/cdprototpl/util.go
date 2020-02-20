@@ -1,13 +1,15 @@
-package gotpl
+package cdprototpl
 
 import (
+	"bytes"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"unicode"
 
-	"github.com/chromedp/cdproto-gen/gen/genutil"
-	"github.com/chromedp/cdproto-gen/pdl"
-	"github.com/knq/snaker"
+	"github.com/chromedp/pdlgen/util"
+	"github.com/chromedp/pdlgen/util/pdl"
+	"github.com/kenshaw/snaker"
 )
 
 // Prefix and suffix values.
@@ -41,6 +43,11 @@ const (
 	// tot is "tip-of-tree"
 	ChromeDevToolsDocBase = "https://chromedevtools.github.io/devtools-protocol/tot"
 )
+
+// FormatComment formats a comment.
+func FormatComment(s, chop, newstr string) string {
+	return util.DefaultCommentFormatter.Format(s, chop, newstr)
+}
 
 // ProtoName returns the protocol name of the type.
 func ProtoName(t *pdl.Type, d *pdl.Domain) string {
@@ -90,7 +97,7 @@ func CommandReturnsType(t *pdl.Type) string {
 func ParamDesc(t *pdl.Type) string {
 	desc := t.Description
 	if desc != "" {
-		desc = " - " + genutil.CleanDesc(desc)
+		desc = " - " + util.CleanDesc(desc)
 	}
 	return snaker.ForceLowerCamelIdentifier(t.Name) + desc
 }
@@ -370,7 +377,7 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExpose
 
 		// add comment
 		if v.Type != pdl.TypeObject && v.Description != "" {
-			s += " // " + genutil.CleanDesc(v.Description)
+			s += " // " + util.CleanDesc(v.Description)
 		}
 	}
 	if len(types) > 0 {
@@ -503,3 +510,41 @@ func DocRefLink(t *pdl.Type) string {
 	domain, name := t.RawName[:i], t.RawName[i+1:]
 	return ChromeDevToolsDocBase + "/" + domain + "#" + typ + "-" + name
 }
+
+// PackageName returns the package name to use for a domain.
+func PackageName(d *pdl.Domain) string {
+	return strings.ToLower(d.Domain.String())
+}
+
+// contains determines if any key in m is equal to n or starts with the path
+// prefix equal to n.
+func contains(m map[string]*bytes.Buffer, n string) bool {
+	d := n + string(filepath.Separator)
+	for k := range m {
+		if n == k || strings.HasPrefix(k, d) {
+			return true
+		}
+	}
+	return false
+}
+
+// pad pads a string.
+func pad(s string, n int) string {
+	n = n - len(s)
+	if n < 0 {
+		return s
+	}
+	return s + strings.Repeat(" ", n)
+}
+
+/*
+// whitelisted checks if n is a whitelisted file.
+func whitelisted(n string) bool {
+	for _, z := range strings.Split(*flagGoWl, ",") {
+		if z == n || glob.Glob(z, n) {
+			return true
+		}
+	}
+	return false
+}
+*/

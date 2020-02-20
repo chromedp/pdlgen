@@ -1,6 +1,5 @@
 {% import (
-	"github.com/chromedp/cdproto-gen/gen/genutil"
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/util/pdl"
 ) %}
 
 // DomainTemplate is the template for a single domain.
@@ -50,7 +49,7 @@ const (
 	cmdName := CamelName(c)
 	typ := CommandType(c)
 %}
-{%s= genutil.FormatComment(c.Description, "", cmdName + " ") %}
+{%s= FormatComment(c.Description, "", cmdName + " ") %}
 //
 // See: {%s= DocRefLink(c) %}{% if len(c.Parameters) > 0 %}
 //
@@ -70,7 +69,7 @@ func {%s= cmdName %}({%s= ParamList(c, d, domains, false) %}) *{%s= typ %}{
 	typ := CommandType(c)
 	v := GoName(t, true)
 %}
-{%s= genutil.FormatComment(t.Description, "", optName + " ") %}
+{%s= FormatComment(t.Description, "", optName + " ") %}
 func (p {%s= typ %}) {%s= optName %}({%s= v %} {%s= GoType(t, d, domains) %}) *{%s= typ %}{
 	p.{%s= n %} = {%s= v %}
 	return &p

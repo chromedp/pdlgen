@@ -1,6 +1,6 @@
 // +build windows
 
-package diff
+package util
 
 // getColumns returns the columns for the active terminal.
 func getColumns() int {

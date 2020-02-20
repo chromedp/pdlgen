@@ -1,12 +1,23 @@
-// Package fixup modifies/alters/fixes and adds to the low level type
-// definitions for the Chrome DevTools Protocol domains, as generated from
-// protocol.json.
+package cdprototpl
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/chromedp/pdlgen/util/pdl"
+	"github.com/kenshaw/snaker"
+)
+
+// fixup contains the fixup code that modifies/alters/fixes and adds to
+// the low level type definitions for the Chrome DevTools Protocol domains used
+// to modify the PDL definitions for cdproto templates.
 //
-// The goal of package fixup is to fix the issues associated with generating Go
-// code from the existing Chrome domain definitions, and is wrapped up in one
-// high-level func, FixDomains.
+// This routine modifies, updates, alters, fixes, and adds to the types defined
+// in the domains, so that the generated Chrome DevTools Protocol domain code
+// is more Go-like and easier to use.
 //
-// Currently, FixDomains does the following:
+// Currently, it does the following:
 //  - add `Inspector.DetachReason` type and change `Inspector.detached.reason`
 //    type to `Inspector.DetachReason`.
 //  - change `Network.TimeSinceEpoch`, `Network.MonotonicTime`, and
@@ -35,49 +46,38 @@
 // applied to the domains, however it does attempt to give a comprehensive
 // overview of the most important changes to the definition vs the vanilla
 // specification.
-package fixup
+func (g *Generator) fixup(gen interface{}, def *pdl.PDL) []*pdl.Domain {
+	var domains []*pdl.Domain
 
-import (
-	"fmt"
-	"regexp"
-	"strings"
+	// determine what to process
+	pkgs := []string{"", "cdp"}
+	var processed []*pdl.Domain
+	for _, d := range def.Domains {
+		// skip if not processing
+		if d.Deprecated {
+			var extra []string
+			if d.Deprecated {
+				extra = append(extra, "deprecated")
+			}
+			g.Logf("SKIPPING(%s): %s %v", pad("domain", 7), d.Domain.String(), extra)
+			continue
+		}
 
-	"github.com/knq/snaker"
+		// will process
+		pkgs = append(pkgs, PackageName(d))
+		processed = append(processed, d)
 
-	"github.com/chromedp/cdproto-gen/gen/gotpl"
-	"github.com/chromedp/cdproto-gen/pdl"
-)
+		// cleanup types, events, commands
+		d.Types = g.cleanupTypes("type", d.Domain.String(), d.Types)
+		d.Events = g.cleanupTypes("event", d.Domain.String(), d.Events)
+		d.Commands = g.cleanupTypes("command", d.Domain.String(), d.Commands)
+	}
 
-// Specific type names to use for the applied fixes to the protocol domains.
-//
-// These need to be here in case the location of these types change (see above)
-// relative to the generated 'cdp' package.
-const (
-	domNodeIDRef = "NodeID"
-	domNodeRef   = "*Node"
-)
-
-var axRE = regexp.MustCompile(`^AX`)
-
-// FixDomains modifies, updates, alters, fixes, and adds to the types defined
-// in the domains, so that the generated Chrome DevTools Protocol domain code
-// is more Go-like and easier to use.
-//
-// Please see package-level documentation for the list of changes made to the
-// various domains.
-func FixDomains(domains []*pdl.Domain) {
 	// process domains
 	for _, d := range domains {
 		switch d.Domain {
-		case "CSS":
-			for _, t := range d.Types {
-				if t.Name == "CSSComputedStyleProperty" {
-					t.Name = "ComputedProperty"
-				}
-			}
-
 		case "DOM":
-			// add DOM types
+			// add NodeType
 			d.Types = append(d.Types, &pdl.Type{
 				RawName:       "DOM.NodeType",
 				RawSee:        "https://developer.mozilla.org/en/docs/Web/API/Node/nodeType",
@@ -96,7 +96,7 @@ func FixDomains(domains []*pdl.Domain) {
 				switch t.Name {
 				case "NodeId", "BackendNodeId":
 					t.RawName = d.Domain.String() + "." + t.Name
-					t.Extra += gotpl.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.Name), "ParseInt", ", 10, 64")
+					t.Extra += ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.Name), "ParseInt", ", 10, 64")
 
 				case "Node":
 					t.Properties = append(t.Properties,
@@ -129,7 +129,7 @@ func FixDomains(domains []*pdl.Domain) {
 							NoExpose:    true,
 						},
 					)
-					t.Extra += gotpl.ExtraNodeTemplate()
+					t.Extra += ExtraNodeTemplate()
 
 				case "RGBA":
 					for _, p := range t.Properties {
@@ -142,7 +142,7 @@ func FixDomains(domains []*pdl.Domain) {
 			}
 
 		case "Input":
-			// add Input types
+			// add Modifier type
 			d.Types = append(d.Types, &pdl.Type{
 				RawName:     "Input.Modifier",
 				RawSee:      "https://chromedevtools.github.io/devtools-protocol/tot/Input#method-dispatchKeyEvent",
@@ -164,7 +164,7 @@ const ModifierCommand Modifier = ModifierMeta
 				case "TimeSinceEpoch":
 					t.Type = pdl.TypeTimestamp
 					t.TimestampType = pdl.TimestampTypeSecond
-					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
+					t.Extra += ExtraTimestampTemplate(t, d)
 				}
 			}
 
@@ -211,14 +211,14 @@ const ModifierCommand Modifier = ModifierMeta
 				if t.Name == "TimeSinceEpoch" {
 					t.Type = pdl.TypeTimestamp
 					t.TimestampType = pdl.TimestampTypeSecond
-					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
+					t.Extra += ExtraTimestampTemplate(t, d)
 				}
 
 				// change Monotonic to TypeTimestamp and add extra unmarshaling template
 				if t.Name == "MonotonicTime" {
 					t.Type = pdl.TypeTimestamp
 					t.TimestampType = pdl.TimestampTypeMonotonic
-					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
+					t.Extra += ExtraTimestampTemplate(t, d)
 				}
 
 				// change Headers to be a map[string]interface{}
@@ -232,7 +232,7 @@ const ModifierCommand Modifier = ModifierMeta
 			for _, t := range d.Types {
 				switch t.Name {
 				case "FrameId":
-					t.Extra += gotpl.ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.Name), "", "")
+					t.Extra += ExtraFixStringUnmarshaler(snaker.ForceCamelIdentifier(t.Name), "", "")
 
 				case "Frame":
 					t.Properties = append(t.Properties,
@@ -265,7 +265,7 @@ const ModifierCommand Modifier = ModifierMeta
 							NoExpose:    true,
 						},
 					)
-					t.Extra += gotpl.ExtraFrameTemplate()
+					t.Extra += ExtraFrameTemplate()
 
 					// convert Frame.id/parentId to $ref of FrameID
 					for _, p := range t.Properties {
@@ -296,7 +296,7 @@ const ModifierCommand Modifier = ModifierMeta
 				case "Timestamp":
 					t.Type = pdl.TypeTimestamp
 					t.TimestampType = pdl.TimestampTypeMillisecond
-					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
+					t.Extra += ExtraTimestampTemplate(t, d)
 
 				case "ExceptionDetails":
 					t.Extra += `// Error satisfies the error interface.
@@ -366,6 +366,7 @@ func (e *ExceptionDetails) Error() string {
 			}
 		}
 	}
+	return nil
 }
 
 // convertObjects converts the Parameters and Returns properties of the object
@@ -552,3 +553,269 @@ func fixupEnumParameter(typ string, p *pdl.Type, parent *pdl.Type, d *pdl.Domain
 		AlwaysEmit:  p.AlwaysEmit,
 	}
 }
+
+// Specific type names to use for the applied fixes to the protocol domains.
+//
+// These need to be here in case the location of these types change (see above)
+// relative to the generated 'cdp' package.
+const (
+	domNodeIDRef = "NodeID"
+	domNodeRef   = "*Node"
+)
+
+// axRE is a regexp that matches the prefix of the Accessibility domain/type
+// names.
+var axRE = regexp.MustCompile(`^AX`)
+
+// // emit
+// func emit(generator Generator, emitter util.Emitter) error {
+// 	if *flagOut == "" {
+// 		*flagOut = filepath.Join(os.Getenv("GOPATH"), "src", *flagGoPkg)
+// 	} else {
+// 		*flagOut, err = filepath.Abs(*flagOut)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+//
+// 	// create out directory
+// 	if err = os.MkdirAll(*flagOut, 0755); err != nil {
+// 		return err
+// 	}
+//
+// 	// display differences between generated definitions and previous version on disk
+// 	if runtime.GOOS != "windows" {
+// 		diffBuf, err := diff.WalkAndCompare(combinedDir, `^([0-9_.]+)\.pdl$`, protoFile, func(a, b *diff.FileInfo) bool {
+// 			n := strings.Split(strings.TrimSuffix(filepath.Base(a.Name), ".pdl"), "_")
+// 			m := strings.Split(strings.TrimSuffix(filepath.Base(b.Name), ".pdl"), "_")
+// 			if n[0] == m[0] {
+// 				return util.CompareSemver(n[1], m[1])
+// 			}
+// 			return util.CompareSemver(n[0], m[0])
+// 		})
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if diffBuf != nil {
+// 			os.Stdout.Write(diffBuf)
+// 		}
+// 	}
+//
+// 	// emit
+// 	emitter, err := generator(processed, *flagGoPkg)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	files := emitter.Emit()
+//
+// 	// clean up files
+// 	if !*flagNoClean {
+// 		g.Logf("CLEANING: %s", *flagOut)
+// 		outpath := *flagOut + string(filepath.Separator)
+// 		err = filepath.Walk(outpath, func(n string, fi os.FileInfo, err error) error {
+// 			switch {
+// 			case os.IsNotExist(err) || n == outpath:
+// 				return nil
+// 			case err != nil:
+// 				return err
+// 			}
+//
+// 			// skip if file or path starts with ., is whitelisted, or is one of
+// 			// the files whose output will be overwritten
+// 			pn, fn := n[len(outpath):], fi.Name()
+// 			if pn == "" || strings.HasPrefix(pn, ".") || strings.HasPrefix(fn, ".") || whitelisted(fn) || contains(files, pn) {
+// 				return nil
+// 			}
+//
+// 			g.Logf("REMOVING: %s", n)
+// 			return os.RemoveAll(n)
+// 		})
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+//
+// 	g.Logf("WRITING: %d files", len(files))
+//
+// 	// dump files and exit
+// 	if *flagDebug {
+// 		return write(files)
+// 	}
+//
+// 	// goimports (also writes to disk)
+// 	if err = goimports(files); err != nil {
+// 		return err
+// 	}
+//
+// 	// easyjson
+// 	if err = easyjson(pkgs); err != nil {
+// 		return err
+// 	}
+//
+// 	// gofmt
+// 	if err = gofmt(fmtFiles(files, pkgs)); err != nil {
+// 		return err
+// 	}
+//
+// 	g.Logf("done.")
+// 	return nil
+// }
+//
+
+// cleanupTypes removes deprecated and redirected types.
+func (g *Generator) cleanupTypes(n string, dtyp string, typs []*pdl.Type) []*pdl.Type {
+	var ret []*pdl.Type
+
+	for _, t := range typs {
+		typ := dtyp + "." + t.Name
+		if t.Deprecated {
+			g.Logf("SKIPPING(%s): %s [deprecated]", pad(n, 7), typ)
+			continue
+		}
+
+		if t.Redirect != nil {
+			g.Logf("SKIPPING(%s): %s [redirect:%s]", pad(n, 7), typ, t.Redirect)
+			continue
+		}
+
+		if t.Properties != nil {
+			t.Properties = g.cleanupTypes(n[0:1]+" property", typ, t.Properties)
+		}
+
+		if t.Parameters != nil {
+			t.Parameters = g.cleanupTypes(n[0:1]+" param", typ, t.Parameters)
+		}
+
+		if t.Returns != nil {
+			t.Returns = g.cleanupTypes(n[0:1]+" return param", typ, t.Returns)
+		}
+
+		ret = append(ret, t)
+	}
+
+	return ret
+}
+
+//
+// // write writes all file buffer to disk.
+// func write(fileBuffers map[string]*bytes.Buffer) error {
+// 	var keys []string
+// 	for k := range fileBuffers {
+// 		keys = append(keys, k)
+// 	}
+// 	sort.Strings(keys)
+//
+// 	for _, k := range keys {
+// 		// add out path
+// 		n := filepath.Join(*flagOut, k)
+//
+// 		// create directory
+// 		if err := os.MkdirAll(filepath.Dir(n), 0755); err != nil {
+// 			return err
+// 		}
+//
+// 		// write file
+// 		if err := ioutil.WriteFile(n, fileBuffers[k].Bytes(), 0644); err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
+//
+// // goimports formats all the output file buffers on disk using goimports.
+// func goimports(fileBuffers map[string]*bytes.Buffer) error {
+// 	g.Logf("RUNNING: goimports")
+//
+// 	var keys []string
+// 	for k := range fileBuffers {
+// 		keys = append(keys, k)
+// 	}
+// 	sort.Strings(keys)
+//
+// 	eg, _ := errgroup.WithContext(context.Background())
+// 	for _, k := range keys {
+// 		eg.Go(func(n string) func() error {
+// 			return func() error {
+// 				fn := filepath.Join(*flagOut, n)
+// 				buf, err := imports.Process(fn, fileBuffers[n].Bytes(), nil)
+// 				if err != nil {
+// 					return err
+// 				}
+// 				if err = os.MkdirAll(filepath.Dir(fn), 0755); err != nil {
+// 					return err
+// 				}
+// 				return ioutil.WriteFile(fn, buf, 0644)
+// 			}
+// 		}(k))
+// 	}
+// 	return eg.Wait()
+// }
+//
+// // easyjson runs easy json on the list of packages.
+// func easyjson(pkgs []string) error {
+// 	g.Logf("RUNNING: easyjson")
+// 	eg, _ := errgroup.WithContext(context.Background())
+// 	for _, k := range pkgs {
+// 		eg.Go(func(n string) func() error {
+// 			return func() error {
+// 				n = filepath.Join(*flagOut, n)
+// 				p := parser.Parser{AllStructs: true}
+// 				if err := p.Parse(n, true); err != nil {
+// 					return err
+// 				}
+// 				g := bootstrap.Generator{
+// 					OutName:  filepath.Join(n, easyjsonGo),
+// 					PkgPath:  p.PkgPath,
+// 					PkgName:  p.PkgName,
+// 					Types:    p.StructNames,
+// 					NoFormat: true,
+// 				}
+// 				return g.Run()
+// 			}
+// 		}(k))
+// 	}
+// 	return eg.Wait()
+// }
+//
+// // gofmt go formats all files on disk.
+// func gofmt(files []string) error {
+// 	g.Logf("RUNNING: gofmt")
+// 	eg, _ := errgroup.WithContext(context.Background())
+// 	for _, k := range files {
+// 		eg.Go(func(n string) func() error {
+// 			return func() error {
+// 				n = filepath.Join(*flagOut, n)
+// 				in, err := ioutil.ReadFile(n)
+// 				if err != nil {
+// 					return err
+// 				}
+// 				out, err := format.Source(in)
+// 				if err != nil {
+// 					return err
+// 				}
+// 				return ioutil.WriteFile(n, out, 0644)
+// 			}
+// 		}(k))
+// 	}
+// 	return eg.Wait()
+// }
+//
+// // fmtFiles returns the list of all files to format from the specified file
+// // buffers and packages.
+// func fmtFiles(files map[string]*bytes.Buffer, pkgs []string) []string {
+// 	filelen := len(files)
+// 	f := make([]string, filelen+len(pkgs))
+//
+// 	var i int
+// 	for n := range files {
+// 		f[i] = n
+// 		i++
+// 	}
+//
+// 	for i, pkg := range pkgs {
+// 		f[i+filelen] = filepath.Join(pkg, easyjsonGo)
+// 	}
+//
+// 	sort.Strings(f)
+// 	return f
+// }
