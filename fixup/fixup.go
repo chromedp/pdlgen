@@ -130,6 +130,14 @@ func FixDomains(domains []*pdl.Domain) {
 						},
 					)
 					t.Extra += gotpl.ExtraNodeTemplate()
+
+				case "RGBA":
+					for _, p := range t.Properties {
+						switch p.Name {
+						case "a":
+							p.AlwaysEmit = true
+						}
+					}
 				}
 			}
 
