@@ -282,6 +282,20 @@ func (n *Node) AttributeValue(name string) string {
 	return ""
 }
 
+// Attribute returns the named attribute for the node and if it exists.
+func (n *Node) Attribute(name string) (string, bool) {
+	n.RLock()
+	defer n.RUnlock()
+
+	for i := 0; i < len(n.Attributes); i += 2 {
+		if n.Attributes[i] == name {
+			return n.Attributes[i+1], true
+		}
+	}
+
+	return "", false
+}
+
 // xpath builds the xpath string.
 func (n *Node) xpath(stopAtDocument, stopAtID bool) string {
 	n.RLock()
@@ -476,136 +490,136 @@ func (ns NodeState) String() string {
 // EmptyNodeID is the "non-existent" node id.
 const EmptyNodeID = NodeID(0)
 `)
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 }
 
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 func WriteExtraNodeTemplate(qq422016 qtio422016.Writer) {
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	StreamExtraNodeTemplate(qw422016)
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 }
 
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 func ExtraNodeTemplate() string {
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	qb422016 := qt422016.AcquireByteBuffer()
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	WriteExtraNodeTemplate(qb422016)
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	qs422016 := string(qb422016.B)
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	qt422016.ReleaseByteBuffer(qb422016)
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 	return qs422016
-//line gen/gotpl/extra.qtpl:269
+//line gen/gotpl/extra.qtpl:283
 }
 
 // ExtraFixStringUnmarshaler is a template that forces values to be parsed properly.
 
-//line gen/gotpl/extra.qtpl:272
+//line gen/gotpl/extra.qtpl:286
 func StreamExtraFixStringUnmarshaler(qw422016 *qt422016.Writer, typ, parseFunc, extra string) {
-//line gen/gotpl/extra.qtpl:272
+//line gen/gotpl/extra.qtpl:286
 	qw422016.N().S(`
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
 func (t *`)
-//line gen/gotpl/extra.qtpl:274
+//line gen/gotpl/extra.qtpl:288
 	qw422016.N().S(typ)
-//line gen/gotpl/extra.qtpl:274
+//line gen/gotpl/extra.qtpl:288
 	qw422016.N().S(`) UnmarshalEasyJSON(in *jlexer.Lexer) {
 	buf := in.Raw()
 	if l := len(buf); l > 2 && buf[0] == '"' && buf[l-1] == '"' {
 		buf = buf[1:l-1]
 	}
 `)
-//line gen/gotpl/extra.qtpl:279
+//line gen/gotpl/extra.qtpl:293
 	if parseFunc != "" {
-//line gen/gotpl/extra.qtpl:279
+//line gen/gotpl/extra.qtpl:293
 		qw422016.N().S(`
 	v, err := strconv.`)
-//line gen/gotpl/extra.qtpl:280
+//line gen/gotpl/extra.qtpl:294
 		qw422016.N().S(parseFunc)
-//line gen/gotpl/extra.qtpl:280
+//line gen/gotpl/extra.qtpl:294
 		qw422016.N().S(`(string(buf)`)
-//line gen/gotpl/extra.qtpl:280
+//line gen/gotpl/extra.qtpl:294
 		qw422016.N().S(extra)
-//line gen/gotpl/extra.qtpl:280
+//line gen/gotpl/extra.qtpl:294
 		qw422016.N().S(`)
 	if err != nil {
 		in.AddError(err)
 	}
 `)
-//line gen/gotpl/extra.qtpl:284
+//line gen/gotpl/extra.qtpl:298
 	}
-//line gen/gotpl/extra.qtpl:284
+//line gen/gotpl/extra.qtpl:298
 	qw422016.N().S(`
 	*t = `)
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 	qw422016.N().S(typ)
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 	qw422016.N().S(`(`)
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 	if parseFunc != "" {
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 		qw422016.N().S(`v`)
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 	} else {
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 		qw422016.N().S(`buf`)
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 	}
-//line gen/gotpl/extra.qtpl:285
+//line gen/gotpl/extra.qtpl:299
 	qw422016.N().S(`)
 }
 
 // UnmarshalJSON satisfies json.Unmarshaler.
 func (t *`)
-//line gen/gotpl/extra.qtpl:289
+//line gen/gotpl/extra.qtpl:303
 	qw422016.N().S(typ)
-//line gen/gotpl/extra.qtpl:289
+//line gen/gotpl/extra.qtpl:303
 	qw422016.N().S(`) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }
 `)
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 }
 
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 func WriteExtraFixStringUnmarshaler(qq422016 qtio422016.Writer, typ, parseFunc, extra string) {
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	StreamExtraFixStringUnmarshaler(qw422016, typ, parseFunc, extra)
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 }
 
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 func ExtraFixStringUnmarshaler(typ, parseFunc, extra string) string {
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	qb422016 := qt422016.AcquireByteBuffer()
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	WriteExtraFixStringUnmarshaler(qb422016, typ, parseFunc, extra)
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	qs422016 := string(qb422016.B)
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	qt422016.ReleaseByteBuffer(qb422016)
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 	return qs422016
-//line gen/gotpl/extra.qtpl:292
+//line gen/gotpl/extra.qtpl:306
 }
 
 // ExtraExecutorTemplate is the additional shared executor interface for all
 // the domains.
 
-//line gen/gotpl/extra.qtpl:296
+//line gen/gotpl/extra.qtpl:310
 func StreamExtraExecutorTemplate(qw422016 *qt422016.Writer) {
-//line gen/gotpl/extra.qtpl:296
+//line gen/gotpl/extra.qtpl:310
 	qw422016.N().S(`
 // Executor is the common interface for executing a command.
 type Executor interface {
@@ -666,40 +680,40 @@ func (err ErrUnknownCommandOrEvent) Error() string {
 }
 
 `)
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 }
 
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 func WriteExtraExecutorTemplate(qq422016 qtio422016.Writer) {
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	StreamExtraExecutorTemplate(qw422016)
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 }
 
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 func ExtraExecutorTemplate() string {
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	qb422016 := qt422016.AcquireByteBuffer()
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	WriteExtraExecutorTemplate(qb422016)
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	qs422016 := string(qb422016.B)
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	qt422016.ReleaseByteBuffer(qb422016)
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 	return qs422016
-//line gen/gotpl/extra.qtpl:355
+//line gen/gotpl/extra.qtpl:369
 }
 
 // ExtraMethodTypeTemplate generates the additional MethodType funcs and consts.
 
-//line gen/gotpl/extra.qtpl:358
+//line gen/gotpl/extra.qtpl:372
 func StreamExtraMethodTypeTemplate(qw422016 *qt422016.Writer, domains []*pdl.Domain) {
-//line gen/gotpl/extra.qtpl:358
+//line gen/gotpl/extra.qtpl:372
 	qw422016.N().S(`
 // Domain returns the Chrome DevTools Protocol domain of the event or command.
 func (t MethodType) Domain() string {
@@ -708,77 +722,77 @@ func (t MethodType) Domain() string {
 
 // MethodType values.
 const (`)
-//line gen/gotpl/extra.qtpl:365
+//line gen/gotpl/extra.qtpl:379
 	for _, d := range domains {
-//line gen/gotpl/extra.qtpl:365
+//line gen/gotpl/extra.qtpl:379
 		for _, c := range d.Commands {
-//line gen/gotpl/extra.qtpl:365
+//line gen/gotpl/extra.qtpl:379
 			qw422016.N().S(`
 	`)
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 			qw422016.N().S(CommandMethodType(c, d))
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 			qw422016.N().S(` = `)
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 			qw422016.N().S(genutil.PackageName(d))
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 			qw422016.N().S(`.`)
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 			qw422016.N().S(CommandMethodType(c, nil))
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 		}
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 		for _, e := range d.Events {
-//line gen/gotpl/extra.qtpl:366
+//line gen/gotpl/extra.qtpl:380
 			qw422016.N().S(`
 	`)
-//line gen/gotpl/extra.qtpl:367
+//line gen/gotpl/extra.qtpl:381
 			qw422016.N().S(EventMethodType(e, d))
-//line gen/gotpl/extra.qtpl:367
+//line gen/gotpl/extra.qtpl:381
 			qw422016.N().S(` = `)
-//line gen/gotpl/extra.qtpl:367
+//line gen/gotpl/extra.qtpl:381
 			qw422016.N().Q(ProtoName(e, d))
-//line gen/gotpl/extra.qtpl:367
+//line gen/gotpl/extra.qtpl:381
 		}
-//line gen/gotpl/extra.qtpl:367
+//line gen/gotpl/extra.qtpl:381
 	}
-//line gen/gotpl/extra.qtpl:367
+//line gen/gotpl/extra.qtpl:381
 	qw422016.N().S(`)
 `)
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 }
 
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 func WriteExtraMethodTypeTemplate(qq422016 qtio422016.Writer, domains []*pdl.Domain) {
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	StreamExtraMethodTypeTemplate(qw422016, domains)
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 }
 
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 func ExtraMethodTypeTemplate(domains []*pdl.Domain) string {
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	qb422016 := qt422016.AcquireByteBuffer()
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	WriteExtraMethodTypeTemplate(qb422016, domains)
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	qs422016 := string(qb422016.B)
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	qt422016.ReleaseByteBuffer(qb422016)
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 	return qs422016
-//line gen/gotpl/extra.qtpl:368
+//line gen/gotpl/extra.qtpl:382
 }
 
 // ExtraMessageTemplate generates the additional Message funcs.
 
-//line gen/gotpl/extra.qtpl:371
+//line gen/gotpl/extra.qtpl:385
 func StreamExtraMessageTemplate(qw422016 *qt422016.Writer, domains []*pdl.Domain) {
-//line gen/gotpl/extra.qtpl:371
+//line gen/gotpl/extra.qtpl:385
 	qw422016.N().S(`
 type empty struct{}
 var emptyVal = &empty{}
@@ -787,66 +801,66 @@ var emptyVal = &empty{}
 func UnmarshalMessage(msg *Message) (interface{}, error) {
 	var v easyjson.Unmarshaler
 	switch msg.Method {`)
-//line gen/gotpl/extra.qtpl:378
+//line gen/gotpl/extra.qtpl:392
 	for _, d := range domains {
-//line gen/gotpl/extra.qtpl:378
+//line gen/gotpl/extra.qtpl:392
 		for _, c := range d.Commands {
-//line gen/gotpl/extra.qtpl:378
+//line gen/gotpl/extra.qtpl:392
 			qw422016.N().S(`
 	case `)
-//line gen/gotpl/extra.qtpl:379
+//line gen/gotpl/extra.qtpl:393
 			qw422016.N().S(CommandMethodType(c, d))
-//line gen/gotpl/extra.qtpl:379
+//line gen/gotpl/extra.qtpl:393
 			qw422016.N().S(`:`)
-//line gen/gotpl/extra.qtpl:379
+//line gen/gotpl/extra.qtpl:393
 			if len(c.Returns) == 0 {
-//line gen/gotpl/extra.qtpl:379
+//line gen/gotpl/extra.qtpl:393
 				qw422016.N().S(`
 		return emptyVal, nil`)
-//line gen/gotpl/extra.qtpl:380
+//line gen/gotpl/extra.qtpl:394
 			} else {
-//line gen/gotpl/extra.qtpl:380
+//line gen/gotpl/extra.qtpl:394
 				qw422016.N().S(`
 		v = new(`)
-//line gen/gotpl/extra.qtpl:381
+//line gen/gotpl/extra.qtpl:395
 				qw422016.N().S(genutil.PackageName(d))
-//line gen/gotpl/extra.qtpl:381
+//line gen/gotpl/extra.qtpl:395
 				qw422016.N().S(`.`)
-//line gen/gotpl/extra.qtpl:381
+//line gen/gotpl/extra.qtpl:395
 				qw422016.N().S(CommandReturnsType(c))
-//line gen/gotpl/extra.qtpl:381
+//line gen/gotpl/extra.qtpl:395
 				qw422016.N().S(`)`)
-//line gen/gotpl/extra.qtpl:381
+//line gen/gotpl/extra.qtpl:395
 			}
-//line gen/gotpl/extra.qtpl:381
+//line gen/gotpl/extra.qtpl:395
 			qw422016.N().S(`
 	`)
-//line gen/gotpl/extra.qtpl:382
+//line gen/gotpl/extra.qtpl:396
 		}
-//line gen/gotpl/extra.qtpl:382
+//line gen/gotpl/extra.qtpl:396
 		for _, e := range d.Events {
-//line gen/gotpl/extra.qtpl:382
+//line gen/gotpl/extra.qtpl:396
 			qw422016.N().S(`
 	case `)
-//line gen/gotpl/extra.qtpl:383
+//line gen/gotpl/extra.qtpl:397
 			qw422016.N().S(EventMethodType(e, d))
-//line gen/gotpl/extra.qtpl:383
+//line gen/gotpl/extra.qtpl:397
 			qw422016.N().S(`:
 		v = new(`)
-//line gen/gotpl/extra.qtpl:384
+//line gen/gotpl/extra.qtpl:398
 			qw422016.N().S(genutil.PackageName(d))
-//line gen/gotpl/extra.qtpl:384
+//line gen/gotpl/extra.qtpl:398
 			qw422016.N().S(`.`)
-//line gen/gotpl/extra.qtpl:384
+//line gen/gotpl/extra.qtpl:398
 			qw422016.N().S(EventType(e))
-//line gen/gotpl/extra.qtpl:384
+//line gen/gotpl/extra.qtpl:398
 			qw422016.N().S(`)
 	`)
-//line gen/gotpl/extra.qtpl:385
+//line gen/gotpl/extra.qtpl:399
 		}
-//line gen/gotpl/extra.qtpl:385
+//line gen/gotpl/extra.qtpl:399
 	}
-//line gen/gotpl/extra.qtpl:385
+//line gen/gotpl/extra.qtpl:399
 	qw422016.N().S(`
 	default:
 		return nil, cdp.ErrUnknownCommandOrEvent(msg.Method)
@@ -872,31 +886,31 @@ func UnmarshalMessage(msg *Message) (interface{}, error) {
 	return v, nil
 }
 `)
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 }
 
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 func WriteExtraMessageTemplate(qq422016 qtio422016.Writer, domains []*pdl.Domain) {
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	StreamExtraMessageTemplate(qw422016, domains)
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 }
 
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 func ExtraMessageTemplate(domains []*pdl.Domain) string {
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	qb422016 := qt422016.AcquireByteBuffer()
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	WriteExtraMessageTemplate(qb422016, domains)
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	qs422016 := string(qb422016.B)
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	qt422016.ReleaseByteBuffer(qb422016)
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 	return qs422016
-//line gen/gotpl/extra.qtpl:409
+//line gen/gotpl/extra.qtpl:423
 }

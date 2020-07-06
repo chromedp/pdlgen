@@ -105,6 +105,20 @@ func (n *Node) AttributeValue(name string) string {
 	return ""
 }
 
+// Attribute returns the named attribute for the node and if it exists.
+func (n *Node) Attribute(name string) (string, bool) {
+	n.RLock()
+	defer n.RUnlock()
+
+	for i := 0; i < len(n.Attributes); i += 2 {
+		if n.Attributes[i] == name {
+			return n.Attributes[i+1], true
+		}
+	}
+
+	return "", false
+}
+
 // xpath builds the xpath string.
 func (n *Node) xpath(stopAtDocument, stopAtID bool) string {
 	n.RLock()
