@@ -93,16 +93,8 @@ const EmptyFrameID = FrameID("")
 {% func ExtraNodeTemplate() %}
 // AttributeValue returns the named attribute for the node.
 func (n *Node) AttributeValue(name string) string {
-	n.RLock()
-	defer n.RUnlock()
-
-	for i := 0; i < len(n.Attributes); i+=2 {
-		if n.Attributes[i] == name  {
-			return n.Attributes[i+1]
-		}
-	}
-
-	return ""
+	value, _ := n.Attribute(name)
+	return value
 }
 
 // Attribute returns the named attribute for the node and if it exists.
