@@ -301,9 +301,14 @@ const ModifierCommand Modifier = ModifierMeta
 				case "ExceptionDetails":
 					t.Extra += `// Error satisfies the error interface.
 func (e *ExceptionDetails) Error() string {
+	var b strings.Builder
 	// TODO: watch script parsed events and match the ExceptionDetails.ScriptID
 	// to the name/location of the actual code and display here
-	return fmt.Sprintf("encountered exception '%s' (%d:%d)", e.Text, e.LineNumber, e.ColumnNumber)
+	fmt.Fprintf(&b, "exception %q (%d:%d)", e.Text, e.LineNumber, e.ColumnNumber)
+	if obj := e.Exception; obj != nil {
+		fmt.Fprintf(&b, ": %s", obj.Description)
+	}
+	return b.String()
 }
 `
 				}
