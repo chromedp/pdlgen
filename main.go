@@ -192,11 +192,22 @@ func run() error {
 		// skip if not processing
 		if d.Deprecated {
 			var extra []string
-			if d.Deprecated {
-				extra = append(extra, "deprecated")
-			}
+			extra = append(extra, "deprecated")
 			util.Logf("SKIPPING(%s): %s %v", pad("domain", 7), d.Domain.String(), extra)
 			continue
+		}
+
+		// TODO: remove this pre-cleanup fixup at some point; right now,
+		// it's necessary as the current Chrome stable release doesn't
+		// yet support the new Browser.setDownloadBehavior.
+		switch d.Domain {
+		case "Page":
+			for _, c := range d.Commands {
+				switch c.Name {
+				case "setDownloadBehavior":
+					c.AlwaysEmit = true
+				}
+			}
 		}
 
 		// will process
@@ -337,12 +348,12 @@ func cleanupTypes(n string, dtyp string, typs []*pdl.Type) []*pdl.Type {
 
 	for _, t := range typs {
 		typ := dtyp + "." + t.Name
-		if t.Deprecated {
+		if t.Deprecated && !t.AlwaysEmit {
 			util.Logf("SKIPPING(%s): %s [deprecated]", pad(n, 7), typ)
 			continue
 		}
 
-		if t.Redirect != nil {
+		if t.Redirect != nil && !t.AlwaysEmit {
 			util.Logf("SKIPPING(%s): %s [redirect:%s]", pad(n, 7), typ, t.Redirect)
 			continue
 		}
