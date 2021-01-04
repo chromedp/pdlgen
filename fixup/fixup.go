@@ -42,7 +42,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/knq/snaker"
+	"github.com/kenshaw/snaker"
 
 	"github.com/chromedp/cdproto-gen/gen/gotpl"
 	"github.com/chromedp/cdproto-gen/pdl"

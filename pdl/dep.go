@@ -7,20 +7,24 @@ import (
 // circularDeps is the list of types that can cause circular dependency
 // issues.
 var circularDeps = map[string]bool{
-	"browser.browsercontextid": true,
-	"dom.backendnodeid":        true,
-	"dom.backendnode":          true,
-	"dom.nodeid":               true,
-	"dom.node":                 true,
-	"dom.nodetype":             true,
-	"dom.pseudotype":           true,
-	"dom.rgba":                 true,
-	"dom.shadowroottype":       true,
-	"network.loaderid":         true,
-	"network.monotonictime":    true,
-	"network.timesinceepoch":   true,
-	"page.frameid":             true,
-	"page.frame":               true,
+	"browser.browsercontextid":            true,
+	"dom.backendnodeid":                   true,
+	"dom.backendnode":                     true,
+	"dom.nodeid":                          true,
+	"dom.node":                            true,
+	"dom.nodetype":                        true,
+	"dom.pseudotype":                      true,
+	"dom.rgba":                            true,
+	"dom.shadowroottype":                  true,
+	"network.loaderid":                    true,
+	"network.monotonictime":               true,
+	"network.timesinceepoch":              true,
+	"page.adframetype":                    true,
+	"page.crossoriginisolatedcontexttype": true,
+	"page.frameid":                        true,
+	"page.frame":                          true,
+	"page.gatedapifeatures":               true,
+	"page.securecontexttype":              true,
 }
 
 // IsCircularDep returns whether or not a type will cause circular dependency

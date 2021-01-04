@@ -8,7 +8,7 @@ import (
 	"unicode"
 
 	"github.com/client9/misspell"
-	"github.com/knq/snaker"
+	"github.com/kenshaw/snaker"
 
 	"github.com/chromedp/cdproto-gen/pdl"
 )

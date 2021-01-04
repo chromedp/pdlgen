@@ -184,6 +184,7 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 		"github.com/mailru/easyjson":         "",
 		"github.com/mailru/easyjson/jlexer":  "",
 		"github.com/mailru/easyjson/jwriter": "",
+		"github.com/chromedp/sysutil":        "",
 	}
 	for _, d := range domains {
 		importMap[basePkg+"/"+genutil.PackageName(d)] = ""

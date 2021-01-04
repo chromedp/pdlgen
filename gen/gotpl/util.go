@@ -7,7 +7,7 @@ import (
 
 	"github.com/chromedp/cdproto-gen/gen/genutil"
 	"github.com/chromedp/cdproto-gen/pdl"
-	"github.com/knq/snaker"
+	"github.com/kenshaw/snaker"
 )
 
 // Prefix and suffix values.

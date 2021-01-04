@@ -16,7 +16,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gedex/inflector"
-	"github.com/knq/snaker"
+	"github.com/kenshaw/snaker"
 
 	"github.com/chromedp/cdproto-gen/pdl"
 )
@@ -25,9 +25,7 @@ const (
 	specURL = "http://www.softwareishard.com/blog/har-12-spec/"
 )
 
-var (
-	flagOut = flag.String("o", "har.go", "out file")
-)
+var flagOut = flag.String("o", "har.go", "out file")
 
 func main() {
 	flag.Parse()
@@ -56,7 +54,7 @@ func run() error {
 	pdlBuf := bytes.Replace(pdl.Bytes(), []byte("`"), []byte("\\`"), -1)
 	b := new(bytes.Buffer)
 	fmt.Fprintf(b, harTpl, string(pdlBuf))
-	return ioutil.WriteFile(*flagOut, b.Bytes(), 0644)
+	return ioutil.WriteFile(*flagOut, b.Bytes(), 0o644)
 }
 
 // grab retrieves a url.
