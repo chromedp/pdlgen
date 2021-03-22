@@ -178,19 +178,19 @@ func Diff(ctx context.Context, w io.Writer, def *pdl.PDL, ver, v8ver string, pre
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(d)
-	if err := os.MkdirAll(filepath.Join(d, "current"), 0777); err != nil {
+	// defer os.RemoveAll(d)
+	if err := os.MkdirAll(filepath.Join(d, "current"), 0o777); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Join(d, "previous"), 0777); err != nil {
+	if err := os.MkdirAll(filepath.Join(d, "previous"), 0o777); err != nil {
 		return err
 	}
 	name := filepath.Join(d, "current", fmt.Sprintf("%s_%s.pdl", ver, v8ver))
-	if err := ioutil.WriteFile(name, def.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile(name, def.Bytes(), 0o644); err != nil {
 		return err
 	}
 	prevName := filepath.Join(d, "previous", fmt.Sprintf("%s_%s.pdl", prevVer, prevV8Ver))
-	if err := ioutil.WriteFile(prevName, prev.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile(prevName, prev.Bytes(), 0o644); err != nil {
 		return err
 	}
 	buf, err := util.CompareFiles(prevName, name)
