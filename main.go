@@ -206,6 +206,10 @@ func run() error {
 				switch c.Name {
 				case "setDownloadBehavior":
 					c.AlwaysEmit = true
+				case "getLayoutMetrics":
+					for _, t := range c.Returns {
+						t.AlwaysEmit = true
+					}
 				}
 			}
 		}
