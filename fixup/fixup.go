@@ -177,6 +177,13 @@ const ModifierCommand Modifier = ModifierMeta
 							p.AlwaysEmit = true
 						}
 					}
+				case "dispatchMouseEvent":
+					for _, p := range c.Parameters {
+						switch p.Name {
+						case "deltaX", "deltaY":
+							p.AlwaysEmit = true
+						}
+					}
 				}
 			}
 
