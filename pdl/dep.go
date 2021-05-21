@@ -10,6 +10,7 @@ var circularDeps = map[string]bool{
 	"browser.browsercontextid":            true,
 	"dom.backendnodeid":                   true,
 	"dom.backendnode":                     true,
+	"dom.compatibilitymode":               true,
 	"dom.nodeid":                          true,
 	"dom.node":                            true,
 	"dom.nodetype":                        true,
@@ -24,6 +25,12 @@ var circularDeps = map[string]bool{
 	"page.frameid":                        true,
 	"page.frame":                          true,
 	"page.gatedapifeatures":               true,
+	"page.origintrial":                    true,
+	"page.origintrialstatus":              true,
+	"page.origintrialtoken":               true,
+	"page.origintrialtokenstatus":         true,
+	"page.origintrialtokenwithstatus":     true,
+	"page.origintrialusagerestriction":    true,
 	"page.securecontexttype":              true,
 }
 
