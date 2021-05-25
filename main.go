@@ -59,7 +59,7 @@ var (
 	flagNoDump  = flag.Bool("no-dump", false, "toggle not dumping generated protocol file to out directory")
 
 	flagGoPkg = flag.String("go-pkg", "github.com/chromedp/cdproto", "go base package name")
-	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,*.pdl,go.mod,go.sum,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
+	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,*.pdl,go.mod,go.sum", "comma-separated list of files to whitelist (ignore)")
 
 	// flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
 )
@@ -436,7 +436,46 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 
 // easyjson runs easy json on the list of packages.
 func easyjson(pkgs []string) error {
+	util.Logf("WRITING: easyjson stubs")
+	// All the easyjson.go files are removed in the CLEANING step,
+	// so that deprecated files (if any) won't stay in the repository.
+	// Now generate the stubs first so that the source codes are valid
+	// from the perspective of syntax.
+	if err := easyjsonStubs(pkgs); err != nil {
+		return err
+	}
+
 	util.Logf("RUNNING: easyjson")
+	// Got error messages like this when running g.Run() concurrently:
+	//   # github.com/chromedp/cdproto/cachestorage
+	//   cachestorage/easyjson.go:8:3: can't find import: "encoding/json"
+	//   # github.com/chromedp/cdproto/cast
+	//   cast/easyjson.go:6:3: can't find import: "github.com/mailru/easyjson"
+	// It seems that it fails more often on slow machines. The root cause is not clear yet,
+	// maybe it's relevant to the issue https://github.com/golang/go/issues/26794.
+	// The workaround for now is to run g.Run() one by one (take longer to finish).
+	for _, n := range pkgs {
+		n = filepath.Join(*flagOut, n)
+		p := parser.Parser{AllStructs: true}
+		if err := p.Parse(n, true); err != nil {
+			return err
+		}
+		g := bootstrap.Generator{
+			OutName:  filepath.Join(n, easyjsonGo),
+			PkgPath:  p.PkgPath,
+			PkgName:  p.PkgName,
+			Types:    p.StructNames,
+			NoFormat: true,
+		}
+		if err := g.Run(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// easyjsonStubs runs easy json to generate stubs for the list of packages.
+func easyjsonStubs(pkgs []string) error {
 	eg, _ := errgroup.WithContext(context.Background())
 	for _, k := range pkgs {
 		eg.Go(func(n string) func() error {
@@ -447,11 +486,12 @@ func easyjson(pkgs []string) error {
 					return err
 				}
 				g := bootstrap.Generator{
-					OutName:  filepath.Join(n, easyjsonGo),
-					PkgPath:  p.PkgPath,
-					PkgName:  p.PkgName,
-					Types:    p.StructNames,
-					NoFormat: true,
+					OutName:   filepath.Join(n, easyjsonGo),
+					PkgPath:   p.PkgPath,
+					PkgName:   p.PkgName,
+					Types:     p.StructNames,
+					NoFormat:  true,
+					StubsOnly: true,
 				}
 				return g.Run()
 			}
