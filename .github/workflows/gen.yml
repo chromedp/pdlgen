@@ -1,0 +1,75 @@
+name: Gen
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      chromium:
+        description: 'chromium protocol version'
+        required: false
+        default: ''
+      v8:
+        description: 'v8 protocol version'
+        required: false
+        default: ''
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout pdlgen
+      uses: actions/checkout@v2
+      with:
+        path: pdlgen
+
+    - name: Checkout chromedp
+      uses: actions/checkout@v2
+      with:
+        repository: chromedp/chromedp
+        path: chromedp
+
+    # "Checkout cdproto" should be the last checkout action,
+    # otherwise, its token will be overwritten and the "Commit changes"
+    # step will fail.
+    - name: Checkout cdproto
+      uses: actions/checkout@v2
+      with:
+        repository: chromedp/cdproto
+        token: ${{ secrets.CI_PDLGEN }}
+        fetch-depth: 0
+        path: cdproto
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16.x
+
+    - name: Build cdproto-gen
+      working-directory: ./pdlgen
+      run: go build -v
+
+    - name: Run cdproto-gen
+      working-directory: ./pdlgen
+      run: ./cdproto-gen -chromium=${{ github.event.inputs.chromium }} -v8=${{ github.event.inputs.v8 }} -out=../cdproto
+
+    # test chromedp with the updated cdproto
+    - name: Test chromedp
+      working-directory: ./chromedp
+      run: |
+        go mod edit -replace github.com/chromedp/cdproto=../cdproto
+        TMPDIR=$RUNNER_TEMP go test -v ./...
+        ./contrib/docker-test.sh
+
+    - name: Commit changes
+      working-directory: ./cdproto
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git checkout -b build-$GITHUB_RUN_NUMBER
+        git commit -a -m "Updating to $(basename $HOME/.cache/cdproto-gen/pdl/combined/*.pdl .pdl) definitions"
+        git push origin build-$GITHUB_RUN_NUMBER
+      if: github.event == 'workflow_dispatch'
