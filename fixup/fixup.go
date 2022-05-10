@@ -177,7 +177,7 @@ const ModifierCommand Modifier = ModifierMeta
 							p.AlwaysEmit = true
 						}
 					}
-				case "dispatchMouseEvent":
+				case "dispatchMouseEvent", "emulateTouchFromMouseEvent":
 					for _, p := range c.Parameters {
 						switch p.Name {
 						case "deltaX", "deltaY":
