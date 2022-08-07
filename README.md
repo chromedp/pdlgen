@@ -76,7 +76,7 @@ tree][chromium-src] and cached locally.
 The revisions of `browser_protocol.pdl` and `js_protocol.pdl` that are
 retrieved/cached can be controlled using the `-chromium` and `-v8` command-line
 options, respectively, and can be any Git ref, branch, or tag in the [Chromium
-source tree][chromium-src]. Both default to `master`.
+source tree][chromium-src]. Both default to `main`.
 
 Both `browser_protocol.pdl` and `js_protocol.pdl` will be updated
 periodically after the cached files have "expired", based on the `-ttl` option.
@@ -218,8 +218,8 @@ qtc: 2021/05/18 14:11:20 Total files compiled: 4
 [devtools-protocol]: https://chromedevtools.github.io/devtools-protocol/
 [chromedp]: https://github.com/chromedp
 [cdproto]: https://github.com/chromedp/cdproto
-[browser-protocol]: https://chromium.googlesource.com/chromium/src/+/master/third_party/blink/public/devtools_protocol/browser_protocol.pdl
-[js-protocol]: https://chromium.googlesource.com/v8/v8/+/master/include/js_protocol.pdl
+[browser-protocol]: https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/public/devtools_protocol/browser_protocol.pdl
+[js-protocol]: https://chromium.googlesource.com/v8/v8/+/main/include/js_protocol.pdl
 [chromium-src]: https://chromium.googlesource.com/chromium/src.git
 [har-spec]: http://www.softwareishard.com/blog/har-12-spec/
 [effective-go]: https://golang.org/doc/effective_go.html
