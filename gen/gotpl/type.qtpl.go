@@ -242,94 +242,95 @@ func (t *`)
 		qw422016.N().S(typ)
 //line gen/gotpl/type.qtpl:80
 		qw422016.N().S(`) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	switch `)
-//line gen/gotpl/type.qtpl:81
-		qw422016.N().S(typ)
-//line gen/gotpl/type.qtpl:81
-		qw422016.N().S(`(in.`)
+	v := in.`)
 //line gen/gotpl/type.qtpl:81
 		qw422016.N().S(z)
 //line gen/gotpl/type.qtpl:81
-		qw422016.N().S(`()) {`)
-//line gen/gotpl/type.qtpl:81
-		for _, e := range t.Enum {
+		qw422016.N().S(`()
+	switch `)
 //line gen/gotpl/type.qtpl:82
+		qw422016.N().S(typ)
+//line gen/gotpl/type.qtpl:82
+		qw422016.N().S(`(v) {`)
+//line gen/gotpl/type.qtpl:82
+		for _, e := range t.Enum {
+//line gen/gotpl/type.qtpl:83
 			n := EnumValueName(t, e)
 
-//line gen/gotpl/type.qtpl:83
+//line gen/gotpl/type.qtpl:84
 			qw422016.N().S(`
 	case `)
-//line gen/gotpl/type.qtpl:84
+//line gen/gotpl/type.qtpl:85
 			qw422016.N().S(n)
-//line gen/gotpl/type.qtpl:84
+//line gen/gotpl/type.qtpl:85
 			qw422016.N().S(`:
 		*t = `)
-//line gen/gotpl/type.qtpl:85
+//line gen/gotpl/type.qtpl:86
 			qw422016.N().S(n)
-//line gen/gotpl/type.qtpl:85
+//line gen/gotpl/type.qtpl:86
 		}
-//line gen/gotpl/type.qtpl:85
+//line gen/gotpl/type.qtpl:86
 		qw422016.N().S(`
 
 	default:
-		in.AddError(errors.New("unknown `)
-//line gen/gotpl/type.qtpl:88
+		in.AddError(fmt.Errorf("unknown `)
+//line gen/gotpl/type.qtpl:89
 		qw422016.N().S(typ)
-//line gen/gotpl/type.qtpl:88
-		qw422016.N().S(` value"))
+//line gen/gotpl/type.qtpl:89
+		qw422016.N().S(` value: %v", v))
 	}
 }
 
 // UnmarshalJSON satisfies json.Unmarshaler.
 func (t *`)
-//line gen/gotpl/type.qtpl:93
+//line gen/gotpl/type.qtpl:94
 		qw422016.N().S(typ)
-//line gen/gotpl/type.qtpl:93
+//line gen/gotpl/type.qtpl:94
 		qw422016.N().S(`) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }`)
-//line gen/gotpl/type.qtpl:95
+//line gen/gotpl/type.qtpl:96
 	}
-//line gen/gotpl/type.qtpl:95
+//line gen/gotpl/type.qtpl:96
 	qw422016.N().S(`
 `)
-//line gen/gotpl/type.qtpl:96
+//line gen/gotpl/type.qtpl:97
 	if t.Extra != "" {
-//line gen/gotpl/type.qtpl:96
+//line gen/gotpl/type.qtpl:97
 		qw422016.N().S(`
 `)
-//line gen/gotpl/type.qtpl:97
+//line gen/gotpl/type.qtpl:98
 		qw422016.N().S(t.Extra)
-//line gen/gotpl/type.qtpl:97
+//line gen/gotpl/type.qtpl:98
 	}
-//line gen/gotpl/type.qtpl:97
+//line gen/gotpl/type.qtpl:98
 	qw422016.N().S(`
 `)
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 }
 
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 func WriteTypeTemplate(qq422016 qtio422016.Writer, t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) {
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	StreamTypeTemplate(qw422016, t, prefix, suffix, d, domains, v, noExposeOverride, omitOnlyWhenOptional)
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 }
 
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) string {
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	qb422016 := qt422016.AcquireByteBuffer()
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	WriteTypeTemplate(qb422016, t, prefix, suffix, d, domains, v, noExposeOverride, omitOnlyWhenOptional)
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	qs422016 := string(qb422016.B)
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	qt422016.ReleaseByteBuffer(qb422016)
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 	return qs422016
-//line gen/gotpl/type.qtpl:98
+//line gen/gotpl/type.qtpl:99
 }

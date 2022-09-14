@@ -78,14 +78,15 @@ func (t {%s= typ %}) MarshalJSON() ([]byte, error) {
 
 // UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
 func (t *{%s= typ %}) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	switch {%s= typ %}(in.{%s= z %}()) {{% for _, e := range t.Enum %}{% code
+	v := in.{%s= z %}()
+	switch {%s= typ %}(v) {{% for _, e := range t.Enum %}{% code
 		n := EnumValueName(t, e)
 %}
 	case {%s= n %}:
 		*t = {%s= n %}{% endfor %}
 
 	default:
-		in.AddError(errors.New("unknown {%s= typ %} value"))
+		in.AddError(fmt.Errorf("unknown {%s= typ %} value: %v", v))
 	}
 }
 
