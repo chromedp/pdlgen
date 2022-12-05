@@ -1,0 +1,28 @@
+#  schedule:
+#  - cron: "17 * * * *"
+name: Daily
+on: push
+env:
+  ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+jobs:
+  update:
+    name: Run Update
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19.x
+    - name: Checkout cdproto-gen
+      uses: actions/checkout@v3
+    - name: Checkout cdproto
+      uses: actions/checkout@v3
+      with:
+        repository: chromedp/cdproto
+    - name: Run
+      run: |
+        go run main.go -out cdproto
+    - name: Test
+      run: |
+        cd cdproto
+        go build ./...
