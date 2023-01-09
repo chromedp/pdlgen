@@ -207,6 +207,22 @@ func run() error {
 					}
 				}
 			}
+		// TODO: remove this pre-cleanup fixup at some point; right now,
+		// it's necessary as executionContextId can not be replaced with
+		// executionContextUniqueId yet.
+		// see https://chromium.googlesource.com/v8/v8.git/+/ca3a939da83b87453d8c59d8acced5ac6452ef50.
+		case "Runtime":
+			for _, e := range d.Events {
+				switch e.Name {
+				case "executionContextDestroyed":
+					for _, p := range e.Parameters {
+						switch p.Name {
+						case "executionContextId":
+							p.AlwaysEmit = true
+						}
+					}
+				}
+			}
 		}
 
 		// will process
