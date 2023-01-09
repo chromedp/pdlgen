@@ -197,15 +197,10 @@ func run() error {
 			continue
 		}
 
-		// TODO: remove this pre-cleanup fixup at some point; right now,
-		// it's necessary as the current Chrome stable release doesn't
-		// yet support the new Browser.setDownloadBehavior.
 		switch d.Domain {
 		case "Page":
 			for _, c := range d.Commands {
 				switch c.Name {
-				case "setDownloadBehavior":
-					c.AlwaysEmit = true
 				case "getLayoutMetrics":
 					for _, t := range c.Returns {
 						t.AlwaysEmit = true
