@@ -7,29 +7,29 @@
 // high-level func, FixDomains.
 //
 // Currently, FixDomains does the following:
-//  - add `Inspector.DetachReason` type and change `Inspector.detached.reason`
-//    type to `Inspector.DetachReason`.
-//  - change `Network.TimeSinceEpoch`, `Network.MonotonicTime`, and
-//    `Runtime.Timestamp` types to `TimestampTypeSecond` and
-//    `TimestampTypeMonotonic`.
-//  - convert all object properties and event/command parameters that are enums
-//    into separate types.
-//  - change any object property named `modifiers` to type `Input.Modifier`.
-//  - add `DOM.NodeType` type and set any parameter named `nodeType`'s type to
-//    `DOM.NodeType`.
-//  - change `Page.Frame.{id,parentID}` properties to `FrameID` type.
-//  - add additional properties to `Page.Frame` and `DOM.Node` for use by
-//    higher level packages.
-//  - add special unmarshaler to `Page.{NodeId,BackendNodeId,FrameId}` types to
-//    handle unquoted values from older (v1.1) protocol versions. NOTE: it may
-//    be necessary in the future to apply this to more types, such as
-//    `Network.LoaderId`.
-//  - rename `Input.GestureSourceType` to `Input.GestureType`.
-//  - fix type/name stuttering by stripping the package name from any type
-//    where the package name is a prefix (ie, `CSS` domain).
-//  - add Error() method to `Runtime.ExceptionDetails` so that it can be used
-//    as error.
-//  - change `Network.Headers` type to map[string]interface{}.
+//   - add `Inspector.DetachReason` type and change `Inspector.detached.reason`
+//     type to `Inspector.DetachReason`.
+//   - change `Network.TimeSinceEpoch`, `Network.MonotonicTime`, and
+//     `Runtime.Timestamp` types to `TimestampTypeSecond` and
+//     `TimestampTypeMonotonic`.
+//   - convert all object properties and event/command parameters that are enums
+//     into separate types.
+//   - change any object property named `modifiers` to type `Input.Modifier`.
+//   - add `DOM.NodeType` type and set any parameter named `nodeType`'s type to
+//     `DOM.NodeType`.
+//   - change `Page.Frame.{id,parentID}` properties to `FrameID` type.
+//   - add additional properties to `Page.Frame` and `DOM.Node` for use by
+//     higher level packages.
+//   - add special unmarshaler to `Page.{NodeId,BackendNodeId,FrameId}` types to
+//     handle unquoted values from older (v1.1) protocol versions. NOTE: it may
+//     be necessary in the future to apply this to more types, such as
+//     `Network.LoaderId`.
+//   - rename `Input.GestureSourceType` to `Input.GestureType`.
+//   - fix type/name stuttering by stripping the package name from any type
+//     where the package name is a prefix (ie, `CSS` domain).
+//   - add Error() method to `Runtime.ExceptionDetails` so that it can be used
+//     as error.
+//   - change `Network.Headers` type to map[string]interface{}.
 //
 // Please note that the above is not an exhaustive list of all modifications
 // applied to the domains, however it does attempt to give a comprehensive
@@ -163,7 +163,7 @@ const ModifierCommand Modifier = ModifierMeta
 
 				case "TimeSinceEpoch":
 					t.Type = pdl.TypeTimestamp
-					t.TimestampType = pdl.TimestampTypeSecond
+					t.TimestampType = pdl.TimestampTypeMillisecond
 					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 			}
@@ -217,7 +217,7 @@ const ModifierCommand Modifier = ModifierMeta
 				// change Monotonic to TypeTimestamp and add extra unmarshaling template
 				if t.Name == "TimeSinceEpoch" {
 					t.Type = pdl.TypeTimestamp
-					t.TimestampType = pdl.TimestampTypeSecond
+					t.TimestampType = pdl.TimestampTypeMillisecond
 					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 
