@@ -15,7 +15,6 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -149,12 +148,12 @@ func run() error {
 	}
 
 	// create out directory
-	if err = os.MkdirAll(*flagOut, 0755); err != nil {
+	if err = os.MkdirAll(*flagOut, 0o755); err != nil {
 		return err
 	}
 
 	combinedDir := filepath.Join(*flagCache, "pdl", "combined")
-	if err = os.MkdirAll(combinedDir, 0755); err != nil {
+	if err = os.MkdirAll(combinedDir, 0o755); err != nil {
 		return err
 	}
 	protoFile := filepath.Join(combinedDir, fmt.Sprintf("%s_%s.pdl", *flagChromium, *flagV8))
@@ -162,7 +161,7 @@ func run() error {
 	// write protocol definitions
 	if *flagPdl == "" {
 		util.Logf("WRITING: %s", protoFile)
-		if err = ioutil.WriteFile(protoFile, protoDefs.Bytes(), 0644); err != nil {
+		if err = os.WriteFile(protoFile, protoDefs.Bytes(), 0o644); err != nil {
 			return err
 		}
 
@@ -312,7 +311,7 @@ func loadProtoDefs() (*pdl.PDL, error) {
 
 	if *flagPdl != "" {
 		util.Logf("PROTOCOL: %s", *flagPdl)
-		buf, err := ioutil.ReadFile(*flagPdl)
+		buf, err := os.ReadFile(*flagPdl)
 		if err != nil {
 			return nil, err
 		}
@@ -404,12 +403,12 @@ func write(fileBuffers map[string]*bytes.Buffer) error {
 		n := filepath.Join(*flagOut, k)
 
 		// create directory
-		if err := os.MkdirAll(filepath.Dir(n), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(n), 0o755); err != nil {
 			return err
 		}
 
 		// write file
-		if err := ioutil.WriteFile(n, fileBuffers[k].Bytes(), 0644); err != nil {
+		if err := os.WriteFile(n, fileBuffers[k].Bytes(), 0o644); err != nil {
 			return err
 		}
 	}
@@ -435,10 +434,10 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 				if err != nil {
 					return err
 				}
-				if err = os.MkdirAll(filepath.Dir(fn), 0755); err != nil {
+				if err = os.MkdirAll(filepath.Dir(fn), 0o755); err != nil {
 					return err
 				}
-				return ioutil.WriteFile(fn, buf, 0644)
+				return os.WriteFile(fn, buf, 0o644)
 			}
 		}(k))
 	}
@@ -479,7 +478,7 @@ func gofmt(files []string) error {
 		eg.Go(func(n string) func() error {
 			return func() error {
 				n = filepath.Join(*flagOut, n)
-				in, err := ioutil.ReadFile(n)
+				in, err := os.ReadFile(n)
 				if err != nil {
 					return err
 				}
@@ -487,7 +486,7 @@ func gofmt(files []string) error {
 				if err != nil {
 					return err
 				}
-				return ioutil.WriteFile(n, out, 0644)
+				return os.WriteFile(n, out, 0o644)
 			}
 		}(k))
 	}

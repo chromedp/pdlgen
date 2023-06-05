@@ -163,7 +163,7 @@ const ModifierCommand Modifier = ModifierMeta
 
 				case "TimeSinceEpoch":
 					t.Type = pdl.TypeTimestamp
-					t.TimestampType = pdl.TimestampTypeMillisecond
+					t.TimestampType = pdl.TimestampTypeSecond
 					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 			}
@@ -213,11 +213,22 @@ const ModifierCommand Modifier = ModifierMeta
 			}
 
 		case "Network":
+			tsem := &pdl.Type{
+				RawName:       "Network.TimeSinceEpochMilli",
+				RawSee:        "",
+				IsCircularDep: true,
+				Name:          "TimeSinceEpochMilli",
+				Type:          pdl.TypeTimestamp,
+				TimestampType: pdl.TimestampTypeSecond,
+				Description:   "Special timestamp type for Response's responseTime field.",
+			}
+			tsem.Extra = gotpl.ExtraTimestampTemplate(tsem, d)
+			d.Types = append(d.Types, tsem)
 			for _, t := range d.Types {
 				// change Monotonic to TypeTimestamp and add extra unmarshaling template
 				if t.Name == "TimeSinceEpoch" {
 					t.Type = pdl.TypeTimestamp
-					t.TimestampType = pdl.TimestampTypeMillisecond
+					t.TimestampType = pdl.TimestampTypeSecond
 					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 
@@ -232,6 +243,15 @@ const ModifierCommand Modifier = ModifierMeta
 				if t.Name == "Headers" {
 					t.Type = pdl.TypeAny
 					t.Ref = "map[string]interface{}"
+				}
+
+				// change Response
+				if t.Name == "Response" {
+					for _, p := range t.Properties {
+						if p.Name == "responseTime" {
+							p.Ref = "TimeSinceEpochMilli"
+						}
+					}
 				}
 			}
 

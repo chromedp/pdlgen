@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -145,7 +144,7 @@ func run() error {
 
 			out := filepath.Join(combinedDir, fmt.Sprintf("%s_%s.pdl", ver, v8ver))
 			util.Logf("WRITING: %s", out)
-			if err = ioutil.WriteFile(out, buf, 0644); err != nil {
+			if err = os.WriteFile(out, buf, 0644); err != nil {
 				return err
 			}
 

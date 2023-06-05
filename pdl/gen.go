@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -55,7 +56,7 @@ func run() error {
 	pdlBuf := bytes.Replace(pdl.Bytes(), []byte("`"), []byte("\\`"), -1)
 	b := new(bytes.Buffer)
 	fmt.Fprintf(b, harTpl, string(pdlBuf))
-	return ioutil.WriteFile(*flagOut, b.Bytes(), 0o644)
+	return os.WriteFile(*flagOut, b.Bytes(), 0o644)
 }
 
 // grab retrieves a url.
@@ -71,7 +72,7 @@ func grab(urlstr string) ([]byte, error) {
 	}
 	defer res.Body.Close()
 
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
 
 const (

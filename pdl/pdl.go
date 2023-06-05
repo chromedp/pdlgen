@@ -5,7 +5,7 @@ package pdl
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -264,7 +264,7 @@ func assignType(item *Type, typ string, isArray bool) {
 
 // LoadFile loads a PDL file from the specified filename.
 func LoadFile(filename string) (*PDL, error) {
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

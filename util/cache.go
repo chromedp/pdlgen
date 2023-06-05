@@ -2,7 +2,7 @@ package util
 
 import (
 	"encoding/base64"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,14 +22,14 @@ type Cache struct {
 func Get(c Cache) ([]byte, error) {
 	var err error
 
-	if err = os.MkdirAll(filepath.Dir(c.Path), 0755); err != nil {
+	if err = os.MkdirAll(filepath.Dir(c.Path), 0o755); err != nil {
 		return nil, err
 	}
 
 	// check if exists on disk
 	fi, err := os.Stat(c.Path)
 	if err == nil && c.TTL != 0 && !time.Now().After(fi.ModTime().Add(c.TTL)) {
-		return ioutil.ReadFile(c.Path)
+		return os.ReadFile(c.Path)
 	}
 
 	Logf("RETRIEVING: %s", c.URL)
@@ -46,7 +46,7 @@ func Get(c Cache) ([]byte, error) {
 	}
 	defer res.Body.Close()
 
-	buf, err := ioutil.ReadAll(res.Body)
+	buf, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func Get(c Cache) ([]byte, error) {
 	}
 
 	Logf("WRITING: %s", c.Path)
-	if err = ioutil.WriteFile(c.Path, buf, 0644); err != nil {
+	if err = os.WriteFile(c.Path, buf, 0o644); err != nil {
 		return nil, err
 	}
 
