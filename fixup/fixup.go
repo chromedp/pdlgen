@@ -219,7 +219,7 @@ const ModifierCommand Modifier = ModifierMeta
 				IsCircularDep: true,
 				Name:          "TimeSinceEpochMilli",
 				Type:          pdl.TypeTimestamp,
-				TimestampType: pdl.TimestampTypeSecond,
+				TimestampType: pdl.TimestampTypeMillisecond,
 				Description:   "Special timestamp type for Response's responseTime field.",
 			}
 			tsem.Extra = gotpl.ExtraTimestampTemplate(tsem, d)
