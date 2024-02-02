@@ -112,7 +112,7 @@ func FileHeader(pkgName string, d *pdl.Domain) string {
 func StreamFileImportTemplate(qw422016 *qt422016.Writer, importMap map[string]string) {
 //line gen/gotpl/file.qtpl:23
 	var keys []string
-	for k := range importMap {
+	for k, _ := range importMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

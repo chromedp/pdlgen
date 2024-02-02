@@ -186,8 +186,17 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 		"github.com/mailru/easyjson/jwriter": "",
 		"github.com/chromedp/sysutil":        "",
 	}
+	// add io only for cdp package
+	if pkgName == "cdp" {
+		importMap["io"] = ""
+	}
 	for _, d := range domains {
-		importMap[basePkg+"/"+genutil.PackageName(d)] = ""
+		pn := genutil.PackageName(d)
+		// skip adding cdproto/io package to cdp package
+		if pkgName == "cdp" && pn == "io" {
+			continue
+		}
+		importMap[basePkg+"/"+pn] = ""
 	}
 	gotpl.StreamFileImportTemplate(w, importMap)
 
