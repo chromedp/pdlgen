@@ -354,6 +354,35 @@ func (t *{%s= typ %}) UnmarshalJSON(buf []byte) error {
 }
 {% endfunc %}
 
+
+// ExtraCookiePartitionKeyUnmarshaler is a template that handles unmarshaling
+// Network.CookiePartitionKey.
+{% func ExtraCookiePartitionKeyUnmarshaler(typ string) %}
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *{%s= typ %}) UnmarshalEasyJSONZZ(in *jlexer.Lexer) {
+	buf := in.Raw()
+	if l := len(buf); l > 2 && buf[0] == '"' && buf[l-1] == '"' {
+		var err error
+		if t.TopLevelSite, err = strconv.Unquote(string(buf)); err != nil {
+			in.AddError(err)
+		}
+		return
+	}
+	dec := json.NewDecoder(bytes.NewReader(buf))
+	dec.DisallowUnknownFields()
+	var v struct{
+		TopLevelSite         string `json:"topLevelSite"`
+		HasCrossSiteAncestor bool   `json:"hasCrossSiteAncestor"`
+	}
+	if err := dec.Decode(&v); err != nil {
+		in.AddError(err)
+	} else {
+		t.TopLevelSite, t.HasCrossSiteAncestor = v.TopLevelSite, v.HasCrossSiteAncestor
+	}
+}
+{% endfunc %}
+
+
 // ExtraExecutorTemplate is the additional shared executor interface for all
 // the domains.
 {% func ExtraExecutorTemplate() %}

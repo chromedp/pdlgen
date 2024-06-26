@@ -30,6 +30,8 @@
 //   - add Error() method to `Runtime.ExceptionDetails` so that it can be used
 //     as error.
 //   - change `Network.Headers` type to map[string]interface{}.
+//   - add special unmarshaler to `Network.CookiePartitionKey` type to handle
+//     different versions.
 //
 // Please note that the above is not an exhaustive list of all modifications
 // applied to the domains, however it does attempt to give a comprehensive
@@ -252,6 +254,12 @@ const ModifierCommand Modifier = ModifierMeta
 							p.Ref = "TimeSinceEpochMilli"
 						}
 					}
+				}
+
+				// add unmarshaler for CookiePartitionKey type
+				if t.Name == "CookiePartitionKey" {
+					t.Extra += gotpl.ExtraCookiePartitionKeyUnmarshaler(snaker.ForceCamelIdentifier(t.Name))
+					t.SwapEasyJSONUnmarshaler = true
 				}
 			}
 

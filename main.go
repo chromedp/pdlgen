@@ -294,8 +294,15 @@ func run() error {
 		return err
 	}
 
+	filenames := fmtFiles(files, pkgs)
+
+	// rename
+	if err = rename(filenames); err != nil {
+		return err
+	}
+
 	// gofmt
-	if err = gofmt(fmtFiles(files, pkgs)); err != nil {
+	if err = gofmt(filenames); err != nil {
 		return err
 	}
 
@@ -464,6 +471,27 @@ func easyjson(pkgs []string) error {
 					NoFormat: true,
 				}
 				return g.Run()
+			}
+		}(k))
+	}
+	return eg.Wait()
+}
+
+// rename handles func renaming.
+func rename(files []string) error {
+	util.Logf("RUNNING: rename")
+	eg, _ := errgroup.WithContext(context.Background())
+	for _, k := range files {
+		eg.Go(func(n string) func() error {
+			return func() error {
+				n = filepath.Join(*flagOut, n)
+				buf, err := os.ReadFile(n)
+				if err != nil {
+					return err
+				}
+				buf = bytes.ReplaceAll(buf, []byte("CookiePartitionKey) UnmarshalEasyJSON("), []byte("CookiePartitionKey) OrigUnmarshalEasyJSON("))
+				buf = bytes.ReplaceAll(buf, []byte("UnmarshalEasyJSONZZ"), []byte("UnmarshalEasyJSON"))
+				return os.WriteFile(n, buf, 0o644)
 			}
 		}(k))
 	}
