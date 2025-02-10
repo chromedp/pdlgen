@@ -309,6 +309,10 @@ const ModifierCommand Modifier = ModifierMeta
 							p.Type = pdl.TypeEnum("")
 						}
 					}
+
+				case "SecurityOriginDetails":
+					t.IsCircularDep = true
+
 				}
 			}
 
