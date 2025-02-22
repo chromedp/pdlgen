@@ -73,12 +73,12 @@ func init() {
 //line gen/gotpl/extra.qtpl:25
 	qw422016.N().S(`
 
-// MarshalText satisfies [encoding.TextMarshaler].
+// MarshalJSON satisfies [json.Marshaler].
 func (t `)
 //line gen/gotpl/extra.qtpl:28
 	qw422016.N().S(typ)
 //line gen/gotpl/extra.qtpl:28
-	qw422016.N().S(`) MarshalText() ([]byte, error) {
+	qw422016.N().S(`) MarshalJSON() ([]byte, error) {
 	v := `)
 //line gen/gotpl/extra.qtpl:29
 	if monotonic {
@@ -100,15 +100,15 @@ func (t `)
 	}
 //line gen/gotpl/extra.qtpl:29
 	qw422016.N().S(`
-	return strconv.AppendFloat(make([]byte, 20), v, 'f', -1, 64), nil
+	return strconv.AppendFloat(make([]byte, 0, 20), v, 'f', -1, 64), nil
 }
 
-// UnmarshalText satisfies [encoding.TextUnmarshaler].
+// UnmarshalJSON satisfies [json.Unmarshaler].
 func (t *`)
 //line gen/gotpl/extra.qtpl:34
 	qw422016.N().S(typ)
 //line gen/gotpl/extra.qtpl:34
-	qw422016.N().S(`) UnmarshalText(buf []byte) error {
+	qw422016.N().S(`) UnmarshalJSON(buf []byte) error {
 	f, err := strconv.ParseFloat(string(buf), 64)
 	if err != nil {
 		return err
@@ -559,12 +559,12 @@ func ExtraNodeTemplate() string {
 func StreamExtraFixStringUnmarshaler(qw422016 *qt422016.Writer, typ, parseFunc, extra string) {
 //line gen/gotpl/extra.qtpl:328
 	qw422016.N().S(`
-// UnmarshalText satisfies [encoding.TextUnmarshaler].
+// UnmarshalJSON satisfies [json.Unmarshaler].
 func (t *`)
 //line gen/gotpl/extra.qtpl:330
 	qw422016.N().S(typ)
 //line gen/gotpl/extra.qtpl:330
-	qw422016.N().S(`) UnmarshalText(buf []byte) error {
+	qw422016.N().S(`) UnmarshalJSON(buf []byte) error {
 	if l := len(buf); l > 2 && buf[0] == '"' && buf[l-1] == '"' {
 		buf = buf[1:l-1]
 	}
@@ -646,12 +646,12 @@ func ExtraFixStringUnmarshaler(typ, parseFunc, extra string) string {
 func StreamExtraCookiePartitionKeyUnmarshaler(qw422016 *qt422016.Writer, typ string) {
 //line gen/gotpl/extra.qtpl:348
 	qw422016.N().S(`
-// UnmarshalText satisfies [encoding.TextUnmarshaler].
+// UnmarshalJSON satisfies [json.Unmarshaler].
 func (t *`)
 //line gen/gotpl/extra.qtpl:350
 	qw422016.N().S(typ)
 //line gen/gotpl/extra.qtpl:350
-	qw422016.N().S(`) UnmarshalText(buf []byte) error {
+	qw422016.N().S(`) UnmarshalJSON(buf []byte) error {
 	if l := len(buf); l > 2 && buf[0] == '"' && buf[l-1] == '"' {
 		var err error
 		t.TopLevelSite, err = strconv.Unquote(string(buf));

@@ -24,14 +24,14 @@ func init() {
 }
 {% endif %}
 
-// MarshalText satisfies [encoding.TextMarshaler].
-func (t {%s= typ %}) MarshalText() ([]byte, error) {
+// MarshalJSON satisfies [json.Marshaler].
+func (t {%s= typ %}) MarshalJSON() ([]byte, error) {
 	v := {% if monotonic %}float64(time.Time(t).Sub(*{%s= typ %}Epoch))/float64(time.Second){% else %}float64(time.Time(t).UnixNano()/int64({%s= timeRes %})){% endif %}
-	return strconv.AppendFloat(make([]byte, 20), v, 'f', -1, 64), nil
+	return strconv.AppendFloat(make([]byte, 0, 20), v, 'f', -1, 64), nil
 }
 
-// UnmarshalText satisfies [encoding.TextUnmarshaler].
-func (t *{%s= typ %}) UnmarshalText(buf []byte) error {
+// UnmarshalJSON satisfies [json.Unmarshaler].
+func (t *{%s= typ %}) UnmarshalJSON(buf []byte) error {
 	f, err := strconv.ParseFloat(string(buf), 64)
 	if err != nil {
 		return err
@@ -326,8 +326,8 @@ const EmptyNodeID = NodeID(0)
 
 // ExtraFixStringUnmarshaler is a template that forces values to be parsed properly.
 {% func ExtraFixStringUnmarshaler(typ, parseFunc, extra string) %}
-// UnmarshalText satisfies [encoding.TextUnmarshaler].
-func (t *{%s= typ %}) UnmarshalText(buf []byte) error {
+// UnmarshalJSON satisfies [json.Unmarshaler].
+func (t *{%s= typ %}) UnmarshalJSON(buf []byte) error {
 	if l := len(buf); l > 2 && buf[0] == '"' && buf[l-1] == '"' {
 		buf = buf[1:l-1]
 	}
@@ -346,8 +346,8 @@ func (t *{%s= typ %}) UnmarshalText(buf []byte) error {
 // ExtraCookiePartitionKeyUnmarshaler is a template that handles unmarshaling
 // Network.CookiePartitionKey.
 {% func ExtraCookiePartitionKeyUnmarshaler(typ string) %}
-// UnmarshalText satisfies [encoding.TextUnmarshaler].
-func (t *{%s= typ %}) UnmarshalText(buf []byte) error {
+// UnmarshalJSON satisfies [json.Unmarshaler].
+func (t *{%s= typ %}) UnmarshalJSON(buf []byte) error {
 	if l := len(buf); l > 2 && buf[0] == '"' && buf[l-1] == '"' {
 		var err error
 		t.TopLevelSite, err = strconv.Unquote(string(buf));

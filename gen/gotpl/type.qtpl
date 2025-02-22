@@ -65,8 +65,8 @@ func (t {%s= typ %}) String() string {
 }
 {% endif %}
 
-// UnmarshalText satisfies [encoding.TextUnmarshaler].
-func (t *{%s= typ %}) UnmarshalText(buf []byte) error {
+// UnmarshalJSON satisfies [json.Unmarshaler].
+func (t *{%s= typ %}) UnmarshalJSON(buf []byte) error {
 	s := string(buf){% switch gz %}{% case "float64" %}
 	v, err := strconv.ParseFloat(s, 64)
 	if err != nil {
@@ -75,7 +75,8 @@ func (t *{%s= typ %}) UnmarshalText(buf []byte) error {
 	v, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
 		return err
-	}
+	}{% default %}
+	s = strings.TrimSuffix(strings.TrimPrefix(s, `"`), `"`)
 	{% endswitch %}
 	switch {%s= typ %}({% if gz == "string" %}s{% else %}v{% endif %}) {{% for _, e := range t.Enum %}{% code
 		n := EnumValueName(t, e)

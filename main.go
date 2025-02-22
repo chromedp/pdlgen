@@ -445,8 +445,8 @@ func rename(files []string) error {
 				if err != nil {
 					return err
 				}
-				buf = bytes.ReplaceAll(buf, []byte("CookiePartitionKey) UnmarshalText("), []byte("CookiePartitionKey) OrigUnmarshalText("))
-				buf = bytes.ReplaceAll(buf, []byte("UnmarshalTextZZ"), []byte("UnmarshalText"))
+				buf = bytes.ReplaceAll(buf, []byte("CookiePartitionKey) UnmarshalJSON("), []byte("CookiePartitionKey) OrigUnmarshalJSON("))
+				buf = bytes.ReplaceAll(buf, []byte("UnmarshalJSONZZ"), []byte("UnmarshalJSON"))
 				return os.WriteFile(n, buf, 0o644)
 			}
 		}(k))
