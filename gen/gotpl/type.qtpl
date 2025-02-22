@@ -7,7 +7,7 @@
 ) %}
 
 // TypeTemplate is a template for a pdl type.
-{% func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v interface{}, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
+{% func TypeTemplate(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, v any, noExposeOverride, omitOnlyWhenOptional bool) %}{% code
 	typ := prefix + CamelName(t) + suffix
 
 	var extra []*pdl.Type
@@ -55,44 +55,37 @@ const ({% for i, e := range ev %}{% code
 	{%s= n %} {%s= typ %} = {%s= val %}{% endfor %}
 )
 {% if t.Type != pdl.TypeString %}
-// String returns the {%s= typ %} as string value.
+// String satisfies the [fmt.Stringer] interface.
 func (t {%s= typ %}) String() string {
 	switch t {{% for _, e := range t.Enum %}
 	case {%s= EnumValueName(t, e) %}:
 		return {%q= e %}{% endfor %}
 	}
-
 	return fmt.Sprintf("{%s= typ %}(%d)", t)
 }
 {% endif %}
 
-// MarshalEasyJSON satisfies easyjson.Marshaler.
-func (t {%s= typ %}) MarshalEasyJSON(out *jwriter.Writer) {
-	out.{%s= z %}({%s= gz %}(t))
-}
-
-// MarshalJSON satisfies json.Marshaler.
-func (t {%s= typ %}) MarshalJSON() ([]byte, error) {
-	return easyjson.Marshal(t)
-}
-
-// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
-func (t *{%s= typ %}) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	v := in.{%s= z %}()
-	switch {%s= typ %}(v) {{% for _, e := range t.Enum %}{% code
+// UnmarshalText satisfies [encoding.TextUnmarshaler].
+func (t *{%s= typ %}) UnmarshalText(buf []byte) error {
+	s := string(buf){% switch gz %}{% case "float64" %}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return err
+	}{% case "int64" %}
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return err
+	}
+	{% endswitch %}
+	switch {%s= typ %}({% if gz == "string" %}s{% else %}v{% endif %}) {{% for _, e := range t.Enum %}{% code
 		n := EnumValueName(t, e)
 %}
 	case {%s= n %}:
 		*t = {%s= n %}{% endfor %}
-
 	default:
-		in.AddError(fmt.Errorf("unknown {%s= typ %} value: %v", v))
+		return fmt.Errorf("unknown {%s= typ %} value: %v", s)
 	}
-}
-
-// UnmarshalJSON satisfies json.Unmarshaler.
-func (t *{%s= typ %}) UnmarshalJSON(buf []byte) error {
-	return easyjson.Unmarshal(buf, t)
+	return nil
 }{% endif %}
 {% if t.Extra != "" %}
 {%s= t.Extra %}{% endif %}

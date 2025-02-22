@@ -179,12 +179,11 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 
 	// add import map
 	importMap := map[string]string{
-		"encoding/json":                      "",
-		basePkg + "/cdp":                     "",
-		"github.com/mailru/easyjson":         "",
-		"github.com/mailru/easyjson/jlexer":  "",
-		"github.com/mailru/easyjson/jwriter": "",
-		"github.com/chromedp/sysutil":        "",
+		"encoding/json":                               "",
+		basePkg + "/cdp":                              "",
+		"github.com/chromedp/sysutil":                 "",
+		"github.com/go-json-experiment/json":          "jsonv2",
+		"github.com/go-json-experiment/json/jsontext": "",
 	}
 	// add io only for cdp package
 	if pkgName == "cdp" {

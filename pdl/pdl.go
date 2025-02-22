@@ -606,8 +606,8 @@ type Type struct {
 	// Extra will be added as output after the the type is emitted.
 	Extra string `json:"-"`
 
-	// SwapEasyJSONUnmarshaler will cause the generated UnmarshalEasyJSONZZ and UnmarshalEasyJSON names to be swapped.
-	SwapEasyJSONUnmarshaler bool
+	// SwapUnmarshaler will cause the generated UnmarshalTextZZ and UnmarshalText names to be swapped.
+	SwapUnmarshaler bool
 }
 
 // TypeEnum is the Chrome domain type enum.

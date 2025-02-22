@@ -9,7 +9,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/client9/misspell v0.3.4
 	github.com/kenshaw/snaker v0.4.2
-	github.com/mailru/easyjson v0.7.7
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/valyala/quicktemplate v1.7.0
 	golang.org/x/sync v0.11.0

@@ -437,7 +437,7 @@ var goReservedNames = map[string]bool{
 func GoEnumType(te pdl.TypeEnum) string {
 	switch te {
 	case pdl.TypeAny:
-		return "easyjson.RawMessage"
+		return "jsontext.Value"
 
 	case pdl.TypeBoolean:
 		return "bool"

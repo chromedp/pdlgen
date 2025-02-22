@@ -29,7 +29,7 @@
 //     where the package name is a prefix (ie, `CSS` domain).
 //   - add Error() method to `Runtime.ExceptionDetails` so that it can be used
 //     as error.
-//   - change `Network.Headers` type to map[string]interface{}.
+//   - change `Network.Headers` type to map[string]any.
 //   - add special unmarshaler to `Network.CookiePartitionKey` type to handle
 //     different versions.
 //
@@ -241,10 +241,10 @@ const ModifierCommand Modifier = ModifierMeta
 					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
 				}
 
-				// change Headers to be a map[string]interface{}
+				// change Headers to be a map[string]any
 				if t.Name == "Headers" {
 					t.Type = pdl.TypeAny
-					t.Ref = "map[string]interface{}"
+					t.Ref = "map[string]any"
 				}
 
 				// change Response
@@ -259,7 +259,7 @@ const ModifierCommand Modifier = ModifierMeta
 				// add unmarshaler for CookiePartitionKey type
 				if t.Name == "CookiePartitionKey" {
 					t.Extra += gotpl.ExtraCookiePartitionKeyUnmarshaler(snaker.ForceCamelIdentifier(t.Name))
-					t.SwapEasyJSONUnmarshaler = true
+					t.SwapUnmarshaler = true
 				}
 			}
 

@@ -6,7 +6,7 @@
 package main
 
 //go:generate qtc -dir gen/gotpl -ext qtpl
-//go:generate gofmt -w -s gen/gotpl/
+//go:generate go fmt ./gen/gotpl
 
 import (
 	"bytes"
@@ -15,15 +15,15 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/mailru/easyjson/bootstrap"
-	"github.com/mailru/easyjson/parser"
 	glob "github.com/ryanuber/go-glob"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/imports"
@@ -36,30 +36,18 @@ import (
 	"github.com/chromedp/cdproto-gen/util"
 )
 
-const (
-	easyjsonGo = "easyjson.go"
-)
-
 var (
-	flagDebug = flag.Bool("debug", false, "toggle debug (writes generated files to disk without post-processing)")
-
-	flagTTL = flag.Duration("ttl", 24*time.Hour, "file retrieval caching ttl")
-
+	flagDebug    = flag.Bool("debug", false, "toggle debug (writes generated files to disk without post-processing)")
+	flagTTL      = flag.Duration("ttl", 24*time.Hour, "file retrieval caching ttl")
 	flagChromium = flag.String("chromium", "", "chromium protocol version")
 	flagV8       = flag.String("v8", "", "v8 protocol version")
 	flagLatest   = flag.Bool("latest", false, "use latest protocol")
-
-	flagPdl = flag.String("pdl", "", "path to pdl file to use")
-
-	flagCache = flag.String("cache", "", "protocol cache directory")
-	flagOut   = flag.String("out", "", "package out directory")
-
-	flagNoClean = flag.Bool("no-clean", false, "toggle not cleaning (removing) existing directories")
-	flagNoDump  = flag.Bool("no-dump", false, "toggle not dumping generated protocol file to out directory")
-
-	flagGoPkg = flag.String("go-pkg", "github.com/chromedp/cdproto", "go base package name")
-	flagGoWl  = flag.String("go-wl", "LICENSE,README.md,*.pdl,go.mod,go.sum,"+easyjsonGo, "comma-separated list of files to whitelist (ignore)")
-
+	flagPdl      = flag.String("pdl", "", "path to pdl file to use")
+	flagCache    = flag.String("cache", "", "protocol cache directory")
+	flagOut      = flag.String("out", "", "package out directory")
+	flagNoClean  = flag.Bool("no-clean", false, "toggle not cleaning (removing) existing directories")
+	flagGoPkg    = flag.String("go-pkg", "github.com/chromedp/cdproto", "go base package name")
+	flagGoWl     = flag.String("go-wl", "LICENSE,README.md,*.pdl,go.mod,go.sum", "comma-separated list of files to whitelist (ignore)")
 	// flagWorkers = flag.Int("workers", runtime.NumCPU(), "number of workers")
 )
 
@@ -67,9 +55,8 @@ func main() {
 	// add generator parameters
 	var genTypes []string
 	generators := gen.Generators()
-	for n, g := range generators {
+	for n := range generators {
 		genTypes = append(genTypes, n)
-		g = g
 	}
 
 	flag.Parse()
@@ -289,12 +276,7 @@ func run() error {
 		return err
 	}
 
-	// easyjson
-	if err = easyjson(pkgs); err != nil {
-		return err
-	}
-
-	filenames := fmtFiles(files, pkgs)
+	filenames := slices.Sorted(maps.Keys(files))
 
 	// rename
 	if err = rename(filenames); err != nil {
@@ -451,32 +433,6 @@ func goimports(fileBuffers map[string]*bytes.Buffer) error {
 	return eg.Wait()
 }
 
-// easyjson runs easy json on the list of packages.
-func easyjson(pkgs []string) error {
-	util.Logf("RUNNING: easyjson")
-	eg, _ := errgroup.WithContext(context.Background())
-	for _, k := range pkgs {
-		eg.Go(func(n string) func() error {
-			return func() error {
-				n = filepath.Join(*flagOut, n)
-				p := parser.Parser{AllStructs: true}
-				if err := p.Parse(n, true); err != nil {
-					return err
-				}
-				g := bootstrap.Generator{
-					OutName:  filepath.Join(n, easyjsonGo),
-					PkgPath:  p.PkgPath,
-					PkgName:  p.PkgName,
-					Types:    p.StructNames,
-					NoFormat: true,
-				}
-				return g.Run()
-			}
-		}(k))
-	}
-	return eg.Wait()
-}
-
 // rename handles func renaming.
 func rename(files []string) error {
 	util.Logf("RUNNING: rename")
@@ -489,8 +445,8 @@ func rename(files []string) error {
 				if err != nil {
 					return err
 				}
-				buf = bytes.ReplaceAll(buf, []byte("CookiePartitionKey) UnmarshalEasyJSON("), []byte("CookiePartitionKey) OrigUnmarshalEasyJSON("))
-				buf = bytes.ReplaceAll(buf, []byte("UnmarshalEasyJSONZZ"), []byte("UnmarshalEasyJSON"))
+				buf = bytes.ReplaceAll(buf, []byte("CookiePartitionKey) UnmarshalText("), []byte("CookiePartitionKey) OrigUnmarshalText("))
+				buf = bytes.ReplaceAll(buf, []byte("UnmarshalTextZZ"), []byte("UnmarshalText"))
 				return os.WriteFile(n, buf, 0o644)
 			}
 		}(k))
@@ -519,26 +475,6 @@ func gofmt(files []string) error {
 		}(k))
 	}
 	return eg.Wait()
-}
-
-// fmtFiles returns the list of all files to format from the specified file
-// buffers and packages.
-func fmtFiles(files map[string]*bytes.Buffer, pkgs []string) []string {
-	filelen := len(files)
-	f := make([]string, filelen+len(pkgs))
-
-	var i int
-	for n := range files {
-		f[i] = n
-		i++
-	}
-
-	for i, pkg := range pkgs {
-		f[i+filelen] = filepath.Join(pkg, easyjsonGo)
-	}
-
-	sort.Strings(f)
-	return f
 }
 
 // contains determines if any key in m is equal to n or starts with the path
