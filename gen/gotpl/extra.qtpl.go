@@ -956,11 +956,8 @@ func UnmarshalMessage(msg *Message) (any, error) {
 //line gen/gotpl/extra.qtpl:460
 		}
 //line gen/gotpl/extra.qtpl:460
-		qw422016.N().S(`
-	`)
-//line gen/gotpl/extra.qtpl:461
 	}
-//line gen/gotpl/extra.qtpl:461
+//line gen/gotpl/extra.qtpl:460
 	qw422016.N().S(`
 	default:
 		return nil, cdp.ErrUnknownCommandOrEvent(msg.Method)
@@ -981,31 +978,31 @@ func UnmarshalMessage(msg *Message) (any, error) {
 	return v, nil
 }
 `)
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 }
 
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 func WriteExtraMessageTemplate(qq422016 qtio422016.Writer, domains []*pdl.Domain) {
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	StreamExtraMessageTemplate(qw422016, domains)
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	qt422016.ReleaseWriter(qw422016)
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 }
 
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 func ExtraMessageTemplate(domains []*pdl.Domain) string {
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	qb422016 := qt422016.AcquireByteBuffer()
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	WriteExtraMessageTemplate(qb422016, domains)
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	qs422016 := string(qb422016.B)
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	qt422016.ReleaseByteBuffer(qb422016)
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 	return qs422016
-//line gen/gotpl/extra.qtpl:480
+//line gen/gotpl/extra.qtpl:479
 }

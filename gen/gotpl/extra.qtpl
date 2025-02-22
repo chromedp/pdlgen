@@ -457,8 +457,7 @@ func UnmarshalMessage(msg *Message) (any, error) {
 		return emptyVal, nil{% else %}
 		v = new({%s= genutil.PackageName(d) %}.{%s= CommandReturnsType(c) %}){% endif %}{% endfor %}{% for _, e := range d.Events %}
 	case {%s= EventMethodType(e, d) %}:
-		v = new({%s= genutil.PackageName(d) %}.{%s= EventType(e) %}){% endfor %}
-	{% endfor %}
+		v = new({%s= genutil.PackageName(d) %}.{%s= EventType(e) %}){% endfor %}{% endfor %}
 	default:
 		return nil, cdp.ErrUnknownCommandOrEvent(msg.Method)
 	}
