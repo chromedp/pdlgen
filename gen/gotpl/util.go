@@ -356,7 +356,7 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExpose
 	for _, v := range types {
 		s += "\n\t" + GoName(v, noExposeOverride) + " " + GoType(v, d, domains)
 
-		omit := ",omitempty"
+		omit := ",omitempty,omitzero"
 		if (omitOnlyWhenOptional && !v.Optional) || v.AlwaysEmit {
 			omit = ""
 		}
