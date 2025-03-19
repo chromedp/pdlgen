@@ -450,7 +450,7 @@ type empty struct{}
 var emptyVal = &empty{}
 
 // UnmarshalMessage unmarshals the message result or params.
-func UnmarshalMessage(msg *Message) (any, error) {
+func UnmarshalMessage(msg *Message, opts ...jsonv2.Options) (any, error) {
 	var v any
 	switch msg.Method {{% for _, d := range domains %}{% for _, c := range d.Commands %}
 	case {%s= CommandMethodType(c, d) %}:{% if len(c.Returns) == 0 %}
@@ -471,7 +471,7 @@ func UnmarshalMessage(msg *Message) (any, error) {
 	default:
 		return nil, cdp.ErrMsgMissingParamsOrResult
 	}
-	if err := jsonv2.Unmarshal(buf, v); err != nil {
+	if err := jsonv2.Unmarshal(buf, v, opts...); err != nil {
 		return nil, err
 	}
 	return v, nil
