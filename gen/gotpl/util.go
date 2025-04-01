@@ -2,6 +2,7 @@ package gotpl
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -26,15 +27,12 @@ const (
 	CommandReturnsSuffix = "Returns"
 	OptionFuncPrefix     = "With"
 	OptionFuncSuffix     = ""
-
 	// Base64EncodedParamName is the base64encoded variable name in command
 	// return values when they are optionally base64 encoded.
 	Base64EncodedParamName = "base64Encoded"
-
 	// Base64EncodedDescriptionPrefix is the prefix for command return
 	// description prefix when base64 encoded.
 	Base64EncodedDescriptionPrefix = "Base64-encoded"
-
 	// ChromeDevToolsDocBase is the base URL for the Chrome DevTools
 	// documentation site.
 	//
@@ -113,7 +111,6 @@ func ParamList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, all bool) stri
 // namespaced.
 func ResolveRef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainType, *pdl.Type) {
 	n := strings.SplitN(t.Ref, ".", 2)
-
 	// determine domain
 	dtyp, typ := d.Domain, n[0]
 	if len(n) == 2 {
@@ -121,7 +118,6 @@ func ResolveRef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainTy
 	}
 	ref := strings.ToLower(dtyp.String() + "." + typ)
 	shortRef := strings.ToLower(typ)
-
 	// determine if ref points to an object
 	var resolved *pdl.Type
 	for _, z := range domains {
@@ -138,11 +134,9 @@ func ResolveRef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainTy
 			break
 		}
 	}
-
 	if resolved == nil {
 		panic(fmt.Sprintf("could not resolve type %s in domain %s", ref, d.Domain))
 	}
-
 	return dtyp, resolved
 }
 
@@ -155,10 +149,8 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 	switch {
 	case t.NoExpose || t.NoResolve || strings.HasPrefix(t.Ref, "*"):
 		return d.Domain, t, t.Ref
-
 	case t.Ref != "":
 		dtyp, typ := ResolveRef(t, d, domains)
-
 		// add prefix if is a type defined as having circular dependency issues
 		var s string
 		switch {
@@ -168,27 +160,21 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 		case dtyp != d.Domain:
 			s = strings.ToLower(dtyp.String()) + "."
 		}
-
 		// add ptr if object
 		var ptr string
 		switch typ.Type {
 		case pdl.TypeObject, pdl.TypeTimestamp:
 			ptr = "*"
 		}
-
 		return dtyp, typ, ptr + s + snaker.ForceCamelIdentifier(typ.Name)
-
 	case t.Type == pdl.TypeArray:
 		dtyp, typ, z := ResolveType(t.Items, d, domains)
 		return dtyp, typ, "[]" + z
-
 	case t.Type == pdl.TypeObject && (t.Properties == nil || len(t.Properties) == 0):
 		return d.Domain, t, GoEnumType(pdl.TypeAny)
-
 	case t.Type == pdl.TypeObject:
 		panic("should not encounter an object with defined properties that does not have Ref and Name")
 	}
-
 	return d.Domain, t, GoEnumType(t.Type)
 }
 
@@ -202,10 +188,8 @@ func GoName(t *pdl.Type, noExposeOverride bool) string {
 			}
 			n = snaker.ForceLowerCamelIdentifier(n)
 		}
-
 		return n
 	}
-
 	return snaker.ForceCamelIdentifier(t.Name)
 }
 
@@ -214,18 +198,14 @@ func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, extra []*pdl.T
 	switch {
 	case t.Parameters != nil:
 		return StructDef(append(extra, t.Parameters...), d, domains, noExposeOverride, omitOnlyWhenOptional)
-
 	case t.Type == pdl.TypeArray:
 		_, o, _ := ResolveType(t.Items, d, domains)
 		return "[]" + GoTypeDef(o, d, domains, nil, false, false)
-
 	case t.Type == pdl.TypeObject:
 		return StructDef(append(extra, t.Properties...), d, domains, noExposeOverride, omitOnlyWhenOptional)
-
 	case t.Type == pdl.TypeAny && t.Ref != "":
 		return t.Ref
 	}
-
 	return GoEnumType(t.Type)
 }
 
@@ -242,71 +222,58 @@ func EnumValueName(t *pdl.Type, v string) string {
 			return e
 		}
 	}
-
 	// special case for "negative" value
 	var neg string
 	if strings.HasPrefix(v, "-") {
 		neg = "Negative"
 	}
-
 	return snaker.ForceCamelIdentifier(t.Name) + neg + snaker.ForceCamelIdentifier(v)
 }
 
 // GoEmptyValue returns the empty Go value for the type.
 func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 	typ := GoType(t, d, domains)
-
 	switch {
 	case strings.HasPrefix(typ, "[]") || strings.HasPrefix(typ, "*"):
 		return "nil"
 	}
-
 	return GoEnumEmptyValue(t.Type)
 }
 
 // RetTypeList returns a list of the return types.
 func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 	var s string
-
 	b64ret := Base64EncodedRetParam(t)
 	for _, p := range t.Returns {
 		if p.Name == Base64EncodedParamName {
 			continue
 		}
-
 		n := p.Name
 		_, _, z := ResolveType(p, d, domains)
-
 		// if this is a base64 encoded item
 		if b64ret != nil && b64ret.Name == p.Name {
 			z = "[]byte"
 		}
-
 		s += snaker.ForceLowerCamelIdentifier(n) + " " + z + ","
 	}
-
 	return strings.TrimSuffix(s, ",")
 }
 
 // EmptyRetList returns a list of the empty return values.
 func EmptyRetList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 	var s string
-
 	b64ret := Base64EncodedRetParam(t)
 	for _, p := range t.Returns {
 		if p.Name == Base64EncodedParamName {
 			continue
 		}
-
 		_, o, z := ResolveType(p, d, domains)
 		v := GoEnumEmptyValue(o.Type)
 		if strings.HasPrefix(z, "*") || strings.HasPrefix(z, "[]") || (b64ret != nil && b64ret.Name == p.Name) {
 			v = "nil"
 		}
-
 		s += v + ", "
 	}
-
 	return strings.TrimSuffix(s, ", ")
 }
 
@@ -318,15 +285,12 @@ func RetNameList(t *pdl.Type, valname string, d *pdl.Domain, domains []*pdl.Doma
 		if p.Name == Base64EncodedParamName {
 			continue
 		}
-
 		n := valname + "." + GoName(p, false)
 		if b64ret != nil && b64ret.Name == p.Name {
 			n = "dec"
 		}
-
 		s += n + ", "
 	}
-
 	return strings.TrimSuffix(s, ", ")
 }
 
@@ -353,31 +317,27 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExpose
 		s += " "
 	}
 	s += "{"
-	for _, v := range types {
-		s += "\n\t" + GoName(v, noExposeOverride) + " " + GoType(v, d, domains)
-
+	for _, typ := range types {
+		s += "\n\t" + GoName(typ, noExposeOverride) + " " + GoType(typ, d, domains)
 		omit := ",omitempty,omitzero"
-		if (omitOnlyWhenOptional && !v.Optional) || v.AlwaysEmit {
+		if (omitOnlyWhenOptional && !typ.Optional) || typ.AlwaysEmit || (typ.Type == pdl.TypeBoolean) {
 			omit = ""
 		}
-
 		// add json tag
-		if v.NoExpose {
+		if typ.NoExpose {
 			s += " `json:\"-\"`"
 		} else {
-			s += " `json:\"" + v.Name + omit + "\"`"
+			s += " `json:\"" + typ.Name + omit + "\"`"
 		}
-
 		// add comment
-		if v.Type != pdl.TypeObject && v.Description != "" {
-			s += " // " + genutil.CleanDesc(v.Description)
+		if typ.Type != pdl.TypeObject && typ.Description != "" {
+			s += " // " + genutil.CleanDesc(typ.Description)
 		}
 	}
 	if len(types) > 0 {
 		s += "\n"
 	}
 	s += "}"
-
 	return s
 }
 
@@ -409,7 +369,6 @@ var goReservedNames = map[string]bool{
 	"switch":      true,
 	"type":        true,
 	"var":         true,
-
 	// go types
 	"error":      true,
 	"bool":       true,
@@ -438,22 +397,16 @@ func GoEnumType(te pdl.TypeEnum) string {
 	switch te {
 	case pdl.TypeAny:
 		return "jsontext.Value"
-
 	case pdl.TypeBoolean:
 		return "bool"
-
 	case pdl.TypeInteger:
 		return "int64"
-
 	case pdl.TypeNumber:
 		return "float64"
-
 	case pdl.TypeString, pdl.TypeBinary:
 		return "string"
-
 	case pdl.TypeTimestamp:
 		return "time.Time"
-
 	default:
 		panic(fmt.Sprintf("called GoEnumType on non primitive type %s", te.String()))
 	}
@@ -464,20 +417,15 @@ func GoEnumEmptyValue(te pdl.TypeEnum) string {
 	switch te {
 	case pdl.TypeBoolean:
 		return `false`
-
 	case pdl.TypeInteger:
 		return `0`
-
 	case pdl.TypeNumber:
 		return `0`
-
 	case pdl.TypeString, pdl.TypeBinary:
 		return `""`
-
 	case pdl.TypeTimestamp:
 		return `time.Time{}`
 	}
-
 	return `nil`
 }
 
@@ -486,7 +434,6 @@ func DocRefLink(t *pdl.Type) string {
 	if t.RawSee != "" {
 		return t.RawSee
 	}
-
 	typ := "type"
 	switch t.RawType {
 	case "command":
@@ -494,12 +441,13 @@ func DocRefLink(t *pdl.Type) string {
 	case "event":
 		typ = "event"
 	}
-
 	i := strings.Index(t.RawName, ".")
 	if i == -1 {
 		return ""
 	}
-
 	domain, name := t.RawName[:i], t.RawName[i+1:]
 	return ChromeDevToolsDocBase + "/" + domain + "#" + typ + "-" + name
 }
+
+// defaultTrueRE matches the "defaults to true" string variants in comments for boolean fields.
+var defaultTrueRE = regexp.MustCompile(`(?i)default.*true`)

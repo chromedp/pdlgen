@@ -57,8 +57,16 @@ const (
 // parameters:{% for _, p := range c.Parameters %}{% if p.Optional %}{% continue %}{% endif %}
 //   {%s= ParamDesc(p) %}{% if p.Optional %} (optional){% endif %}{% endfor %}{% endif %}
 func {%s= cmdName %}({%s= ParamList(c, d, domains, false) %}) *{%s= typ %}{
-	return &{%s= typ %}{{% for _, t := range c.Parameters %}{% if !t.Optional %}
-		{%s= GoName(t, false) %}: {%s= GoName(t, true) %},{% endif %}{% endfor %}
+	return &{%s= typ %}{{% for _, t := range c.Parameters %}{% if !t.Optional || t.Type == pdl.TypeBoolean %}{% code 
+	val := GoName(t, true)
+	if t.Type == pdl.TypeBoolean && t.Optional {
+		val = "false"
+		if defaultTrueRE.MatchString(t.Description) {
+			val = "true"
+		}
+	}
+%}
+	{%s= GoName(t, false) %}: {%s= val %},{% endif %}{% endfor %}
 	}
 }
 {% endfunc %}
