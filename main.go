@@ -500,7 +500,7 @@ func pad(s string, n int) string {
 
 // whitelisted checks if n is a whitelisted file.
 func whitelisted(n string) bool {
-	for _, z := range strings.Split(*flagGoWl, ",") {
+	for z := range strings.SplitSeq(*flagGoWl, ",") {
 		if z == n || glob.Glob(z, n) {
 			return true
 		}

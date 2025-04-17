@@ -396,8 +396,8 @@ func (e *ExceptionDetails) Error() string {
 			if !t.NoExpose && !t.NoResolve && !t.IsCircularDep {
 				name := strings.TrimPrefix(t.RawName, d.Domain.String()+".")
 				name = strings.TrimPrefix(name, d.Domain.String())
-				if strings.HasPrefix(t.RawName, "Accessibility.") {
-					name = axRE.ReplaceAllString(strings.TrimPrefix(t.RawName, "Accessibility."), "")
+				if after, ok := strings.CutPrefix(t.RawName, "Accessibility."); ok {
+					name = axRE.ReplaceAllString(after, "")
 				}
 				if t.Name != name && name != "" {
 					t.Name = name

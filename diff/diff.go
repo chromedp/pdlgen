@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -57,7 +58,7 @@ func (fi *FileInfo) String() string {
 // FindFilesWithMask walks dir finding all files with the regexp mask, removing
 // any exclude'd files.
 func FindFilesWithMask(dir, mask string, exclude ...string) ([]*FileInfo, error) {
-	var maskRE = regexp.MustCompile(mask)
+	maskRE := regexp.MustCompile(mask)
 
 	// build list of protocol files on disk
 	var files []*FileInfo
@@ -74,7 +75,7 @@ func FindFilesWithMask(dir, mask string, exclude ...string) ([]*FileInfo, error)
 
 		// skip if same as current or doesn't match file mask
 		fn := n[len(dir):]
-		if !maskRE.MatchString(fn) || contains(exclude, filepath.Base(fn)) {
+		if !maskRE.MatchString(fn) || slices.Contains(exclude, filepath.Base(fn)) {
 			return nil
 		}
 
@@ -133,14 +134,4 @@ func WalkAndCompare(dir, mask string, filename string, cmp func(*FileInfo, *File
 	}
 
 	return nil, nil
-}
-
-// contains determines if s is defined in v.
-func contains(v []string, s string) bool {
-	for _, z := range v {
-		if z == s {
-			return true
-		}
-	}
-	return false
 }

@@ -317,7 +317,7 @@ func (pdl *PDL) Bytes() []byte {
 		if desc == "" {
 			return
 		}
-		for _, line := range strings.Split(desc, "\n") {
+		for line := range strings.SplitSeq(desc, "\n") {
 			if line != "" {
 				line = " " + line
 			}
