@@ -167,6 +167,14 @@ const ModifierCommand Modifier = ModifierMeta
 					t.Type = pdl.TypeTimestamp
 					t.TimestampType = pdl.TimestampTypeSecond
 					t.Extra += gotpl.ExtraTimestampTemplate(t, d)
+
+				case "TouchPoint":
+					for _, p := range t.Properties {
+						switch p.Name {
+						case "id":
+							p.AlwaysEmit = true
+						}
+					}
 				}
 			}
 
