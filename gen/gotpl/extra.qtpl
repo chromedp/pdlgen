@@ -364,7 +364,10 @@ func (err ErrUnknownCommandOrEvent) Error() string {
 {% func ExtraMethodTypeTemplate(domains []*pdl.Domain) %}
 // Domain returns the Chrome DevTools Protocol domain of the event or command.
 func (t MethodType) Domain() string {
-	return string(t[:strings.IndexByte(string(t), '.')])
+	if i := strings.IndexByte(string(t), '.'); i != -1 {
+		return string(t[:i])
+	}
+	return ""
 }
 
 // MethodType values.
