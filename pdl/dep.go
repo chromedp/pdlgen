@@ -17,9 +17,13 @@ var circularDeps = map[string]bool{
 	"dom.pseudotype":                      true,
 	"dom.rgba":                            true,
 	"dom.shadowroottype":                  true,
+	"dom.stylesheetid":                    true,
 	"network.loaderid":                    true,
 	"network.monotonictime":               true,
 	"network.timesinceepoch":              true,
+	"network.adprovenance":                true,
+	"network.adancestry":                  true,
+	"network.adscriptidentifier":          true,
 	"page.adframestatus":                  true,
 	"page.adframeexplanation":             true,
 	"page.adframetype":                    true,
@@ -34,6 +38,8 @@ var circularDeps = map[string]bool{
 	"page.origintrial":                    true,
 	"page.origintrialusagerestriction":    true,
 	"page.securecontexttype":              true,
+	"runtime.scriptid":                    true,
+	"runtime.uniquedebuggerid":            true,
 }
 
 // IsCircularDep returns whether or not a type will cause circular dependency

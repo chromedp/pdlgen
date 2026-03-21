@@ -57,13 +57,13 @@ func FormatComment(s, chop, newstr string) string {
 	}
 	s += "."
 
-	w := ""
+	var w strings.Builder
 	for i := strings.Index(s, "\n\n"); i != -1; i = strings.Index(s, "\n\n") {
-		w += Wrap(s[:i], CommentWidth-len(CommentPrefix), CommentPrefix) + "\n" + CommentPrefix + "\n"
+		w.WriteString(Wrap(s[:i], CommentWidth-len(CommentPrefix), CommentPrefix) + "\n" + CommentPrefix + "\n")
 		s = s[i+2:]
 	}
 
-	return w + Wrap(s, CommentWidth-len(CommentPrefix), CommentPrefix)
+	return w.String() + Wrap(s, CommentWidth-len(CommentPrefix), CommentPrefix)
 }
 
 // Wrap wraps a line of text to the specified width, and adding the prefix to

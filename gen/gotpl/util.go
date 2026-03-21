@@ -95,15 +95,15 @@ func ParamDesc(t *pdl.Type) string {
 
 // ParamList returns the list of parameters.
 func ParamList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, all bool) string {
-	var s string
+	var s strings.Builder
 	for _, p := range t.Parameters {
 		if !all && p.Optional {
 			continue
 		}
 		_, _, z := ResolveType(p, d, domains)
-		s += GoName(p, true) + " " + z + ","
+		s.WriteString(GoName(p, true) + " " + z + ",")
 	}
-	return strings.TrimSuffix(s, ",")
+	return strings.TrimSuffix(s.String(), ",")
 }
 
 // ResolveRef is a utility func to resolve the fully qualified name of a type's
@@ -242,7 +242,7 @@ func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 
 // RetTypeList returns a list of the return types.
 func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
-	var s string
+	var s strings.Builder
 	b64ret := Base64EncodedRetParam(t)
 	for _, p := range t.Returns {
 		if p.Name == Base64EncodedParamName {
@@ -254,14 +254,14 @@ func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 		if b64ret != nil && b64ret.Name == p.Name {
 			z = "[]byte"
 		}
-		s += snaker.ForceLowerCamelIdentifier(n) + " " + z + ","
+		s.WriteString(snaker.ForceLowerCamelIdentifier(n) + " " + z + ",")
 	}
-	return strings.TrimSuffix(s, ",")
+	return strings.TrimSuffix(s.String(), ",")
 }
 
 // EmptyRetList returns a list of the empty return values.
 func EmptyRetList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
-	var s string
+	var s strings.Builder
 	b64ret := Base64EncodedRetParam(t)
 	for _, p := range t.Returns {
 		if p.Name == Base64EncodedParamName {
@@ -272,14 +272,14 @@ func EmptyRetList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 		if strings.HasPrefix(z, "*") || strings.HasPrefix(z, "[]") || (b64ret != nil && b64ret.Name == p.Name) {
 			v = "nil"
 		}
-		s += v + ", "
+		s.WriteString(v + ", ")
 	}
-	return strings.TrimSuffix(s, ", ")
+	return strings.TrimSuffix(s.String(), ", ")
 }
 
 // RetNameList returns a <valname>.<name> list for a command's return list.
 func RetNameList(t *pdl.Type, valname string, d *pdl.Domain, domains []*pdl.Domain) string {
-	var s string
+	var s strings.Builder
 	b64ret := Base64EncodedRetParam(t)
 	for _, p := range t.Returns {
 		if p.Name == Base64EncodedParamName {
@@ -289,9 +289,9 @@ func RetNameList(t *pdl.Type, valname string, d *pdl.Domain, domains []*pdl.Doma
 		if b64ret != nil && b64ret.Name == p.Name {
 			n = "dec"
 		}
-		s += n + ", "
+		s.WriteString(n + ", ")
 	}
-	return strings.TrimSuffix(s, ", ")
+	return strings.TrimSuffix(s.String(), ", ")
 }
 
 // Base64EncodedRetParam returns the base64 encoded return parameter, or nil if
@@ -312,33 +312,34 @@ func Base64EncodedRetParam(t *pdl.Type) *pdl.Type {
 
 // StructDef returns a struct definition for a list of types.
 func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) string {
-	s := "struct"
+	var s strings.Builder
+	s.WriteString("struct")
 	if len(types) > 0 {
-		s += " "
+		s.WriteString(" ")
 	}
-	s += "{"
+	s.WriteString("{")
 	for _, typ := range types {
-		s += "\n\t" + GoName(typ, noExposeOverride) + " " + GoType(typ, d, domains)
+		s.WriteString("\n\t" + GoName(typ, noExposeOverride) + " " + GoType(typ, d, domains))
 		omit := ",omitempty,omitzero"
 		if (omitOnlyWhenOptional && !typ.Optional) || typ.AlwaysEmit || (typ.Type == pdl.TypeBoolean) {
 			omit = ""
 		}
 		// add json tag
 		if typ.NoExpose {
-			s += " `json:\"-\"`"
+			s.WriteString(" `json:\"-\"`")
 		} else {
-			s += " `json:\"" + typ.Name + omit + "\"`"
+			s.WriteString(" `json:\"" + typ.Name + omit + "\"`")
 		}
 		// add comment
 		if typ.Type != pdl.TypeObject && typ.Description != "" {
-			s += " // " + genutil.CleanDesc(typ.Description)
+			s.WriteString(" // " + genutil.CleanDesc(typ.Description))
 		}
 	}
 	if len(types) > 0 {
-		s += "\n"
+		s.WriteString("\n")
 	}
-	s += "}"
-	return s
+	s.WriteString("}")
+	return s.String()
 }
 
 // goReservedNames is the list of reserved names in Go.

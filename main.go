@@ -17,6 +17,7 @@ import (
 	"go/format"
 	"maps"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -309,9 +310,14 @@ func loadProtoDefs() (*pdl.PDL, error) {
 
 	var protoDefs []*pdl.PDL
 	load := func(urlstr, typ, ver string) error {
+		base := path.Base(urlstr)
+		if !strings.HasSuffix(base, ".pdl") {
+			return fmt.Errorf("invalid url %q", urlstr)
+		}
+		name := strings.TrimSuffix(base, ".pdl")
 		buf, err := util.Get(util.Cache{
 			URL:    fmt.Sprintf(urlstr+"?format=TEXT", ver),
-			Path:   filepath.Join(*flagCache, "pdl", typ, ver+".pdl"),
+			Path:   filepath.Join(*flagCache, "pdl", typ, name+"_"+ver+".pdl"),
 			TTL:    *flagTTL,
 			Decode: true,
 		})
@@ -319,8 +325,20 @@ func loadProtoDefs() (*pdl.PDL, error) {
 			return err
 		}
 
+		// add grab
+		p := pdl.NewParser(pdl.Grab(func(s string) ([]byte, error) {
+			u := strings.TrimSuffix(urlstr, base) + s
+			n := strings.TrimSuffix(path.Base(u), ".pdl")
+			return util.Get(util.Cache{
+				URL:    fmt.Sprintf(u+"?format=TEXT", ver),
+				Path:   filepath.Join(*flagCache, "pdl", typ, name+"_"+n+"_"+ver+".pdl"),
+				TTL:    *flagTTL,
+				Decode: true,
+			})
+		}))
+
 		// parse
-		protoDef, err := pdl.Parse(buf)
+		protoDef, err := p.Parse(buf)
 		if err != nil {
 			return err
 		}
