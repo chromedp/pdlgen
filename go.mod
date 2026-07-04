@@ -9,13 +9,13 @@ require (
 	github.com/kenshaw/snaker v0.4.3
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/valyala/quicktemplate v1.8.0
-	golang.org/x/sync v0.20.0
-	golang.org/x/tools v0.43.0
+	golang.org/x/sync v0.21.0
+	golang.org/x/tools v0.47.0
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.3 // indirect
+	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	golang.org/x/mod v0.34.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/mod v0.37.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
 )
