@@ -56,9 +56,34 @@ runs `.github/scripts/update.sh`. The checkout of `cdproto` uses the secret
 5. Read the Chromium and V8 versions from `version.go`.
 6. Compare the public API of the last tag with the new code, using `apidiff`.
 7. Choose the next version by the rule above.
-8. Add an entry to `CHANGELOG.md`.
-9. Commit with the message `Updating to <chromium>_<v8> definitions`, make an
-   annotated tag, and push the commit and the tag.
+8. Write the notes of the release with `cmd/relnotes`, from the output of
+   `apidiff`. See below.
+9. Add an entry to `CHANGELOG.md`.
+10. Commit with the notes as the message, make an annotated tag with the notes as
+    the annotation, and push the commit and the tag.
+
+## The notes of a release
+
+`cmd/relnotes`, with the package `relnotes`, turns the output of `apidiff -m` into
+three texts. The message of the commit and the annotation of the tag hold the
+full notes. The entry of `CHANGELOG.md` holds the short form.
+
+The subject of the commit is `Updating to <chromium>_<v8> definitions`. The body
+holds:
+
+- The version of the release, and the Chromium and V8 versions, with the
+  previous ones when they changed.
+- The count of incompatible and compatible API changes since the previous tag.
+- The packages that the release adds and removes.
+- A table of removed, changed and added names for each package.
+- A list of the removed, the changed and the added names for each package.
+  A method that many types lose together, such as `UnmarshalJSON`, is one line
+  that counts the types. A list of more than twelve names is cut, with the
+  number that is left.
+
+Test the notes without a release. Save the output of `apidiff -m` for two
+versions, and run `go run ./cmd/relnotes --mode commit --diff <file>` with the
+versions as options.
 
 The commit and the tag are made as the repository owner. The script sets the author from
 `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL`, and the workflow sets both.

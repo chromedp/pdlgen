@@ -84,9 +84,36 @@ else
 fi
 echo "version: ${last:-none} -> $next (chromium $chromium, v8 $v8, api changes: $changes)"
 
+# the versions and the packages of the last release, for the notes
+prev_chromium= prev_v8=
+added= removed=
+if [ -n "$last" ]; then
+  prev_chromium=$(sed -n 's/^[[:space:]]*chromiumVersion = "\(.*\)"$/\1/p' "$tmp/base/version.go")
+  prev_v8=$(sed -n 's/^[[:space:]]*v8Version[[:space:]]*= "\(.*\)"$/\1/p' "$tmp/base/version.go")
+  packages() { (cd "$1" && for d in */; do ls "$d" | grep -q '\.go$' && echo "${d%/}"; done); }
+  packages "$tmp/base" | sort >"$tmp/packages.old"
+  packages "$cdproto" | sort >"$tmp/packages.new"
+  added=$(comm -13 "$tmp/packages.old" "$tmp/packages.new" | tr '\n' ' ')
+  removed=$(comm -23 "$tmp/packages.old" "$tmp/packages.new" | tr '\n' ' ')
+fi
+
+# write the notes of the release: the message of the commit, the annotation of
+# the tag and the entry of the changelog
+relnotes() {
+  (cd "$gen" && go run ./cmd/relnotes --mode "$1" --diff "${tmp}/all.txt" --version "$next" --previous "$last" \
+    --chromium "$chromium" --v8 "$v8" --prev-chromium "$prev_chromium" --prev-v8 "$prev_v8" \
+    --date "$(date -u +%Y-%m-%d)" --added-packages "$added" --removed-packages "$removed")
+}
+[ -n "$last" ] || : >"$tmp/all.txt"
+relnotes commit >"$tmp/commit.txt"
+relnotes tag >"$tmp/tag.txt"
+relnotes changelog >"$tmp/entry.txt"
+
 # update the changelog
-{
-  [ -f "$cdproto/CHANGELOG.md" ] || cat <<'HEADER'
+if [ -f "$cdproto/CHANGELOG.md" ]; then
+  sed -n '1,/^## /{/^## /!p}' "$cdproto/CHANGELOG.md" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' >"$tmp/changelog.new"
+else
+  cat >"$tmp/changelog.new" <<'HEADER'
 # Changelog
 
 Each release of `cdproto` is generated from the Chromium and V8 protocol
@@ -94,18 +121,10 @@ definitions listed below. The minor version is the Chromium major version. As
 the protocol definitions deprecate and remove commands, events, types, and
 fields, any release can contain incompatible changes to the generated API.
 HEADER
-  :
-} >"$tmp/changelog.new"
-if [ -f "$cdproto/CHANGELOG.md" ]; then
-  sed -n '1,/^## /{/^## /!p}' "$cdproto/CHANGELOG.md" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' >"$tmp/changelog.new"
 fi
 {
   echo
-  echo "## $next - $(date -u +%Y-%m-%d)"
-  echo
-  echo "- Chromium: $chromium"
-  echo "- V8: $v8"
-  echo "- API changes: $changes"
+  cat "$tmp/entry.txt"
   if [ -f "$cdproto/CHANGELOG.md" ]; then
     echo
     sed -n '/^## /,$p' "$cdproto/CHANGELOG.md"
@@ -115,10 +134,8 @@ mv "$tmp/changelog.new" "$cdproto/CHANGELOG.md"
 
 # commit and tag
 git -C "$cdproto" add -A
-git -C "$cdproto" commit -q -m "Updating to ${chromium}_${v8} definitions" -m "Release: $next"
-git -C "$cdproto" tag -a "$next" -m "cdproto $next" -m "Chromium: $chromium
-V8: $v8
-API changes: $changes"
+git -C "$cdproto" commit -q -F "$tmp/commit.txt"
+git -C "$cdproto" tag -a "$next" -F "$tmp/tag.txt"
 
 if [ "${PUSH:-1}" = 1 ]; then
   git -C "$cdproto" push origin "HEAD:$branch"

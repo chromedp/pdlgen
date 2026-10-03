@@ -115,6 +115,8 @@ something is written down, it is not written down, and it is an open question.
 - `gen/` holds the Go generator. `gen/gotpl/` holds the templates and the
   functions they call, and `gen/genutil/` holds the comment and name helpers.
 - `util/` retrieves and caches the files, and compares versions.
+- `relnotes/` and `cmd/relnotes/` write the notes of a release from the output of
+  `apidiff`, for the commit, the tag and the changelog.
 - `diff/` prints the difference between two protocol files.
 - `.github/workflows/` holds the `Test` and `Update` workflows.
 - `.github/scripts/update.sh` regenerates `cdproto`, and makes the tag and the
