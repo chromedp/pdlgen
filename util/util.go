@@ -20,12 +20,6 @@ const (
 
 	V8Base = "https://chromium.googlesource.com/v8/v8"
 	V8URL  = V8Base + "/+/%s/include/js_protocol.pdl"
-
-	// v8 <= 7.6.303.13 uses this path. left for posterity.
-	V8URLOld = V8Base + "/+/%s/src/inspector/js_protocol.pdl"
-
-	// chromium < 80.0.3978.0 uses this path. left for posterity.
-	ChromiumURLOld = ChromiumBase + "/+/%s/third_party/blink/renderer/core/inspector/browser_protocol.pdl"
 )
 
 // Logf is a shared logging function.
@@ -84,7 +78,7 @@ func GetRefs(c Cache) (map[string]Ref, error) {
 
 var revRE = regexp.MustCompile(`(?is)\s+'([0-9a-f]+)'`)
 
-// GetDepVersion version retrieves the v8 version used for the browser version.
+// GetDepVersion retrieves the v8 version used for the browser version.
 func GetDepVersion(typ, ver string, deps, refs Cache) (string, error) {
 	buf, err := Get(deps)
 	if err != nil {
@@ -119,10 +113,10 @@ func GetDepVersion(typ, ver string, deps, refs Cache) (string, error) {
 }
 
 // findTag returns the tag of the refs that points at the revision, or an empty
-// string. More than one tag can point at a revision, as V8 tags both "15.7.23"
-// and "15.7.23-pgo" for one commit. The tag with the fewest dashes wins, and
-// then the shortest and then the first in order, so that the answer does not
-// depend on the order of the map.
+// string. More than one tag can point at a revision. For example, V8 tags both
+// "15.7.23" and "15.7.23-pgo" for one commit. The tag with the fewest dashes
+// wins. Then the shortest tag wins, and then the first in order. This makes the
+// answer independent of the order of the map.
 func findTag(refs map[string]Ref, rev string) string {
 	var tags []string
 	for k, v := range refs {
