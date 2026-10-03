@@ -1,0 +1,119 @@
+{{- define "domain" -}}
+{{- $d := .Domain -}}
+{{- range .Domain.Commands}}
+{{template "command" (command . $d $.Domains)}}
+{{end -}}
+{{if .Domain.Commands}}
+// Command names.
+const (
+{{- range .Domain.Commands}}
+	{{commandMethodType . nil}} = {{printf "%q" (protoName . $d)}}
+{{- end}}
+)
+{{end -}}
+{{end -}}
+
+{{- define "command" -}}
+{{- /* *Params type */ -}}
+{{template "type" (typeData .C commandTypePrefix commandTypeSuffix .D .Domains false true)}}
+
+{{/* Command func */ -}}
+{{template "commandfunc" .}}
+
+{{/* option funcs, for optional parameters */ -}}
+{{range .C.Parameters}}{{if .Optional -}}
+{{template "optionfunc" (option . $.C $.D $.Domains)}}
+
+{{end}}{{end -}}
+{{- /* *Returns type */ -}}
+{{if .C.Returns -}}
+{{template "type" (typeData (returnsType .C) commandReturnsPrefix commandReturnsSuffix .D .Domains false false)}}
+
+{{end -}}
+{{- /* Do func */ -}}
+{{template "dofunc" .}}
+{{end -}}
+
+{{- define "commandfunc" -}}
+{{- $name := camelName .C -}}
+{{- $typ := commandType .C -}}
+{{comment .C.Description (printf "%s " $name)}}
+//
+// See: {{docRefLink .C}}
+{{- if .C.Parameters}}
+//
+// parameters:
+{{- range .C.Parameters}}{{if not .Optional}}
+//   {{paramDesc .}}
+{{- end}}{{end}}
+{{- end}}
+func {{$name}}({{paramList .C .D .Domains false}}) *{{$typ}} {
+	return &{{$typ}}{
+{{- range .C.Parameters}}{{if or (not .Optional) (isBoolean .)}}
+		{{goName . false}}: {{commandParamValue .}},
+{{- end}}{{end}}
+	}
+}
+{{end -}}
+
+{{- define "optionfunc" -}}
+{{- $n := goName .T false -}}
+{{- $optName := printf "%s%s%s" optionFuncPrefix $n optionFuncSuffix -}}
+{{- $typ := commandType .C -}}
+{{- $v := goName .T true -}}
+{{comment .T.Description (printf "%s " $optName)}}
+func (p {{$typ}}) {{$optName}}({{$v}} {{goType .T .D .Domains}}) *{{$typ}} {
+	p.{{$n}} = {{$v}}
+	return &p
+}
+{{end -}}
+
+{{- define "dofunc" -}}
+{{- $typ := commandType .C -}}
+{{- $hasRet := gt (len .C.Returns) 0 -}}
+{{- $emptyRet := emptyRetList .C .D .Domains -}}
+{{- $b64ret := base64EncodedRetParam .C -}}
+{{- $b64cond := hasBase64EncodedParam .C -}}
+{{- $pval := "p" -}}
+{{- if not .C.Parameters}}{{$pval = "nil"}}{{end -}}
+// Do executes {{.C.RawName}} against the provided context.
+{{- if $hasRet}}
+//
+// returns:
+{{- range .C.Returns}}{{if ne .Name base64EncodedParamName}}
+//   {{paramDesc .}}
+{{- end}}{{end}}
+{{- end}}
+func (p *{{$typ}}) Do(ctx context.Context) ({{with retTypeList .C .D .Domains}}{{.}}, {{end}}err error) {
+{{- if not $hasRet}}
+	return cdp.Execute(ctx, {{commandMethodType .C nil}}, {{$pval}}, nil)
+{{- else}}
+	// execute
+	var res {{commandReturnsType .C}}
+	err = cdp.Execute(ctx, {{commandMethodType .C nil}}, {{$pval}}, &res)
+	if err != nil {
+		return {{with $emptyRet}}{{.}}, {{end}}err
+	}
+{{- if $b64ret}}
+
+	// decode
+	var dec []byte
+{{- if $b64cond}}
+	if res.Base64encoded {
+{{- end}}
+		dec, err = base64.StdEncoding.DecodeString(res.{{goName $b64ret false}})
+		if err != nil {
+			return {{with $emptyRet}}{{.}}, {{end}}err
+		}
+{{- if $b64cond}}
+	} else {
+		dec = []byte(res.{{goName $b64ret false}})
+	}
+{{- end}}
+{{- end}}
+{{if not $b64ret}}
+{{end -}}
+	return {{with retNameList .C "res" .D .Domains}}{{.}}, {{end}}nil
+{{- end}}
+}
+{{end -}}

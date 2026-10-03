@@ -1,0 +1,99 @@
+package gen_test
+
+import (
+	"go/format"
+	"strings"
+	"testing"
+
+	"github.com/chromedp/cdproto-gen/fixup"
+	"github.com/chromedp/cdproto-gen/gen"
+	"github.com/chromedp/cdproto-gen/pdl"
+)
+
+const testPDL = `# Test protocol.
+version
+  major 1
+  minor 3
+
+# Target domain.
+domain Target
+  # Unique session identifier.
+  type SessionID extends string
+
+# Page domain.
+domain Page
+  # Unique frame identifier.
+  type FrameId extends string
+
+  # Page load result.
+  type PageResult extends object
+    properties
+      FrameId frameId
+      optional string errorText
+
+  # Navigates the current page.
+  command navigate
+    parameters
+      # URL to navigate to.
+      string url
+      optional string referrer
+      optional boolean replace
+    returns
+      FrameId frameId
+      optional string errorText
+
+  # Closes the page.
+  command close
+
+  # Fired when the load event fires.
+  event loadEventFired
+    parameters
+      number timestamp
+
+  # Fired when the page is closed.
+  event closed
+`
+
+func TestGoGenerator(t *testing.T) {
+	p, err := pdl.Parse([]byte(testPDL))
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	for _, d := range p.Domains {
+		for _, typs := range [][]*pdl.Type{d.Events, d.Commands} {
+			for _, typ := range typs {
+				if typ.Parameters == nil {
+					typ.Parameters = []*pdl.Type{}
+				}
+			}
+		}
+	}
+	fixup.FixDomains(p.Domains)
+	e, err := gen.NewGoGenerator(p.Domains, "github.com/chromedp/cdproto", gen.Versions{Chromium: "1.2.3.4", V8: "5.6.7"})
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	files := e.Emit()
+	for _, name := range []string{"cdproto.go", "version.go", "cdp/types.go", "page/page.go", "page/types.go", "page/events.go"} {
+		buf, ok := files[name]
+		if !ok {
+			t.Fatalf("expected file %s to be generated", name)
+		}
+		if _, err := format.Source(buf.Bytes()); err != nil {
+			t.Errorf("%s is not valid Go: %v\n%s", name, err, buf)
+		}
+	}
+	for name, want := range map[string][]string{
+		"version.go":     {`chromiumVersion = "1.2.3.4"`, `v8Version       = "5.6.7"`},
+		"page/page.go":   {"func Navigate(url string) *NavigateParams", "func (p NavigateParams) WithReferrer(", "func (p *NavigateParams) Do(ctx context.Context)", "CommandNavigate = \"Page.navigate\""},
+		"page/types.go":  {"type Result struct"},
+		"page/events.go": {"type EventLoadEventFired struct", "type EventClosed struct"},
+	} {
+		got := files[name].String()
+		for _, s := range want {
+			if !strings.Contains(got, s) {
+				t.Errorf("%s: expected output to contain %q", name, s)
+			}
+		}
+	}
+}

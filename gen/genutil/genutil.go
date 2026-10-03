@@ -1,5 +1,5 @@
-// Package go contains the valyala/quicktemplate based code generation
-// templates for Go used by cdproto-gen.
+// Package genutil contains utility funcs shared by the code generation
+// templates used by cdproto-gen.
 package genutil
 
 import (
@@ -8,7 +8,7 @@ import (
 	"unicode"
 
 	"github.com/client9/misspell"
-	"github.com/kenshaw/snaker"
+	"github.com/xo/ox/strcase"
 
 	"github.com/chromedp/cdproto-gen/pdl"
 )
@@ -41,7 +41,7 @@ func FormatComment(s, chop, newstr string) string {
 	if newstr != "" && l > 0 {
 		if i := strings.IndexFunc(s, unicode.IsSpace); i != -1 {
 			firstWord, remaining := s[:i], s[i:]
-			if snaker.IsInitialism(firstWord) || KeepUpper[firstWord] {
+			if strcase.IsInitialism(firstWord) || KeepUpper[firstWord] {
 				s = strings.ToUpper(firstWord)
 			} else if Keep[firstWord] {
 				s = firstWord

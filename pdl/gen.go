@@ -17,7 +17,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gedex/inflector"
-	"github.com/kenshaw/snaker"
+	"github.com/xo/ox/strcase"
 
 	"github.com/chromedp/cdproto-gen/pdl"
 )
@@ -130,7 +130,7 @@ func generate(buf []byte) (*pdl.PDL, error) {
 		}
 
 		// generate the object ID
-		id := inflector.Singularize(snaker.ForceCamelIdentifier(n))
+		id := inflector.Singularize(strcase.ForceCamelIdentifier(n))
 		if strings.HasSuffix(id, "um") {
 			id = strings.TrimSuffix(id, "um") + "a"
 		}

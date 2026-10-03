@@ -1,0 +1,6 @@
+# Every text file is LF on every checkout, including a checkout on Windows.
+#
+# The templates in gen/gotpl are embedded in the binary, and the generator
+# writes the same bytes on every machine. Git for Windows writes CRLF by
+# default, and a template with CRLF line endings would change the output.
+* text=auto eol=lf

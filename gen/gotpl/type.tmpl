@@ -1,0 +1,73 @@
+{{- define "type" -}}
+{{- $typ := printf "%s%s%s" .Prefix (camelName .T) .Suffix -}}
+{{- $docRef := docRefLink .T -}}
+{{comment .T.Description (printf "%s " $typ)}}
+{{- if and (ne .T.RawType "command") (ne .T.RawType "returns") $docRef}}
+//
+// See: {{$docRef}}
+{{- end}}
+type {{$typ}} {{goTypeDef .T .D .Domains .NoExposeOverride .OmitOnlyWhenOptional}}
+{{- if and (isNil .T.Parameters) (ne .T.Type "array") (ne .T.Type "object") (ne .T.Type "any")}}
+{{- $gz := goEnumType .T.Type}}
+{{- $z := exportedName $gz}}
+
+// {{$z}} returns the {{$typ}} as {{$gz}} value.
+func (t {{$typ}}) {{$z}}() {{$gz}} {
+	return {{$gz}}(t)
+}
+{{- end}}
+{{- if .T.Enum}}
+{{- $gz := goEnumType .T.Type}}
+
+// {{$typ}} values.
+const (
+{{- range $i, $e := .T.Enum}}
+	{{enumValueName $.T $e}} {{$typ}} = {{enumValue $.T $i $e}}
+{{- end}}
+)
+{{- if ne .T.Type "string"}}
+
+// String satisfies the [fmt.Stringer] interface.
+func (t {{$typ}}) String() string {
+	switch t {
+{{- range .T.Enum}}
+	case {{enumValueName $.T .}}:
+		return {{printf "%q" .}}
+{{- end}}
+	}
+	return fmt.Sprintf("{{$typ}}(%d)", t)
+}
+{{- end}}
+
+// UnmarshalJSON satisfies [json.Unmarshaler].
+func (t *{{$typ}}) UnmarshalJSON(buf []byte) error {
+	s := string(buf)
+{{- if eq $gz "float64"}}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return err
+	}
+{{- else if eq $gz "int64"}}
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return err
+	}
+{{- else}}
+	s = strings.TrimSuffix(strings.TrimPrefix(s, `"`), `"`)
+{{end}}
+	switch {{$typ}}({{if eq $gz "string"}}s{{else}}v{{end}}) {
+{{- range .T.Enum}}
+	case {{enumValueName $.T .}}:
+		*t = {{enumValueName $.T .}}
+{{- end}}
+	default:
+		return fmt.Errorf("unknown {{$typ}} value: %v", s)
+	}
+	return nil
+}
+{{- end}}
+{{- if .T.Extra}}
+
+{{.T.Extra}}
+{{- end}}
+{{end -}}

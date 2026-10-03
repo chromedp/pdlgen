@@ -354,33 +354,15 @@ type Type struct {
 	// RawSee is a raw see url reference.
 	RawSee string `json:"-"`
 
-	// TimestampType is the timestamp subtype.
-	TimestampType TimestampType `json:"-"`
-
 	// IsCircularDep indicates a type that causes circular dependencies.
 	IsCircularDep bool `json:"-"`
-
-	// NoExpose toggles whether or not to expose the type.
-	NoExpose bool `json:"-"`
 
 	// NoResolve toggles not resolving the type to a domain (ie, for special
 	// internal types).
 	NoResolve bool `json:"-"`
 
-	// AlwaysEmit forces the value to always be emitted when marshaled to JSON.
-	AlwaysEmit bool `json:"-"`
-
-	// EnumValueNameMap is a map to override the generated enum value name.
-	EnumValueNameMap map[string]string `json:"-"`
-
-	// EnumBitMask toggles it as a bit mask enum for TypeInteger enums.
-	EnumBitMask bool `json:"-"`
-
 	// Extra will be added as output after the the type is emitted.
 	Extra string `json:"-"`
-
-	// SwapUnmarshaler will cause the generated UnmarshalTextZZ and UnmarshalText names to be swapped.
-	SwapUnmarshaler bool
 }
 
 // TypeEnum is the Chrome domain type enum.
@@ -388,31 +370,20 @@ type TypeEnum string
 
 // TypeEnum values.
 const (
-	TypeAny       TypeEnum = "any"
-	TypeArray     TypeEnum = "array"
-	TypeBinary    TypeEnum = "binary"
-	TypeBoolean   TypeEnum = "boolean"
-	TypeInteger   TypeEnum = "integer"
-	TypeNumber    TypeEnum = "number"
-	TypeObject    TypeEnum = "object"
-	TypeString    TypeEnum = "string"
-	TypeTimestamp TypeEnum = "timestamp"
+	TypeAny     TypeEnum = "any"
+	TypeArray   TypeEnum = "array"
+	TypeBinary  TypeEnum = "binary"
+	TypeBoolean TypeEnum = "boolean"
+	TypeInteger TypeEnum = "integer"
+	TypeNumber  TypeEnum = "number"
+	TypeObject  TypeEnum = "object"
+	TypeString  TypeEnum = "string"
 )
 
 // String satisfies stringer.
 func (te TypeEnum) String() string {
 	return string(te)
 }
-
-// TimestampType are the various timestamp subtypes.
-type TimestampType int
-
-// TimestampType values.
-const (
-	TimestampTypeMillisecond TimestampType = 1 + iota
-	TimestampTypeSecond
-	TimestampTypeMonotonic
-)
 
 // Redirect holds type redirect information.
 type Redirect struct {

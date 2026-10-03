@@ -5,8 +5,6 @@ import (
 	"path"
 	"path/filepath"
 
-	qtpl "github.com/valyala/quicktemplate"
-
 	"github.com/chromedp/cdproto-gen/gen/genutil"
 	"github.com/chromedp/cdproto-gen/gen/gotpl"
 	"github.com/chromedp/cdproto-gen/pdl"
@@ -19,16 +17,23 @@ type GoGenerator struct {
 
 // NewGoGenerator creates a Go source code generator for the Chrome DevTools
 // Protocol domain definitions.
-func NewGoGenerator(domains []*pdl.Domain, basePkg string) (Emitter, error) {
-	var w *qtpl.Writer
-
+func NewGoGenerator(domains []*pdl.Domain, basePkg string, versions Versions) (Emitter, error) {
 	fb := make(fileBuffers)
 
 	// generate shared types
-	fb.generateSharedTypes(domains, basePkg)
+	if err := fb.generateSharedTypes(domains, basePkg); err != nil {
+		return nil, err
+	}
 
 	// generate util package
-	fb.generateRootPackage(domains, basePkg)
+	if err := fb.generateRootPackage(domains, basePkg); err != nil {
+		return nil, err
+	}
+
+	// generate version file
+	if err := fb.generateVersion(basePkg, versions); err != nil {
+		return nil, err
+	}
 
 	// generate individual domains
 	for _, d := range domains {
@@ -36,28 +41,33 @@ func NewGoGenerator(domains []*pdl.Domain, basePkg string) (Emitter, error) {
 		pkgOut := filepath.Join(pkgName, pkgName+".go")
 
 		// do command template
-		w = fb.get(pkgOut, pkgName, d, domains, basePkg)
-		gotpl.StreamDomainTemplate(w, d, domains)
-		fb.release(w)
+		w := fb.get(pkgOut, pkgName, d, domains, basePkg)
+		if err := gotpl.Domain(w, d, domains); err != nil {
+			return nil, err
+		}
 
 		// generate domain types
 		if len(d.Types) != 0 {
-			fb.generateTypes(
+			if err := fb.generateTypes(
 				filepath.Join(pkgName, "types.go"),
 				d.Types, gotpl.TypePrefix, gotpl.TypeSuffix,
 				d, domains,
 				basePkg,
-			)
+			); err != nil {
+				return nil, err
+			}
 		}
 
 		// generate domain event types
 		if len(d.Events) != 0 {
-			fb.generateTypes(
+			if err := fb.generateTypes(
 				filepath.Join(pkgName, "events.go"),
 				d.Events, gotpl.EventTypePrefix, gotpl.EventTypeSuffix,
 				d, domains,
 				basePkg,
-			)
+			); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -78,7 +88,7 @@ type fileBuffers map[string]*bytes.Buffer
 //
 // Because there are circular package dependencies, some types need to be moved
 // to eliminate circular dependencies.
-func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string) {
+func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string) error {
 	// determine shared types
 	var typs []*pdl.Type
 	for _, d := range domains {
@@ -98,25 +108,28 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 	w := fb.get("cdp/types.go", "cdp", d, domains, basePkg)
 
 	// add executor
-	gotpl.StreamExtraExecutorTemplate(w)
+	if err := gotpl.Executor(w); err != nil {
+		return err
+	}
 
 	// add types
 	for _, t := range typs {
-		gotpl.StreamTypeTemplate(
+		if err := gotpl.Type(
 			w, t, gotpl.TypePrefix, gotpl.TypeSuffix,
 			d, append(domains, d),
-			nil, false, true,
-		)
+			false, true,
+		); err != nil {
+			return err
+		}
 	}
-
-	fb.release(w)
+	return nil
 }
 
 // generateRootPackage generates the util package.
 //
 // Currently only contains the low-level message unmarshaler -- if this wasn't
 // in a separate package, then there would be circular dependencies.
-func (fb fileBuffers) generateRootPackage(domains []*pdl.Domain, basePkg string) {
+func (fb fileBuffers) generateRootPackage(domains []*pdl.Domain, basePkg string) error {
 	n := path.Base(basePkg)
 	d := &pdl.Domain{
 		Domain:      pdl.DomainType(n),
@@ -124,13 +137,23 @@ func (fb fileBuffers) generateRootPackage(domains []*pdl.Domain, basePkg string)
 	}
 	w := fb.get(n+".go", n, d, domains, basePkg)
 	for _, t := range rootPackageTypes(domains) {
-		gotpl.StreamTypeTemplate(
-			w, t, "", "",
-			d, domains,
-			nil, false, true,
-		)
+		if err := gotpl.Type(w, t, "", "", d, domains, false, true); err != nil {
+			return err
+		}
 	}
-	fb.release(w)
+	return nil
+}
+
+// generateVersion generates the version file for the root package, recording
+// the versions of the protocol definitions the code was generated from.
+func (fb fileBuffers) generateVersion(basePkg string, versions Versions) error {
+	n := path.Base(basePkg)
+	w := new(bytes.Buffer)
+	fb["version.go"] = w
+	if err := gotpl.FileHeader(w, n, nil); err != nil {
+		return err
+	}
+	return gotpl.Version(w, versions.Chromium, versions.V8)
 }
 
 // generateTypes generates the types for a domain.
@@ -139,7 +162,7 @@ func (fb fileBuffers) generateTypes(
 	types []*pdl.Type, prefix, suffix string,
 	d *pdl.Domain, domains []*pdl.Domain,
 	basePkg string,
-) {
+) error {
 	w := fb.get(path, genutil.PackageName(d), d, domains, basePkg)
 
 	// process type list
@@ -147,27 +170,23 @@ func (fb fileBuffers) generateTypes(
 		if t.IsCircularDep {
 			continue
 		}
-		gotpl.StreamTypeTemplate(
-			w, t, prefix, suffix,
-			d, domains,
-			nil, false, true,
-		)
+		if err := gotpl.Type(w, t, prefix, suffix, d, domains, false, true); err != nil {
+			return err
+		}
 	}
-
-	fb.release(w)
+	return nil
 }
 
 // get retrieves the file buffer for s, or creates it if it is not yet available.
-func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pdl.Domain, basePkg string) *qtpl.Writer {
+func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pdl.Domain, basePkg string) *bytes.Buffer {
 	// check if it already exists
 	if b, ok := fb[s]; ok {
-		return qtpl.AcquireWriter(b)
+		return b
 	}
 
 	// create buffer
-	b := new(bytes.Buffer)
-	fb[s] = b
-	w := qtpl.AcquireWriter(b)
+	w := new(bytes.Buffer)
+	fb[s] = w
 
 	v := d
 	if b := path.Base(s); b != pkgName+".go" {
@@ -175,15 +194,17 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 	}
 
 	// add package header
-	gotpl.StreamFileHeader(w, pkgName, v)
+	if err := gotpl.FileHeader(w, pkgName, v); err != nil {
+		panic(err)
+	}
 
 	// add import map
 	importMap := map[string]string{
-		"encoding/json":                               "",
-		basePkg + "/cdp":                              "",
-		"github.com/chromedp/sysutil":                 "",
-		"github.com/go-json-experiment/json":          "jsonv2",
-		"github.com/go-json-experiment/json/jsontext": "",
+		"encoding/json":               "",
+		"encoding/json/jsontext":      "",
+		"encoding/json/v2":            "jsonv2",
+		basePkg + "/cdp":              "",
+		"github.com/chromedp/sysutil": "",
 	}
 	// add io only for cdp package
 	if pkgName == "cdp" {
@@ -197,24 +218,20 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 		}
 		importMap[basePkg+"/"+pn] = ""
 	}
-	gotpl.StreamFileImportTemplate(w, importMap)
+	if err := gotpl.FileImports(w, importMap); err != nil {
+		panic(err)
+	}
 
 	return w
-}
-
-// release releases a template writer.
-func (fb fileBuffers) release(w *qtpl.Writer) {
-	qtpl.ReleaseWriter(w)
 }
 
 // rootPackageTypes returns the root package types.
 func rootPackageTypes(domains []*pdl.Domain) []*pdl.Type {
 	return []*pdl.Type{{
-		Name:             "MethodType",
-		Type:             pdl.TypeString,
-		Description:      "Chrome DevTools Protocol method type (ie, event and command names).",
-		EnumValueNameMap: make(map[string]string),
-		Extra:            gotpl.ExtraMethodTypeTemplate(domains),
+		Name:        "MethodType",
+		Type:        pdl.TypeString,
+		Description: "Chrome DevTools Protocol method type (ie, event and command names).",
+		Extra:       gotpl.MethodType(domains),
 	}, {
 		Name:        "Error",
 		Type:        pdl.TypeObject,
@@ -269,6 +286,6 @@ func (e *Error) Error() string {
 			Optional:    true,
 			NoResolve:   true,
 		}},
-		Extra: gotpl.ExtraMessageTemplate(domains),
+		Extra: gotpl.Message(domains),
 	}}
 }

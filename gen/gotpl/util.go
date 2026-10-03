@@ -8,7 +8,7 @@ import (
 
 	"github.com/chromedp/cdproto-gen/gen/genutil"
 	"github.com/chromedp/cdproto-gen/pdl"
-	"github.com/kenshaw/snaker"
+	"github.com/xo/ox/strcase"
 )
 
 // Prefix and suffix values.
@@ -51,17 +51,17 @@ func ProtoName(t *pdl.Type, d *pdl.Domain) string {
 
 // CamelName returns the CamelCase name of the type.
 func CamelName(t *pdl.Type) string {
-	return snaker.ForceCamelIdentifier(t.Name)
+	return strcase.ForceCamelIdentifier(t.Name)
 }
 
 // EventMethodType returns the method type of the event.
 func EventMethodType(t *pdl.Type, d *pdl.Domain) string {
-	return EventMethodPrefix + snaker.ForceCamelIdentifier(ProtoName(t, d)) + EventMethodSuffix
+	return EventMethodPrefix + strcase.ForceCamelIdentifier(ProtoName(t, d)) + EventMethodSuffix
 }
 
 // CommandMethodType returns the method type of the event.
 func CommandMethodType(t *pdl.Type, d *pdl.Domain) string {
-	return CommandMethodPrefix + snaker.ForceCamelIdentifier(ProtoName(t, d)) + CommandMethodSuffix
+	return CommandMethodPrefix + strcase.ForceCamelIdentifier(ProtoName(t, d)) + CommandMethodSuffix
 }
 
 // TypeName returns the type name using the supplied prefix and suffix.
@@ -90,7 +90,7 @@ func ParamDesc(t *pdl.Type) string {
 	if desc != "" {
 		desc = " - " + genutil.CleanDesc(desc)
 	}
-	return snaker.ForceLowerCamelIdentifier(t.Name) + desc
+	return strcase.ForceLowerCamelIdentifier(t.Name) + desc
 }
 
 // ParamList returns the list of parameters.
@@ -147,7 +147,7 @@ func ResolveRef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainTy
 // name.
 func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainType, *pdl.Type, string) {
 	switch {
-	case t.NoExpose || t.NoResolve || strings.HasPrefix(t.Ref, "*"):
+	case t.NoResolve || strings.HasPrefix(t.Ref, "*"):
 		return d.Domain, t, t.Ref
 	case t.Ref != "":
 		dtyp, typ := ResolveRef(t, d, domains)
@@ -163,10 +163,10 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 		// add ptr if object
 		var ptr string
 		switch typ.Type {
-		case pdl.TypeObject, pdl.TypeTimestamp:
+		case pdl.TypeObject:
 			ptr = "*"
 		}
-		return dtyp, typ, ptr + s + snaker.ForceCamelIdentifier(typ.Name)
+		return dtyp, typ, ptr + s + strcase.ForceCamelIdentifier(typ.Name)
 	case t.Type == pdl.TypeArray:
 		dtyp, typ, z := ResolveType(t.Items, d, domains)
 		return dtyp, typ, "[]" + z
@@ -180,29 +180,29 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 
 // GoName returns the Go name.
 func GoName(t *pdl.Type, noExposeOverride bool) string {
-	if t.NoExpose || noExposeOverride {
+	if noExposeOverride {
 		n := t.Name
 		if n != "" && !unicode.IsUpper(rune(n[0])) {
 			if goReservedNames[n] {
 				n += "Val"
 			}
-			n = snaker.ForceLowerCamelIdentifier(n)
+			n = strcase.ForceLowerCamelIdentifier(n)
 		}
 		return n
 	}
-	return snaker.ForceCamelIdentifier(t.Name)
+	return strcase.ForceCamelIdentifier(t.Name)
 }
 
 // GoTypeDef returns the Go type definition for the type.
-func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, extra []*pdl.Type, noExposeOverride, omitOnlyWhenOptional bool) string {
+func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) string {
 	switch {
 	case t.Parameters != nil:
-		return StructDef(append(extra, t.Parameters...), d, domains, noExposeOverride, omitOnlyWhenOptional)
+		return StructDef(t.Parameters, d, domains, noExposeOverride, omitOnlyWhenOptional)
 	case t.Type == pdl.TypeArray:
 		_, o, _ := ResolveType(t.Items, d, domains)
-		return "[]" + GoTypeDef(o, d, domains, nil, false, false)
+		return "[]" + GoTypeDef(o, d, domains, false, false)
 	case t.Type == pdl.TypeObject:
-		return StructDef(append(extra, t.Properties...), d, domains, noExposeOverride, omitOnlyWhenOptional)
+		return StructDef(t.Properties, d, domains, noExposeOverride, omitOnlyWhenOptional)
 	case t.Type == pdl.TypeAny && t.Ref != "":
 		return t.Ref
 	}
@@ -217,17 +217,12 @@ func GoType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 
 // EnumValueName returns the name for a enum value.
 func EnumValueName(t *pdl.Type, v string) string {
-	if t.EnumValueNameMap != nil {
-		if e, ok := t.EnumValueNameMap[v]; ok {
-			return e
-		}
-	}
 	// special case for "negative" value
 	var neg string
 	if strings.HasPrefix(v, "-") {
 		neg = "Negative"
 	}
-	return snaker.ForceCamelIdentifier(t.Name) + neg + snaker.ForceCamelIdentifier(v)
+	return strcase.ForceCamelIdentifier(t.Name) + neg + strcase.ForceCamelIdentifier(v)
 }
 
 // GoEmptyValue returns the empty Go value for the type.
@@ -254,7 +249,7 @@ func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 		if b64ret != nil && b64ret.Name == p.Name {
 			z = "[]byte"
 		}
-		s.WriteString(snaker.ForceLowerCamelIdentifier(n) + " " + z + ",")
+		s.WriteString(strcase.ForceLowerCamelIdentifier(n) + " " + z + ",")
 	}
 	return strings.TrimSuffix(s.String(), ",")
 }
@@ -321,15 +316,11 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExpose
 	for _, typ := range types {
 		s.WriteString("\n\t" + GoName(typ, noExposeOverride) + " " + GoType(typ, d, domains))
 		omit := ",omitempty,omitzero"
-		if (omitOnlyWhenOptional && !typ.Optional) || typ.AlwaysEmit || (typ.Type == pdl.TypeBoolean) {
+		if (omitOnlyWhenOptional && !typ.Optional) || (typ.Type == pdl.TypeBoolean) {
 			omit = ""
 		}
 		// add json tag
-		if typ.NoExpose {
-			s.WriteString(" `json:\"-\"`")
-		} else {
-			s.WriteString(" `json:\"" + typ.Name + omit + "\"`")
-		}
+		s.WriteString(" `json:\"" + typ.Name + omit + "\"`")
 		// add comment
 		if typ.Type != pdl.TypeObject && typ.Description != "" {
 			s.WriteString(" // " + genutil.CleanDesc(typ.Description))
@@ -406,8 +397,6 @@ func GoEnumType(te pdl.TypeEnum) string {
 		return "float64"
 	case pdl.TypeString, pdl.TypeBinary:
 		return "string"
-	case pdl.TypeTimestamp:
-		return "time.Time"
 	default:
 		panic(fmt.Sprintf("called GoEnumType on non primitive type %s", te.String()))
 	}
@@ -424,8 +413,6 @@ func GoEnumEmptyValue(te pdl.TypeEnum) string {
 		return `0`
 	case pdl.TypeString, pdl.TypeBinary:
 		return `""`
-	case pdl.TypeTimestamp:
-		return `time.Time{}`
 	}
 	return `nil`
 }

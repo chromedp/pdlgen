@@ -1,3 +1,10 @@
+# The built command.
 /cdproto-gen
 /cdproto-gen.exe
+
+# Protocol files and other data written by a run.
 *.json
+!skills-lock.json
+
+# The Claude Code permissions of one person.
+/.claude/settings.local.json

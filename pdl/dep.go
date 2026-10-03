@@ -38,6 +38,7 @@ var circularDeps = map[string]bool{
 	"page.origintrial":                    true,
 	"page.origintrialusagerestriction":    true,
 	"page.securecontexttype":              true,
+	"page.securityorigindetails":          true,
 	"runtime.scriptid":                    true,
 	"runtime.uniquedebuggerid":            true,
 }

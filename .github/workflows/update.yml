@@ -1,0 +1,41 @@
+name: Update
+on:
+  schedule:
+  - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      chromium:
+        description: Chromium version (default is the latest)
+        required: false
+      v8:
+        description: V8 version (default is the version in the Chromium DEPS)
+        required: false
+concurrency:
+  group: update
+  cancel-in-progress: false
+jobs:
+  update:
+    name: Update cdproto
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+    - name: Checkout cdproto-gen
+      uses: actions/checkout@v4
+    - name: Checkout cdproto
+      uses: actions/checkout@v4
+      with:
+        repository: chromedp/cdproto
+        path: cdproto
+        fetch-depth: 0
+        token: ${{ secrets.ACCESS_TOKEN }}
+    - name: Install apidiff
+      run: go install golang.org/x/exp/cmd/apidiff@latest
+    - name: Update, tag, and push cdproto
+      env:
+        GEN_ARGS: ${{ inputs.chromium && format('--chromium {0}', inputs.chromium) }} ${{ inputs.v8 && format('--v8 {0}', inputs.v8) }}
+        GIT_AUTHOR_NAME: Kenneth Shaw
+        GIT_AUTHOR_EMAIL: kenshaw@gmail.com
+      run: .github/scripts/update.sh
