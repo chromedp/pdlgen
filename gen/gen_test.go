@@ -1,7 +1,10 @@
 package gen_test
 
 import (
+	"go/ast"
 	"go/format"
+	"go/parser"
+	"go/token"
 	"strings"
 	"testing"
 
@@ -97,6 +100,13 @@ func TestGoGenerator(t *testing.T) {
 		}
 		if _, err := format.Source(buf.Bytes()); err != nil {
 			t.Errorf("%s is not valid Go: %v\n%s", name, err, buf)
+		}
+		// tools find a generated file by the comment before the package clause
+		f, err := parser.ParseFile(token.NewFileSet(), name, buf.Bytes(), parser.ParseComments|parser.PackageClauseOnly)
+		if err != nil {
+			t.Errorf("expected no error, got: %v", err)
+		} else if !ast.IsGenerated(f) {
+			t.Errorf("expected %s to be marked as generated before the package clause", name)
 		}
 	}
 	for name, want := range map[string][]string{
