@@ -23,6 +23,26 @@ domain Target
   # Unique session identifier.
   type SessionID extends string
 
+# Network domain.
+domain Network
+  # A WebSocket message.
+  type WebSocketFrame extends object
+    properties
+      # WebSocket message opcode.
+      number opcode
+      # WebSocket message payload data. If the opcode is 1, it is text. If not, it is base64.
+      string payloadData
+
+# HAR domain.
+domain HAR
+  # The content of a response.
+  type Content extends object
+    properties
+      # The text, plain or encoded.
+      optional string text
+      # The encoding of the text, for example "base64".
+      optional string encoding
+
 # Page domain.
 domain Page
   # Navigates the current page.

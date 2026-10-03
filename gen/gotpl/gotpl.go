@@ -210,20 +210,40 @@ func returnsType(c *pdl.Type) *pdl.Type {
 	}
 }
 
-// withBase64 returns t with the base64 pair of its struct fixed, or t itself
-// when it has no pair.
+// base64Rule says how a struct tells that its text value is base64.
+type base64Rule struct {
+	// field is the name of the text value, and sibling is the name of the
+	// property that tells whether the value is base64.
+	field, sibling string
+	// cond returns the Go condition on the Go name of the sibling.
+	cond func(sibling string) string
+}
+
+// base64Rules are the structs whose text value is base64 under a condition on
+// another property, which a name alone does not give. The protocol describes
+// the condition in a description or in the HAR specification.
+var base64Rules = map[string]base64Rule{
+	// If the opcode is 1, payloadData is a UTF-8 string. If it is not 1, then
+	// payloadData is a base64 encoded string of binary data.
+	"Network.WebSocketFrame": {"payloadData", "opcode", func(s string) string { return "r." + s + " != 1" }},
+	// The text is encoded as the encoding says, for example "base64".
+	"HAR.Content": {"text", "encoding", func(s string) string { return "r." + s + ` == "base64"` }},
+}
+
+// withBase64 returns t with the base64 text value of its struct fixed, or t
+// itself when it has none.
 //
-// A struct can hold a text value that the browser sends as base64 when a flag
-// next to it says so, as Network.getResponseBody does with body and
+// A struct can hold a text value that the browser sends as base64 when another
+// property says so. Network.getResponseBody does it with body and the flag
 // base64Encoded. The value of such a struct is a []byte, and the struct decodes
-// it by the flag in its UnmarshalJSON, as the old Do method did. typeName is the
-// Go name of the struct.
+// it by the property in its UnmarshalJSON, as the old Do method did. typeName is
+// the Go name of the struct.
 func withBase64(t *pdl.Type, typeName string) *pdl.Type {
 	props := t.Properties
 	if t.RawType == "event" {
 		props = t.Parameters
 	}
-	field, flag := base64Pair(props)
+	field, sibling, cond := base64Pair(t.RawName, props)
 	if field == nil {
 		return t
 	}
@@ -242,28 +262,44 @@ func withBase64(t *pdl.Type, typeName string) *pdl.Type {
 	} else {
 		c.Properties = fixed
 	}
-	c.Extra = t.Extra + render("base64result", struct{ Type, Field, FieldJSON, Flag string }{
+	c.Extra = t.Extra + render("base64result", struct{ Type, Field, FieldJSON, Cond string }{
 		Type:      typeName,
 		Field:     GoName(field, false),
 		FieldJSON: field.Name,
-		Flag:      GoName(flag, false),
+		Cond:      cond(GoName(sibling, false)),
 	})
 	return &c
 }
 
-// base64Pair returns the text value and the flag that says it is base64, when
-// the properties have a boolean base64Encoded and a string value next to it.
-// The value is the property before the flag, or the one after it.
-func base64Pair(props []*pdl.Type) (field, flag *pdl.Type) {
+// base64Pair returns the text value of the properties that can be base64, the
+// property that tells it, and the Go condition that says that the value is
+// base64.
+//
+// The value is next to a boolean base64Encoded, before the flag or after it, or
+// it is the value of a rule in base64Rules for the struct rawName.
+func base64Pair(rawName string, props []*pdl.Type) (field, sibling *pdl.Type, cond func(string) string) {
+	find := func(name string) *pdl.Type {
+		for _, p := range props {
+			if p.Name == name {
+				return p
+			}
+		}
+		return nil
+	}
+	if r, ok := base64Rules[rawName]; ok {
+		if field, sibling = find(r.field), find(r.sibling); field != nil && sibling != nil {
+			return field, sibling, r.cond
+		}
+	}
 	for i, p := range props {
 		if p.Name != "base64Encoded" || p.Type != pdl.TypeBoolean {
 			continue
 		}
 		for _, j := range []int{i - 1, i + 1} {
 			if j >= 0 && j < len(props) && props[j].Type == pdl.TypeString && props[j].Ref == "" && props[j].Enum == nil {
-				return props[j], p
+				return props[j], p, func(s string) string { return "r." + s }
 			}
 		}
 	}
-	return nil, nil
+	return nil, nil, nil
 }

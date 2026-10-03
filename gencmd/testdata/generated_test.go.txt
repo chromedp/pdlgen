@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/har"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 )
 
@@ -129,6 +131,25 @@ func TestEventDecodesBase64ByTheFlag(t *testing.T) {
 	}
 	if len(got) != 2 || got[0] != "hello" || got[1] != "text" {
 		t.Errorf("unexpected bodies: %q", got)
+	}
+}
+
+func TestTextDecodesByAnotherValue(t *testing.T) {
+	var frame network.WebSocketFrame
+	if err := jsonv2.Unmarshal([]byte(`{"opcode":2,"payloadData":"aGVsbG8="}`), &frame); err != nil || string(frame.PayloadData) != "hello" {
+		t.Errorf("binary frame: %q, %v", frame.PayloadData, err)
+	}
+	frame = network.WebSocketFrame{}
+	if err := jsonv2.Unmarshal([]byte(`{"opcode":1,"payloadData":"plain text"}`), &frame); err != nil || string(frame.PayloadData) != "plain text" {
+		t.Errorf("text frame: %q, %v", frame.PayloadData, err)
+	}
+	var content har.Content
+	if err := jsonv2.Unmarshal([]byte(`{"text":"aGVsbG8=","encoding":"base64"}`), &content); err != nil || string(content.Text) != "hello" {
+		t.Errorf("base64 content: %q, %v", content.Text, err)
+	}
+	content = har.Content{}
+	if err := jsonv2.Unmarshal([]byte(`{"text":"<html>"}`), &content); err != nil || string(content.Text) != "<html>" {
+		t.Errorf("plain content: %q, %v", content.Text, err)
 	}
 }
 

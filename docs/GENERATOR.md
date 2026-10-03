@@ -76,7 +76,8 @@ flag next to it, such as `Network.getResponseBody`, holds the value as a `[]byte
 and its `UnmarshalJSON` decodes the value by the flag, as the old `Do` method did.
 The rule applies to every struct, results, types and events alike. A text value
 whose description starts with "Base64-encoded" and that has no flag is a `[]byte`
-too.
+too. Two structs decode by another property, `Network.WebSocketFrame` by the opcode and
+`HAR.Content` by `encoding`. They are in the table `base64Rules`.
 
 An event `baz` becomes the struct `EventBaz` and the value `Baz` of the type
 `cdp.Event[EventBaz]`. A caller runs a command with

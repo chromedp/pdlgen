@@ -29,11 +29,15 @@ only the five results above have the pair. A text value whose description starts
 with "Base64-encoded", and that has no flag, is a `[]byte` too, so the JSON
 package decodes it. `Storage.PrivateVerificationToken.token` is the only one.
 
-Three text values that mention base64 are left as strings, because the decoding
-has a condition that the generator cannot read from a field name:
-`Network.WebSocketFrame.payloadData` is base64 only when the opcode is not 1,
-`HAR.Content.text` is base64 when `encoding` says so, and
-`Network.SignedExchangeHeader.headerIntegrity` is a hash text.
+Two text values are base64 under a condition on another property, which a name
+alone does not give. `Network.WebSocketFrame.payloadData` is base64 when the opcode is
+not 1, and `HAR.Content.text` is base64 when `encoding` is "base64". The generator
+has a small table for these two structs, in `base64Rules` in `gen/gotpl/gotpl.go`, with
+the Go condition of each. Both decode automatically. A real Chrome test with a
+text frame and a binary frame confirmed `payloadData`.
+
+`Network.SignedExchangeHeader.headerIntegrity` is a hash text in the form
+`sha256-<base64>`, and it stays a string.
 
 ## What it costs
 
