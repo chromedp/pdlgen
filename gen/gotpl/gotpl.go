@@ -35,12 +35,14 @@ type Import struct {
 }
 
 // FileHeader writes the package header for pkgName to w. It writes the package
-// comment only when d is not nil.
-func FileHeader(w io.Writer, pkgName string, d *pdl.Domain) error {
+// comment only when d is not nil. When root is true, the package is the root
+// package, which is not a domain, and the comment says so.
+func FileHeader(w io.Writer, pkgName string, d *pdl.Domain, root bool) error {
 	return execute(w, "header", struct {
 		Package string
 		Domain  *pdl.Domain
-	}{pkgName, d})
+		Root    bool
+	}{pkgName, d, root && d != nil})
 }
 
 // FileImports writes the import block for the imports to w, sorted by path. The

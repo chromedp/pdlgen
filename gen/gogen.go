@@ -153,7 +153,7 @@ func (fb fileBuffers) generateVersion(basePkg string, versions Versions) error {
 	n := path.Base(basePkg)
 	w := new(bytes.Buffer)
 	fb["version.go"] = w
-	if err := gotpl.FileHeader(w, n, nil); err != nil {
+	if err := gotpl.FileHeader(w, n, nil, false); err != nil {
 		return err
 	}
 	return gotpl.Version(w, versions.Chromium, versions.V8)
@@ -197,7 +197,7 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 	}
 
 	// add package header
-	if err := gotpl.FileHeader(w, pkgName, v); err != nil {
+	if err := gotpl.FileHeader(w, pkgName, v, pkgName == path.Base(basePkg)); err != nil {
 		panic(err)
 	}
 

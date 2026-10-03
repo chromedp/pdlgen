@@ -22,10 +22,3 @@ person runs it.
 The `xo` projects run `golangci-lint` with a configuration that enables most
 linters and lists the exceptions with a reason. This repository has none. See
 open question 4 in `PLAN.md`.
-
-### Fix the package comment of the package cdproto
-
-`cdproto.go` opens with the comment "Package cdproto provides the Chrome DevTools
-Protocol commands, types, and events for the cdproto domain." The package is not
-a domain. The template `header` in `gen/gotpl/file.tmpl` writes the sentence for
-every file that has a domain. Found when the output of the typed API was read.

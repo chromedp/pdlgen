@@ -162,6 +162,14 @@ func TestGoGenerator(t *testing.T) {
 			t.Errorf("expected output to contain %q, got:\n%s", want, got)
 		}
 	}
+	// the package comment of the root package says what it is, and does not call
+	// it a domain
+	if got := files["cdproto.go"].String(); !strings.Contains(got, "// Package cdproto holds the types of the Chrome DevTools Protocol that no") || strings.Contains(got, "domain.\n") {
+		t.Errorf("expected the root package comment to describe the package, got:\n%s", got)
+	}
+	if got := files["page/page.go"].String(); !strings.Contains(got, "for the Page domain.") {
+		t.Errorf("expected the package comment of Page to name the domain, got:\n%s", got)
+	}
 	// the typed API does not hide the connection in the context, so the package
 	// cdp has no error for a bad context
 	if got := files["cdp/types.go"].String(); strings.Contains(got, "ErrInvalidContext") {

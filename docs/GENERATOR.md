@@ -100,7 +100,8 @@ generator does not write the old `Do` and `With` methods.
 
 The templates are in `gen/gotpl/`, in four files:
 
-- `file.tmpl` writes the package header and the import block.
+- `file.tmpl` writes the package header and the import block. The root package
+  has its own package comment, because it is not a domain.
 - `domain.tmpl` writes the commands of a domain.
 - `type.tmpl` writes a type, its enum values and its enum methods.
 - `extra.tmpl` writes the errors and the typed API of the `cdp` package, the
