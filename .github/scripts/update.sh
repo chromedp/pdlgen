@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 #
 # Regenerates the cdproto package from the latest Chromium and V8 protocol
-# definitions. When the generated code changes, commits the result to cdproto,
-# tags it with the next version, and pushes the commit and tag.
+# definitions. When the generated code changes, the script commits the result
+# to cdproto, tags it with the next version, and pushes the commit and the tag.
 #
-# Versioning (see README.md): cdproto stays in v0, and the minor version is the
-# Chromium major version of the protocol definitions:
+# Versioning (see docs/RELEASES.md): cdproto stays at major version 0, and the
+# minor version is the Chromium major version of the protocol definitions:
 #
 #   - the first release for a Chromium major version is v0.<major>.0
-#   - every later release for the same major version bumps the patch version
+#   - every later release for the same major version adds one to the patch
 #
-# As the generated API can change incompatibly with any update to the protocol
-# definitions, the changes to the public API since the last tag (determined
-# using apidiff) are recorded in the tag annotation and in CHANGELOG.md.
+# The generated API can change in an incompatible way with any update of the
+# protocol definitions. The changes to the public API since the last tag, found
+# with apidiff, go in the annotation of the tag and in CHANGELOG.md.
 #
 # Environment:
 #   CDPROTO   path to the cdproto checkout (full history and tags) [cdproto]

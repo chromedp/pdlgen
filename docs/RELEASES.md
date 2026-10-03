@@ -18,8 +18,8 @@ Read it before you change a workflow, the update script or the version rules.
 The generated API can change in an incompatible way in any release, because the
 protocol removes and renames things. The tag does not say whether a release is
 compatible. The annotation of the tag and `CHANGELOG.md` in `cdproto` say it.
-Each lists the Chromium and V8 versions and counts the incompatible and the
-compatible changes since the previous tag. See
+Each lists the Chromium and V8 versions. Each also counts the incompatible and
+the compatible changes since the previous tag. See
 `docs/decisions/2026-10-03-cdproto-is-tagged-v0-chromium-major-patch.md` for the
 choices that were made and the ones that were rejected.
 
@@ -38,9 +38,10 @@ the Chromium version and `cdproto.V8Version()` returns the V8 version.
 
 `.github/workflows/update.yml` is the `Update` workflow. It runs once a day at
 03:17 UTC and can be started by hand, with an optional Chromium version and V8
-version. It checks out this repository and `cdproto`, installs `apidiff`, and
-runs `.github/scripts/update.sh`. The checkout of `cdproto` uses the secret
-`ACCESS_TOKEN`, which must be able to push to `chromedp/cdproto`.
+version. It checks out this repository and `cdproto` with its full history, installs
+`apidiff`, and runs `.github/scripts/update.sh`. The checkout of `cdproto` uses
+the secret `ACCESS_TOKEN`, which must be able to push to `chromedp/cdproto`. Only
+one run of the workflow goes at a time.
 
 ## What the update script does
 
@@ -54,13 +55,13 @@ runs `.github/scripts/update.sh`. The checkout of `cdproto` uses the secret
    and nothing is committed.
 4. If `git status` shows no change, print `no changes` and stop.
 5. Read the Chromium and V8 versions from `version.go`.
-6. Compare the public API of the last tag with the new code, using `apidiff`.
+6. Compare the public API of the last tag with the new code. Use `apidiff`.
 7. Choose the next version by the rule above.
 8. Write the notes of the release with `cmd/relnotes`, from the output of
    `apidiff`. See below.
 9. Add an entry to `CHANGELOG.md`.
-10. Commit with the notes as the message, make an annotated tag with the notes as
-    the annotation, and push the commit and the tag.
+10. Commit with the notes as the message. Make an annotated tag with the notes
+    as the annotation. Push the commit and the tag.
 
 ## The notes of a release
 
@@ -78,15 +79,16 @@ holds:
 - A table of removed, changed and added names for each package.
 - A list of the removed, the changed and the added names for each package.
   A method that many types lose together, such as `UnmarshalJSON`, is one line
-  that counts the types. A list of more than twelve names is cut, with the
-  number that is left.
+  that counts the types. The notes cut a list of more than twelve names and
+  give the number that is left.
 
 Test the notes without a release. Save the output of `apidiff -m` for two
 versions, and run `go run ./cmd/relnotes --mode commit --diff <file>` with the
 versions as options.
 
-The commit and the tag are made as the repository owner. The script sets the author from
-`GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL`, and the workflow sets both.
+The script makes the commit and the tag as the repository owner. It sets the
+author from `GIT_AUTHOR_NAME` and `GIT_AUTHOR_EMAIL`, and the workflow sets
+both.
 
 ## Running the script on your machine
 
