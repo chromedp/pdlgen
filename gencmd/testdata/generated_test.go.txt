@@ -9,6 +9,7 @@ import (
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/har"
+	"github.com/chromedp/cdproto/input"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 )
@@ -190,5 +191,50 @@ func TestEventsEnd(t *testing.T) {
 		if !errors.Is(err, context.Canceled) {
 			t.Fatalf("expected the context error, got: %v", err)
 		}
+	}
+}
+
+// TestPointerNumber checks that an optional number that the generator lists is
+// a pointer. A nil pointer leaves the field out, and a pointer to zero sends
+// zero. A number that the generator does not list stays a plain value.
+func TestPointerNumber(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		v    any
+		want string
+	}{
+		{"nil", input.TouchPoint{X: 1}, `{"x":1}`},
+		{"zero", input.TouchPoint{X: 1, ID: new(float64)}, `{"x":1,"id":0}`},
+		{"value", input.TouchPoint{ID: new(float64(7))}, `{"x":0,"id":7}`},
+		{"plain number is left out", input.TouchPoint{RotationAngle: 0}, `{"x":0}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			b, err := jsonv2.Marshal(test.v)
+			if err != nil {
+				t.Fatalf("expected no error, got: %v", err)
+			}
+			if string(b) != test.want {
+				t.Errorf("expected %s, got: %s", test.want, b)
+			}
+		})
+	}
+	// the pointer is in the parameters of a command too
+	s := &fake{result: `{"quality":0}`}
+	res, err := cdp.Call(context.Background(), s, page.CaptureScreenshot, page.CaptureScreenshotParams{Quality: new(int64)})
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if want := `{"quality":0}`; s.params != want {
+		t.Errorf("expected %s, got: %s", want, s.params)
+	}
+	if _, err := cdp.Call(context.Background(), s, page.CaptureScreenshot, page.CaptureScreenshotParams{}); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if s.params != "{}" {
+		t.Errorf("expected {}, got: %s", s.params)
+	}
+	// a result is read and not written, so its number is plain
+	if res.Quality != 0 {
+		t.Errorf("expected quality 0, got: %d", res.Quality)
 	}
 }

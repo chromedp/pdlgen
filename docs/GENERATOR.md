@@ -72,7 +72,9 @@ A command `Foo` in the domain `Bar` becomes the struct `FooParams`, the struct
 `FooResult`, and the value `Foo` of the type `cdp.Command[FooParams, FooResult]`.
 A command without parameters or without results uses `cdp.Empty` in place of the
 struct. The constant `CommandFoo` holds the name of the command. An optional
-boolean parameter is a `*bool`, so that `nil` leaves it out of the message. A
+boolean parameter is a `*bool`, so that `nil` leaves it out of the message. An
+optional number that the table `pointerNumbers` lists is a `*float64` or a
+`*int64` in the same way, because zero is a value of its own there. A
 binary value is a `[]byte`. A result that has a text value and a `base64Encoded`
 flag next to it, such as `Network.getResponseBody`, holds the value as a `[]byte`,
 and its `UnmarshalJSON` decodes the value by the flag, as the old `Do` method did.

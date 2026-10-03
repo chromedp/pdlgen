@@ -132,6 +132,15 @@ session returns. A caller reads it with `errors.As`.
   `false` changes what the browser does. A `nil` pointer leaves the parameter
   out. In Go 1.26 and later, `new(true)` and `new(false)` make the pointer. A
   boolean in a result or in another struct is a plain `bool`.
+- An optional number or integer is a plain value, and a zero is left out of the
+  message. A short table in `gen/gotpl/util.go` lists the fields where zero is a
+  value of its own, such as `input.TouchPoint.ID`, the margins of
+  `page.PrintToPDFParams` and the `Depth` of `dom.GetDocumentParams`. Those
+  fields are a `*float64` or a `*int64`, in the same way as an optional
+  boolean. A `nil` pointer leaves the field out, and `new(float64)` sends 0.
+  `input.TouchPoint{ID: new(float64)}` encodes as `{"x":0,"y":0,"id":0}`. See
+  `docs/decisions/2026-10-04-an-optional-number-can-be-a-pointer.md` for the
+  rule and the list.
 - A field that holds an enum has the named type of that enum, so a caller
   cannot pass an arbitrary string by accident.
 - A binary value is a `[]byte`. The standard library encodes it as base64
@@ -277,12 +286,6 @@ inside it, because the old action receives the same context.
   for a slow reader, or close it, and say so in its documentation.
 - The `With...` methods let the caller write one expression. A struct literal
   needs a variable for a long list of fields. Some people prefer the old form.
-
-## Open questions
-
-How does a caller send a zero value that the protocol requires, for a type
-other than a boolean? An optional field of another type is left out when it is
-zero. A pointer field is one answer, but the generator does not write one yet.
 
 ## What changed in this repository
 

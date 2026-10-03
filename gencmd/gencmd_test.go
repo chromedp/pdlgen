@@ -43,8 +43,36 @@ domain HAR
       # The encoding of the text, for example "base64".
       optional string encoding
 
+# Input domain.
+domain Input
+  # A point of touch.
+  type TouchPoint extends object
+    properties
+      # X coordinate.
+      number x
+      # Identifier of the touch source. Zero is an identifier.
+      optional number id
+      # Rotation angle (default: 0.0).
+      optional number rotationAngle
+
+  # Dispatches a touch event.
+  command dispatchTouchEvent
+    parameters
+      array of TouchPoint touchPoints
+
 # Page domain.
 domain Page
+  # Captures a screenshot.
+  command captureScreenshot
+    parameters
+      # Compression quality from range [0..100]. Zero is a quality.
+      optional integer quality
+      # Compression effort (default: 0).
+      optional integer effort
+    returns
+      # The quality that the browser used.
+      optional integer quality
+
   # Navigates the current page.
   command navigate
     parameters

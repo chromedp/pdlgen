@@ -33,3 +33,4 @@ is wrong, and it prints the row to add.
 | 2026-10-03 | [The only fixup removes name stuttering](2026-10-03-the-only-fixup-removes-name-stuttering.md) | Amended by 2026-10-03-inline-enums-are-named-types.md |
 | 2026-10-03 | [The package and the command are named pdlgen](2026-10-03-the-package-is-pdlgen.md) | Decided |
 | 2026-10-03 | [The `Update` workflow regenerates and tags `cdproto` every day](2026-10-03-the-update-workflow-tags-cdproto-daily.md) | Decided |
+| 2026-10-04 | [An optional number can be a pointer, from a table](2026-10-04-an-optional-number-can-be-a-pointer.md) | Decided |

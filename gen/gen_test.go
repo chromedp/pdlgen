@@ -23,6 +23,16 @@ domain Target
   # Unique session identifier.
   type SessionID extends string
 
+# Input domain.
+domain Input
+  # A point of touch.
+  type TouchPoint extends object
+    properties
+      number x
+      # Identifier of the touch source. Zero is an identifier.
+      optional number id
+      optional number rotationAngle
+
 # Page domain.
 domain Page
   # Unique frame identifier.
@@ -58,6 +68,16 @@ domain Page
     properties
       # Base64-encoded serialized token.
       string data
+
+  # Captures a screenshot.
+  command captureScreenshot
+    parameters
+      # Compression quality. Zero is a quality.
+      optional integer quality
+      # Compression effort (default: 0).
+      optional integer effort
+    returns
+      optional integer quality
 
   # Closes the page.
   command close
@@ -120,6 +140,18 @@ func TestGoGenerator(t *testing.T) {
 			if !strings.Contains(got, s) {
 				t.Errorf("%s: expected output to contain %q", name, s)
 			}
+		}
+	}
+	// an optional number that the generator lists is a pointer in a type and in
+	// the parameters of a command, so that a pointer to zero is sent and nil is
+	// left out. A number that is not listed, and a result, stay plain.
+	if got := files["input/types.go"].String(); !strings.Contains(got, "ID *float64 `json:\"id,omitempty,omitzero\"`") || !strings.Contains(got, "RotationAngle float64 `json:\"rotationAngle,omitempty,omitzero\"`") {
+		t.Errorf("expected a pointer id and a plain rotation angle, got:\n%s", got)
+	}
+	got := files["page/page.go"].String()
+	for _, want := range []string{"Quality *int64 `json:\"quality,omitempty,omitzero\"`", "Effort int64 `json:\"effort,omitempty,omitzero\"`", "Quality int64 `json:\"quality,omitempty,omitzero\"`"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("expected output to contain %q, got:\n%s", want, got)
 		}
 	}
 	// an object type without properties is a map, and a map is not a pointer

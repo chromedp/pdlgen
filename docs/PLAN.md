@@ -68,10 +68,7 @@ A change to a template is compared against the old output. See
 5. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on
    the generated enum types? Two models suggested them. See
    `decisions/2026-10-03-inline-enums-are-named-types.md`.
-6. How does a caller send a zero value that the protocol requires, for a type
-   other than a boolean? Such a field is left out when it is zero. A pointer
-   field is one answer. See the open question in `API.md`.
-7. The package `cdp` still has the constant `ErrInvalidContext`, and nothing in
+6. The package `cdp` still has the constant `ErrInvalidContext`, and nothing in
    the generated code uses it, because the typed API does not hide the
    connection in the context. `chromedp` has its own `ErrInvalidContext`. Does
    the maintainer want the one in `cdp` removed?

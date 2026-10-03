@@ -2,6 +2,7 @@ package gotpl
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -173,7 +174,7 @@ func GoName(t *pdl.Type, noExposeOverride bool) string {
 func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) string {
 	switch {
 	case t.Parameters != nil:
-		return StructDef(t.Parameters, d, domains, noExposeOverride, omitOnlyWhenOptional, t.RawType == "command")
+		return StructDef(t.Parameters, d, domains, noExposeOverride, omitOnlyWhenOptional, t.RawType == "command", structKey(t))
 	case t.Type == pdl.TypeArray:
 		_, o, _ := ResolveType(t.Items, d, domains)
 		return "[]" + GoTypeDef(o, d, domains, false, false)
@@ -182,7 +183,7 @@ func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverri
 		// as Network.Headers does. An empty struct cannot hold them.
 		return "map[string]any"
 	case t.Type == pdl.TypeObject:
-		return StructDef(t.Properties, d, domains, noExposeOverride, omitOnlyWhenOptional, false)
+		return StructDef(t.Properties, d, domains, noExposeOverride, omitOnlyWhenOptional, false, structKey(t))
 	case t.Type == pdl.TypeAny && t.Ref != "":
 		return t.Ref
 	}
@@ -223,7 +224,11 @@ func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 // sends false. A boolean in any other struct is a plain bool, and the message
 // always holds it. A binary value is a byte slice, which the JSON package
 // encodes as base64 without a tag.
-func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional, input bool) string {
+//
+// An optional number or integer that is listed in pointerNumbers is a pointer
+// in the same way. The key names the struct, as structKey returns it, and is
+// empty for a struct that has no such fields.
+func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional, input bool, key string) string {
 	var s strings.Builder
 	s.WriteString("struct")
 	if len(types) > 0 {
@@ -235,6 +240,8 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExpose
 		omit := ",omitempty,omitzero"
 		switch {
 		case input && typ.Optional && typ.Type == pdl.TypeBoolean:
+			goType = "*" + goType
+		case isPointerNumber(key, typ):
 			goType = "*" + goType
 		case (omitOnlyWhenOptional && !typ.Optional) || (typ.Type == pdl.TypeBoolean):
 			omit = ""
@@ -252,6 +259,81 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExpose
 	}
 	s.WriteString("}")
 	return s.String()
+}
+
+// pointerNumbers lists the optional numbers and integers that are pointers. The
+// key is the protocol name of a command, for its parameters, or of a type. The
+// value is the protocol names of the fields.
+//
+// A plain number is left out of the message when it is zero. That is wrong for
+// a field where zero is a value of its own and an absent field means something
+// else: a default that is not zero, no change, no limit or a cleared state. A
+// nil pointer leaves the field out, and a pointer to zero sends zero. The
+// decision 2026-10-04-an-optional-number-can-be-a-pointer.md says how the list
+// was made. Add a field here only when the protocol description of the field
+// shows that zero and absent differ. A name that the protocol no longer has is
+// ignored.
+var pointerNumbers = map[string][]string{
+	"Accessibility.getFullAXTree":           {"depth"},
+	"Animation.seekAnimations":              {"currentTime"},
+	"Audits.getEncodedResponse":             {"quality"},
+	"Browser.Bounds":                        {"left", "top"},
+	"CSS.forcePositionTryOption":            {"index"},
+	"DOM.describeNode":                      {"depth"},
+	"DOM.getDocument":                       {"depth"},
+	"DOM.requestChildNodes":                 {"depth"},
+	"DOMDebugger.getEventListeners":         {"depth"},
+	"Debugger.Location":                     {"columnNumber"},
+	"Debugger.setBreakpointByUrl":           {"columnNumber"},
+	"Emulation.SafeAreaInsets":              {"top", "topMax", "left", "leftMax", "bottom", "bottomMax", "right", "rightMax"},
+	"Emulation.setGeolocationOverride":      {"latitude", "longitude", "accuracy", "altitude", "altitudeAccuracy", "heading", "speed"},
+	"Emulation.setVirtualTimePolicy":        {"budget"},
+	"Emulation.updateScreen":                {"left", "top", "rotation"},
+	"HAR.Content":                           {"compression"},
+	"HAR.PageTimings":                       {"onContentLoad", "onLoad"},
+	"HAR.Timings":                           {"blocked", "dns", "connect", "ssl"},
+	"HeadlessExperimental.ScreenshotParams": {"quality"},
+	"IO.read":                               {"offset"},
+	"IndexedDB.Key":                         {"number", "date"},
+	"Input.TouchPoint":                      {"id", "radiusX", "radiusY", "force"},
+	"Input.imeSetComposition":               {"replacementStart", "replacementEnd"},
+	"Input.synthesizeScrollGesture":         {"repeatDelayMs"},
+	"Input.synthesizeTapGesture":            {"duration"},
+	"LayerTree.replaySnapshot":              {"toStep"},
+	"Network.configureDurableMessages":      {"maxTotalBufferSize", "maxResourceBufferSize"},
+	"Network.enable":                        {"maxTotalBufferSize", "maxResourceBufferSize", "maxPostDataSize"},
+	"Overlay.DisplayCutoutConfig":           {"cx", "cy"},
+	"Page.captureScreenshot":                {"quality"},
+	"Page.printToPDF":                       {"marginTop", "marginBottom", "marginLeft", "marginRight"},
+	"Page.startScreencast":                  {"quality"},
+	"Runtime.SerializationOptions":          {"maxDepth"},
+	"Storage.overrideQuotaForOrigin":        {"quotaSize"},
+	"Target.createTarget":                   {"left", "top"},
+	"WebAuthn.Credential":                   {"activeCmtgKeyIndex"},
+	"WebAuthn.setCredentialProperties":      {"activeCmtgKeyIndex", "signCount"},
+}
+
+// structKey returns the key of the struct in pointerNumbers. It is the
+// protocol name of t when t is a command, for its parameters, or a type. It is
+// empty for an event and for the result of a command, because a caller reads
+// those and does not write them.
+func structKey(t *pdl.Type) string {
+	if t.RawType == "command" || t.RawType == "type" {
+		return t.RawName
+	}
+	return ""
+}
+
+// isPointerNumber returns true when the field is an optional plain number or
+// integer that pointerNumbers lists for the struct key.
+func isPointerNumber(key string, field *pdl.Type) bool {
+	if key == "" || !field.Optional || field.Ref != "" || field.Enum != nil {
+		return false
+	}
+	if field.Type != pdl.TypeNumber && field.Type != pdl.TypeInteger {
+		return false
+	}
+	return slices.Contains(pointerNumbers[key], field.Name)
 }
 
 // goReservedNames is the list of reserved names in Go.
