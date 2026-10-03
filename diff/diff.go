@@ -28,9 +28,13 @@ func CompareFiles(a, b string) ([]byte, error) {
 
 	// build command line options
 	opts := []string{"--label", filepath.Base(a), "--label", filepath.Base(b)}
-	cols := strconv.Itoa(getColumns())
+	columns := getColumns()
+	if columns <= 0 {
+		columns = defaultColumns
+	}
+	cols := strconv.Itoa(columns)
 	if !icdiff {
-		opts = append(opts, "--side-by-side", "--width="+cols)
+		opts = append(opts, "--side-by-side", "--suppress-common-lines", "--width="+cols)
 	} else {
 		opts = append(opts, "--cols="+cols)
 	}
@@ -43,6 +47,10 @@ func CompareFiles(a, b string) ([]byte, error) {
 	}
 	return nil, nil
 }
+
+// defaultColumns is the width used when the terminal width is not known, as
+// when the output is not a terminal.
+const defaultColumns = 160
 
 // FileInfo contains file information.
 type FileInfo struct {
