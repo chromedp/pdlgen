@@ -166,12 +166,12 @@ func GoName(t *pdl.Type, noExposeOverride bool) string {
 func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) string {
 	switch {
 	case t.Parameters != nil:
-		return StructDef(t.Parameters, d, domains, noExposeOverride, omitOnlyWhenOptional)
+		return StructDef(t.Parameters, d, domains, noExposeOverride, omitOnlyWhenOptional, t.RawType == "command")
 	case t.Type == pdl.TypeArray:
 		_, o, _ := ResolveType(t.Items, d, domains)
 		return "[]" + GoTypeDef(o, d, domains, false, false)
 	case t.Type == pdl.TypeObject:
-		return StructDef(t.Properties, d, domains, noExposeOverride, omitOnlyWhenOptional)
+		return StructDef(t.Properties, d, domains, noExposeOverride, omitOnlyWhenOptional, false)
 	case t.Type == pdl.TypeAny && t.Ref != "":
 		return t.Ref
 	}
@@ -205,7 +205,14 @@ func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 }
 
 // StructDef returns a struct definition for a list of types.
-func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) string {
+//
+// When input is true, the struct is the parameters of a command, so an optional
+// boolean is a pointer: nil leaves the parameter out of the message, which
+// lets the browser use the default of the protocol, and a pointer to false
+// sends false. A boolean in any other struct is a plain bool, and is always
+// emitted. A binary value is a byte slice, which the JSON package encodes as
+// base64 without a tag.
+func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional, input bool) string {
 	var s strings.Builder
 	s.WriteString("struct")
 	if len(types) > 0 {
@@ -213,11 +220,15 @@ func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExpose
 	}
 	s.WriteString("{")
 	for _, typ := range types {
-		s.WriteString("\n\t" + GoName(typ, noExposeOverride) + " " + GoType(typ, d, domains))
+		goType := GoType(typ, d, domains)
 		omit := ",omitempty,omitzero"
-		if (omitOnlyWhenOptional && !typ.Optional) || (typ.Type == pdl.TypeBoolean) {
+		switch {
+		case input && typ.Optional && typ.Type == pdl.TypeBoolean:
+			goType = "*" + goType
+		case (omitOnlyWhenOptional && !typ.Optional) || (typ.Type == pdl.TypeBoolean):
 			omit = ""
 		}
+		s.WriteString("\n\t" + GoName(typ, noExposeOverride) + " " + goType)
 		// add json tag
 		s.WriteString(" `json:\"" + typ.Name + omit + "\"`")
 		// add comment
@@ -294,8 +305,10 @@ func GoEnumType(te pdl.TypeEnum) string {
 		return "int64"
 	case pdl.TypeNumber:
 		return "float64"
-	case pdl.TypeString, pdl.TypeBinary:
+	case pdl.TypeString:
 		return "string"
+	case pdl.TypeBinary:
+		return "[]byte"
 	default:
 		panic(fmt.Sprintf("called GoEnumType on non primitive type %s", te.String()))
 	}
@@ -310,7 +323,7 @@ func GoEnumEmptyValue(te pdl.TypeEnum) string {
 		return `0`
 	case pdl.TypeNumber:
 		return `0`
-	case pdl.TypeString, pdl.TypeBinary:
+	case pdl.TypeString:
 		return `""`
 	}
 	return `nil`

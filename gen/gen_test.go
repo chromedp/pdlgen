@@ -44,6 +44,7 @@ domain Page
     returns
       FrameId frameId
       optional string errorText
+      optional binary data
 
   # Closes the page.
   command close
@@ -90,7 +91,7 @@ func TestGoGenerator(t *testing.T) {
 	}
 	for name, want := range map[string][]string{
 		"version.go":     {`chromiumVersion = "1.2.3.4"`, `v8Version       = "5.6.7"`},
-		"page/page.go":   {"var Navigate = cdp.Command[NavigateParams, NavigateResult]{Method: CommandNavigate}", "type NavigateResult struct", "var Close = cdp.Command[cdp.Empty, cdp.Empty]{Method: CommandClose}", "var LoadEventFired = cdp.Event[EventLoadEventFired]{Method: \"Page.loadEventFired\"}", "var Closed = cdp.Event[EventClosed]{Method: \"Page.closed\"}", "CommandNavigate = \"Page.navigate\""},
+		"page/page.go":   {"var Navigate = cdp.Command[NavigateParams, NavigateResult]{Method: CommandNavigate}", "type NavigateResult struct", "var Close = cdp.Command[cdp.Empty, cdp.Empty]{Method: CommandClose}", "Replace *bool", "Data []byte", "var LoadEventFired = cdp.Event[EventLoadEventFired]{Method: \"Page.loadEventFired\"}", "var Closed = cdp.Event[EventClosed]{Method: \"Page.closed\"}", "CommandNavigate = \"Page.navigate\""},
 		"page/types.go":  {"type Result struct", "type NavigateFormat string", "NavigateFormatJpeg NavigateFormat = \"jpeg\""},
 		"page/events.go": {"type EventLoadEventFired struct", "type EventClosed struct"},
 	} {

@@ -1,0 +1,127 @@
+package cdproto_test
+
+import (
+	"context"
+	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
+	"errors"
+	"testing"
+
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/page"
+)
+
+// fake is a session that records the last call and answers from canned data.
+type fake struct {
+	method string
+	params string
+	result string
+	err    error
+	events chan jsontext.Value
+}
+
+func (f *fake) Call(_ context.Context, method string, params, result any) error {
+	f.method = method
+	b, err := jsonv2.Marshal(params)
+	if err != nil {
+		return err
+	}
+	f.params = string(b)
+	if f.err != nil {
+		return f.err
+	}
+	return jsonv2.Unmarshal([]byte(f.result), result)
+}
+
+func (f *fake) Subscribe(string) (<-chan jsontext.Value, func()) {
+	return f.events, func() {}
+}
+
+func TestCall(t *testing.T) {
+	s := &fake{result: `{"frameId":"f1","data":"aGVsbG8="}`}
+	res, err := cdp.Call(context.Background(), s, page.Navigate, page.NavigateParams{
+		URL:     "https://example.com",
+		Format:  page.NavigateFormatJpeg,
+		Replace: new(false),
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if s.method != "Page.navigate" {
+		t.Errorf("expected method Page.navigate, got: %s", s.method)
+	}
+	// the typed enum is its string, and a pointer to false is sent
+	if want := `{"url":"https://example.com","replace":false,"format":"jpeg"}`; s.params != want {
+		t.Errorf("expected %s, got: %s", want, s.params)
+	}
+	// a nil pointer is left out, so the browser uses its default
+	if _, err := cdp.Call(context.Background(), s, page.Navigate, page.NavigateParams{URL: "u"}); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if want := `{"url":"u"}`; s.params != want {
+		t.Errorf("expected %s, got: %s", want, s.params)
+	}
+	// a binary field decodes from base64
+	if res.FrameID != "f1" || string(res.Data) != "hello" {
+		t.Errorf("unexpected result: %+v", res)
+	}
+}
+
+func TestCallError(t *testing.T) {
+	boom := errors.New("boom")
+	s := &fake{err: boom}
+	res, err := cdp.Call(context.Background(), s, page.Navigate, page.NavigateParams{URL: "u"})
+	if !errors.Is(err, boom) || res.FrameID != "" {
+		t.Errorf("expected the error and a zero result, got: %+v, %v", res, err)
+	}
+}
+
+func TestCallWithoutParamsOrResult(t *testing.T) {
+	s := &fake{result: `{}`}
+	if _, err := cdp.Call(context.Background(), s, page.Close, cdp.Empty{}); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if s.method != "Page.close" || s.params != "{}" {
+		t.Errorf("unexpected call: %s %s", s.method, s.params)
+	}
+}
+
+func TestEvents(t *testing.T) {
+	s := &fake{events: make(chan jsontext.Value, 2)}
+	// the events are sent before the loop starts, as when a caller subscribes,
+	// triggers the event, and then ranges
+	events := cdp.Events(context.Background(), s, page.LoadEventFired)
+	s.events <- jsontext.Value(`{"timestamp":1.5}`)
+	s.events <- jsontext.Value(`{"timestamp":2.5}`)
+	var got []float64
+	for ev, err := range events {
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		got = append(got, ev.Timestamp)
+		if len(got) == 2 {
+			break
+		}
+	}
+	if len(got) != 2 || got[0] != 1.5 || got[1] != 2.5 {
+		t.Errorf("unexpected events: %v", got)
+	}
+}
+
+func TestEventsEnd(t *testing.T) {
+	s := &fake{events: make(chan jsontext.Value, 1)}
+	s.events <- jsontext.Value(`{"timestamp":"not a number"}`)
+	for _, err := range cdp.Events(context.Background(), s, page.LoadEventFired) {
+		if err == nil {
+			t.Fatalf("expected a decode error")
+		}
+		break
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	for _, err := range cdp.Events(ctx, &fake{events: make(chan jsontext.Value)}, page.LoadEventFired) {
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected the context error, got: %v", err)
+		}
+	}
+}
