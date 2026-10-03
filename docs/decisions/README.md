@@ -3,11 +3,12 @@
 Every decision of this project is a file in this directory. A file is named by
 the date of the decision and its title, and this table is the index.
 
-Each file opens with its title and its status. Decided means the maintainer chose it.
-Proposed means somebody suggested it and the maintainer has not chosen. Open means nobody
-has chosen. A decision that changes an earlier one says so in its status, as
-"Amends 2026-10-03-example.md", and the earlier one says it back, as "Amended by
-2026-10-04-example.md". Read the status before you read the decision.
+Each file opens with its title and its status. Decided means the maintainer
+chose it. Proposed means somebody suggested it and the maintainer has not
+chosen. Open means nobody has chosen. A decision that changes an earlier one says so in
+its status, as "Amends 2026-10-03-example.md". The earlier one says it back, as
+"Amended by 2026-10-04-example.md". Read the status before you read the
+decision.
 
 A new decision gets a file of its own, named with the date of the decision.
 Add its row here. `docs/docs_test.go` fails when a decision has no row or a row

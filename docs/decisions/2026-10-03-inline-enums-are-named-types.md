@@ -48,6 +48,8 @@ parent and the property, on no sharing of types, and on no validation when a
 value is decoded or encoded. Two of them also asked for a pointer in an optional
 field, so that `nil` means the field is absent. That is not done, because every
 optional field in the generated code uses `omitzero` and none uses a pointer.
+The branch `typed-api` has one exception: an optional boolean in the parameters
+of a command is a `*bool`. See `docs/API.md`.
 One asked for an `IsKnown` method and `Deprecated:` comments, which are not done.
 They are possible later.
 

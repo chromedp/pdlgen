@@ -9,13 +9,13 @@ The generated code reads and writes JSON with the `jsonv2` package and the
 `jsontext` types, and it no longer needs a code generator for the JSON methods.
 
 This record comes from the history of the repository. It does not hold the
-reasons, because the commit messages do not give them. If the maintainer remembers the
-reasons, add them here.
+reasons, because the commit messages do not give them. If the maintainer
+remembers the reasons, add them here.
 
-## What it means today
+## What it meant
 
-The generator does not run `easyjson`. The generated `go.mod` requires
-`github.com/go-json-experiment/json`. `UnmarshalMessage` takes `jsonv2.Options`.
+The generator did not run `easyjson`. The generated `go.mod` required
+`github.com/go-json-experiment/json`. `UnmarshalMessage` took `jsonv2.Options`.
 
 ## Amendment
 
