@@ -3,10 +3,8 @@ package pdlcache
 import (
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -263,88 +261,6 @@ func (c *Cache) CombinedDefBytes(ctx context.Context, ver, v8ver string) ([]byte
 		return nil, err
 	}
 	return combined.Bytes(), nil
-}
-
-// OmahaProxyEntries retrieves latest version entries from
-// omahaproxy.appspot.com.
-func (c *Cache) OmahaProxyEntries(ctx context.Context) ([]VersionEntry, error) {
-	buf, err := c.get(ctx, "https://omahaproxy.appspot.com/json")
-	if err != nil {
-		return nil, err
-	}
-	dec := json.NewDecoder(bytes.NewReader(buf))
-	dec.DisallowUnknownFields()
-	var entries []VersionEntry
-	if err := dec.Decode(&entries); err != nil {
-		return nil, err
-	}
-	return entries, nil
-}
-
-// Recent holds recent browser release information.
-type Recent struct {
-	OS        string
-	Channel   string
-	Version   string
-	Timestamp time.Time
-}
-
-// OmahaProxyRecent retrieves the recent release history from
-// omahaproxy.appspot.com.
-func (c *Cache) OmahaProxyRecent(ctx context.Context) ([]Recent, error) {
-	buf, err := c.get(ctx, "https://omahaproxy.appspot.com/history")
-	if err != nil {
-		return nil, err
-	}
-	r := csv.NewReader(bytes.NewReader(buf))
-	r.FieldsPerRecord = 4
-	r.TrimLeadingSpace = true
-	var history []Recent
-	var i int
-loop:
-	for {
-		row, err := r.Read()
-		switch {
-		case err != nil && err == io.EOF:
-			break loop
-		case err != nil:
-			return nil, err
-		}
-		i++
-		if i == 1 {
-			continue
-		}
-		timestamp, err := time.Parse("2006-01-02 15:04:05.999999999", row[3])
-		if err != nil {
-			return nil, err
-		}
-		history = append(history, Recent{
-			OS:        row[0],
-			Channel:   row[1],
-			Version:   row[2],
-			Timestamp: timestamp,
-		})
-	}
-	return history, nil
-}
-
-// LatestVersion determines the latest version for the provided os and channel.
-func (c *Cache) LatestVersion(ctx context.Context, os, channel string) (Version, error) {
-	entries, err := c.OmahaProxyEntries(ctx)
-	if err != nil {
-		return Version{}, err
-	}
-	for _, entry := range entries {
-		if entry.OS != os {
-			continue
-		}
-		for _, v := range entry.Versions {
-			if v.Channel == channel {
-				return v, nil
-			}
-		}
-	}
-	return Version{}, fmt.Errorf("could not find latest version for channel %s (%s)", channel, os)
 }
 
 // LatestCombinedDef returns the latest combined def for the specified os and
