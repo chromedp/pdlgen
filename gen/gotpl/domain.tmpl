@@ -3,6 +3,9 @@
 {{- range .Domain.Commands}}
 {{template "command" (command . $d $.Domains)}}
 {{end -}}
+{{- range .Domain.Events}}
+{{template "eventvalue" (command . $d $.Domains)}}
+{{end -}}
 {{if .Domain.Commands}}
 // Command names.
 const (
@@ -31,4 +34,12 @@ const (
 //
 // See: {{docRefLink .C}}
 var {{$name}} = cdp.Command[{{if .C.Parameters}}{{commandType .C}}{{else}}cdp.Empty{{end}}, {{if .C.Returns}}{{commandReturnsType .C}}{{else}}cdp.Empty{{end}}]{Method: {{commandMethodType .C nil}}}
+{{end -}}
+
+{{- define "eventvalue" -}}
+{{- $name := camelName .C -}}
+{{comment .C.Description (printf "%s " $name)}}
+//
+// See: {{docRefLink .C}}
+var {{$name}} = cdp.Event[{{eventType .C}}]{Method: {{printf "%q" (protoName .C .D)}}}
 {{end -}}
