@@ -46,6 +46,9 @@ domain Page
       optional string errorText
       optional binary data
 
+  # Request headers as keys and values of a JSON object.
+  type Headers extends object
+
   # Closes the page.
   command close
 
@@ -92,7 +95,7 @@ func TestGoGenerator(t *testing.T) {
 	for name, want := range map[string][]string{
 		"version.go":     {`chromiumVersion = "1.2.3.4"`, `v8Version       = "5.6.7"`},
 		"page/page.go":   {"var Navigate = cdp.Command[NavigateParams, NavigateResult]{Method: CommandNavigate}", "type NavigateResult struct", "var Close = cdp.Command[cdp.Empty, cdp.Empty]{Method: CommandClose}", "Replace *bool", "Data []byte", "var LoadEventFired = cdp.Event[EventLoadEventFired]{Method: \"Page.loadEventFired\"}", "var Closed = cdp.Event[EventClosed]{Method: \"Page.closed\"}", "CommandNavigate = \"Page.navigate\""},
-		"page/types.go":  {"type Result struct", "type NavigateFormat string", "NavigateFormatJpeg NavigateFormat = \"jpeg\""},
+		"page/types.go":  {"type Result struct", "type Headers map[string]any", "type NavigateFormat string", "NavigateFormatJpeg NavigateFormat = \"jpeg\""},
 		"page/events.go": {"type EventLoadEventFired struct", "type EventClosed struct"},
 	} {
 		got := files[name].String()

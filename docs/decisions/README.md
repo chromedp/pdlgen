@@ -18,6 +18,7 @@ is wrong, and it prints the row to add.
 | --- | --- | --- |
 | 2025-02-22 | [The generated code uses go-json-experiment instead of easyjson](2025-02-22-the-generated-code-uses-go-json-experiment.md) | Amended by 2026-10-03-the-generated-code-uses-encoding-json-v2.md |
 | 2026-10-03 | [The agent documents follow the `dbmeta` layout, with dated decisions](2026-10-03-agent-documentation-follows-dbmeta.md) | Decided |
+| 2026-10-03 | [An object type without properties is a map](2026-10-03-an-object-without-properties-is-a-map.md) | Decided |
 | 2026-10-03 | [`cdproto` is tagged v0.<Chromium major>.<patch>](2026-10-03-cdproto-is-tagged-v0-chromium-major-patch.md) | Decided |
 | 2026-10-03 | [Inline enums are named types, and enums decode without validation](2026-10-03-inline-enums-are-named-types.md) | Amends 2026-10-03-the-only-fixup-removes-name-stuttering.md |
 | 2026-10-03 | [The `old` branch became `main`, and the old `main` became `wip`](2026-10-03-main-is-the-former-old-branch.md) | Decided |
