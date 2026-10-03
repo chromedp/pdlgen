@@ -162,6 +162,11 @@ func TestGoGenerator(t *testing.T) {
 			t.Errorf("expected output to contain %q, got:\n%s", want, got)
 		}
 	}
+	// the typed API does not hide the connection in the context, so the package
+	// cdp has no error for a bad context
+	if got := files["cdp/types.go"].String(); strings.Contains(got, "ErrInvalidContext") {
+		t.Errorf("expected cdp to have no ErrInvalidContext, got:\n%s", got)
+	}
 	// the partition key of a cookie decodes the old string form too
 	if got := files["network/types.go"].String(); !strings.Contains(got, "func (t *CookiePartitionKey) UnmarshalJSON(buf []byte) error") {
 		t.Errorf("expected CookiePartitionKey to have an UnmarshalJSON method, got:\n%s", got)

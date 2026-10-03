@@ -152,6 +152,10 @@ session returns. A caller reads it with `errors.As`.
 - `network.CookiePartitionKey` decodes the plain string that older versions of
   Chrome send, as well as the object that newer versions send. The string is
   the top level site. The type encodes as an object.
+- The `cdp` package has no `ErrInvalidContext`. The old API hid the connection in
+  the context, and a wrong context failed with that error. The typed API passes
+  the session as an argument, so nothing in the generated code used the
+  constant. `chromedp` has its own `ErrInvalidContext`.
 - `cdp.Events` buffers from the moment it returns. A caller that never ranges
   over the iterator holds the subscription, and the documentation of the
   function says so.

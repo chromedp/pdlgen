@@ -68,7 +68,3 @@ A change to a template is compared against the old output. See
 5. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on
    the generated enum types? Two models suggested them. See
    `decisions/2026-10-03-inline-enums-are-named-types.md`.
-6. The package `cdp` still has the constant `ErrInvalidContext`, and nothing in
-   the generated code uses it, because the typed API does not hide the
-   connection in the context. `chromedp` has its own `ErrInvalidContext`. Does
-   the maintainer want the one in `cdp` removed?
