@@ -2,10 +2,11 @@
 
 Status: Proposed.
 
-On 2026-10-03 the maintainer asked whether Go 1.27 generics and iterators allow a better
-API for the protocol than the `chromedp.Action` interface, which is old and
-not friendly. The maintainer asked for a document that records the idea, and for example
-code that shows how `chromedp` can use it. The maintainer did not choose it.
+On 2026-10-03 the maintainer asked whether Go 1.27 generics and iterators allow
+a better API for the protocol than the `chromedp.Action` interface, which is old
+and not friendly. The maintainer asked for a document that records the idea. The
+maintainer also asked for example code that shows how `chromedp` can use it. The
+maintainer did not choose it.
 
 Gemini Pro answered the question. Qwen Max did not answer in time. The answer
 and the research are in `docs/API.md`.

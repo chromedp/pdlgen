@@ -9,8 +9,9 @@ same treatment.
 ## What was done
 
 The repository has an `AGENTS.md` for the rules, a one line `CLAUDE.md` that
-imports it, a `CONTRIBUTING.md` for a person, and a `docs/` directory with a
-plan, a backlog, a progress file and a file for each decision. The two skills,
+imports it, and a `CONTRIBUTING.md` for a person. It also has a `docs/`
+directory with a plan, a backlog, a progress file and a file for each decision.
+The two skills,
 `go-pedantry` and `simple-english`, are committed as copies under
 `.agents/skills` and `.claude/skills`.
 

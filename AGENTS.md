@@ -110,7 +110,7 @@ something is written down, it is not written down, and it is an open question.
 
 - `main.go` starts the command with `ox`, and holds nothing else. `gencmd/`
   holds the command: the `Args` struct, whose `ox` tags define the flags, and
-  the code that loads the protocol, calls the fixup and the generator, and
+  the code that loads the protocol, calls the rewrites and the generator, and
   writes the files.
 - `grab.go` is a program that you start with `go run grab.go`. It caches the
   combined protocol files of the recent Chromium releases. The build tag
@@ -197,8 +197,9 @@ no difference unless the output is what you changed.
 
 A new document goes in `docs/`. Only `README.md`, `AGENTS.md`, `CLAUDE.md`,
 `CONTRIBUTING.md` and `LICENSE` belong in the repository root, and a test
-enforces that. Add the document to the table under Which document to read and to the table
-in `README.md`, because a document nobody can find is a document nobody reads.
+enforces that. Add the document to the table under Which document to read. Add
+it to the table in `README.md` too. A document that nobody can find is a document that
+nobody reads.
 
 A decision goes in a file of its own in `docs/decisions/` and nowhere else.
 Name it `YYYY-MM-DD-short-title.md` with the date of the decision. Do not give

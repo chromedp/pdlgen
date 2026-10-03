@@ -2,8 +2,8 @@
 
 Status: Decided.
 
-The maintainer decided on 2026-10-03 to rewrite the code generation templates so that they
-use the `text/template` package of the standard library, in place of
+The maintainer decided on 2026-10-03 to rewrite the code generation templates.
+They now use the `text/template` package of the standard library, in place of
 `github.com/valyala/quicktemplate`.
 
 ## Why

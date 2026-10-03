@@ -2,8 +2,9 @@
 
 Status: Decided.
 
-The maintainer decided on 2026-10-03 that a workflow in this repository regenerates
-`cdproto` once a day, and that it commits and tags the result as the repository owner.
+The maintainer decided on 2026-10-03 that a workflow in this repository
+regenerates `cdproto` once a day. The workflow commits and tags the result as
+the repository owner.
 
 ## What it does
 

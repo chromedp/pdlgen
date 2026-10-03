@@ -73,8 +73,8 @@ var LoadEventFired = cdp.Event[EventLoadEventFired]{Method: "Page.loadEventFired
 
 A command that takes no parameters uses `cdp.Empty` for `P`, and a command
 that returns nothing uses `cdp.Empty` for `R`. A result struct exists for each
-command that returns something, even for a command that returns one value, so
-that adding a second value later is not a break.
+command that returns something. This includes a command that returns one value,
+so that adding a second value later is not a break.
 
 ### The core package
 
@@ -347,9 +347,9 @@ change because of them.
   function says so.
 - `gencmd/gencmd_test.go` generates a small protocol and runs
   `gencmd/testdata/generated_test.go.txt` against it with the go command. The
-  test covers a command with an enum, a pointer boolean and a binary result, a
-  command with nothing, an error, the order of events and the end of an
-  iterator.
+  test covers these cases: a command with an enum, a pointer boolean and a
+  binary result, a command with nothing, an error, the order of events and the
+  end of an iterator.
 
 ## What changes in this repository
 

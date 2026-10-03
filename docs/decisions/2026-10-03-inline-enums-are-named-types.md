@@ -57,10 +57,10 @@ They are possible later.
 
 A field that was a `string` is now a named type, so code that assigns a
 `string` variable to it stops compiling. A constant such as `"keyDown"` still
-works. On the protocol of Chromium 157 the change adds 80 types, and `apidiff`
+works. On the protocol of Chromium 157 the change adds 80 types. `apidiff`
 counts about 270 incompatible changes, mostly field types and the removed
-`UnmarshalJSON` methods, and about 490 compatible additions. The longest constant that
-this rule makes is 77 characters, `SetInstrumentationBreakpointInstrumentationBeforeScriptWithSourceMapExecution`.
+`UnmarshalJSON` methods, and about 490 compatible additions. The longest
+constant that this rule makes is 77 characters, `SetInstrumentationBreakpointInstrumentationBeforeScriptWithSourceMapExecution`.
 The longest in the package is 89 characters, and it belongs to an enum that the
 protocol already names. `chromedp` adopts the change in its port of `cdproto`
 v0.157.

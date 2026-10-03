@@ -107,14 +107,14 @@ needs `apidiff` on the path. Install it with
 `go install golang.org/x/exp/cmd/apidiff@latest`.
 
 To test a version change without waiting for a new protocol, write a changed
-copy of a cached combined protocol file and pass it with `--pdl`, together with
+copy of a cached combined protocol file. Pass the copy with `--pdl`, and pass
 new `--chromium` and `--v8` values.
 
 ## A bad release
 
-Never move or delete a tag after it is pushed, because the Go module proxy
+Never move or delete a tag after you push it, because the Go module proxy
 keeps the first copy that it saw. If a release is bad, add a `retract`
-directive for it to the `go.mod` of `cdproto`, then let the next daily run make
+directive for it to the `go.mod` of `cdproto`. Then let the next daily run make
 a new release.
 
 The Go module proxy learns of a tag when somebody asks for it. To make a new

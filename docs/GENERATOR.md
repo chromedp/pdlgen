@@ -59,9 +59,10 @@ For the package `github.com/chromedp/cdproto` and each domain `<domain>`:
   `docs/decisions/2026-10-03-the-update-workflow-tags-cdproto-daily.md`.
 - `cdp/types.go` holds the shared types, the error types and the core of the
   typed API: `Command`, `Event`, `Empty`, `Session`, `Call` and `Events`.
-- `<domain>/<domain>.go` holds the parameter structs, the result structs and the
-  value of each command of the domain, the value of each event, and the
-  constants `Command<Foo>` that hold the names of the commands.
+- `<domain>/<domain>.go` holds the parameter structs and the result structs of
+  the commands of the domain. It also holds the value of each command, the value
+  of each event, and the constants `Command<Foo>` that hold the names of the
+  commands.
 - `<domain>/types.go` holds its types, and `<domain>/events.go` holds its
   events.
 

@@ -2,8 +2,8 @@
 
 Status: Decided.
 
-The maintainer decided on 2026-10-03 to move the unfinished work on `main` to a branch
-named `wip`, and to make the `old` branch the new `main`.
+The maintainer decided on 2026-10-03 to move the unfinished work on `main` to
+a branch named `wip`. The `old` branch became the new `main`.
 
 ## What was there
 

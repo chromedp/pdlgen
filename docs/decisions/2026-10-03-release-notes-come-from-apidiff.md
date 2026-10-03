@@ -14,7 +14,7 @@ reader had to run `apidiff` to learn what a release did.
 ## What it is now
 
 `cmd/relnotes` reads the output of `apidiff -m` for the previous tag and the new
-code, and writes the message of the commit, the annotation of the tag and the
+code. It writes the message of the commit, the annotation of the tag and the
 entry of `CHANGELOG.md`. The subject stays the same, so the history reads the
 same. The body adds the previous versions, the packages added and removed, a
 table of counts for each package, and lists of the removed, changed and added
@@ -22,8 +22,8 @@ names. `docs/RELEASES.md` describes it.
 
 ## Why apidiff
 
-It is the tool that already counts the changes for the tag, it needs no copy of
-the previous protocol file, and it describes the Go API, which is what a user of
+It is the tool that already counts the changes for the tag. It needs no copy of
+the previous protocol file. It describes the Go API, which is what a user of
 `cdproto` sees. A comparison of the two protocol files also shows changes that do
 not reach the Go code.
 

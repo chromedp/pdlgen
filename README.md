@@ -2,12 +2,12 @@
 
 `pdlgen` generates Go code for the commands, events and types of the
 [Chrome DevTools Protocol][devtools-protocol]. It is a core component of the
-[`chromedp`][chromedp] project. The generator follows the needs of `chromedp`,
-but its aim is to produce [type safe, fast, efficient, idiomatic Go code][cdproto]
-that any Go program can use to drive Chrome.
+[`chromedp`][chromedp] project. The generator follows the needs of `chromedp`. Its aim is to produce
+[type safe, fast, efficient, idiomatic Go code][cdproto] that any Go program can
+use to drive Chrome.
 
 Every issue and every pull request for the `cdproto` package belongs in this
-repository, and none belongs in the `cdproto` repository, because `cdproto` is
+repository. None belongs in the `cdproto` repository, because `cdproto` is
 generated output.
 
 A workflow in this repository regenerates `cdproto` every day. When the
@@ -77,8 +77,8 @@ property or a parameter declares in place. For example, the `type` parameter of
 
 Types that two domains need move to the `cdp` package, to prevent import
 cycles. The `cdp` package also holds the typed API. Each command is a value of
-the type `cdp.Command` with a parameter struct and a result struct, and each
-event is a value of the type `cdp.Event`. [`docs/API.md`](docs/API.md)
+the type `cdp.Command` with a parameter struct and a result struct. Each event
+is a value of the type `cdp.Event`. [`docs/API.md`](docs/API.md)
 describes that API, and [`docs/GENERATOR.md`](docs/GENERATOR.md) describes every
 step.
 
