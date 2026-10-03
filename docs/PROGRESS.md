@@ -25,6 +25,16 @@ builds a generated package and runs the API against it. The same day the
 maintainer approved the generics and iterators API, the pipe transport, the
 visible window option and the port of the examples.
 
+On 2026-10-04 three fixes followed, each in its own commit on `main`, not yet
+released. An optional number that zero can mean something for is now a pointer,
+from a table of 71 fields. See
+`decisions/2026-10-04-an-optional-number-can-be-a-pointer.md`. This fixes issue
+30 of `cdproto`. `network.CookiePartitionKey` decodes the plain string of older
+Chrome versions and the object. `cdp.ErrInvalidContext` is gone, and the package
+comment of `cdproto.go` says what the package is. These changes break the
+build of a caller that uses a listed field, so `chromedp` must adapt before it
+takes the next `cdproto` release.
+
 `cdproto` v0.157.3 is the first release with the typed API, and `chromedp`
 v0.17.0 uses it. `cdproto` v0.157.0, v0.157.1 and v0.157.2 have the old API.
 

@@ -35,6 +35,9 @@ describes the tags.
   on 2026-10-04. `docs/API.md` describes it. The generated code has no `Do`
   method and no `With` method. `cdproto` v0.157.3 is the first release that has
   it, and `chromedp` v0.17.0 uses it.
+- A table of optional numbers that are pointers, so that a caller can send an
+  explicit zero. See `decisions/2026-10-04-an-optional-number-can-be-a-pointer.md`.
+- A decoder for the two forms of `network.CookiePartitionKey`.
 - Documents and decisions for coding agents.
 
 ## Testing
