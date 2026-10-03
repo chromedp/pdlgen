@@ -83,6 +83,13 @@ whose description starts with "Base64-encoded" and that has no flag is a `[]byte
 too. Two structs decode by another property, `Network.WebSocketFrame` by the opcode and
 `HAR.Content` by `encoding`. They are in the table `base64Rules`.
 
+One type has a second form in the wire format. Older versions of Chrome send
+`Network.CookiePartitionKey` as a plain string, and newer versions send an
+object. The generator writes an `UnmarshalJSON` method for it that reads both
+forms. The string becomes `TopLevelSite`. The type encodes as an object. The
+table `unmarshalers` in `gen/gotpl/gotpl.go` names the types that have such a
+method, and `extra.tmpl` holds its template.
+
 An event `baz` becomes the struct `EventBaz` and the value `Baz` of the type
 `cdp.Event[EventBaz]`. A caller runs a command with
 `cdp.Call(ctx, session, bar.Foo, bar.FooParams{...})` and reads an event with

@@ -23,6 +23,14 @@ domain Target
   # Unique session identifier.
   type SessionID extends string
 
+# Network domain.
+domain Network
+  # The partition key of a cookie.
+  type CookiePartitionKey extends object
+    properties
+      string topLevelSite
+      boolean hasCrossSiteAncestor
+
 # Input domain.
 domain Input
   # A point of touch.
@@ -153,6 +161,10 @@ func TestGoGenerator(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, got:\n%s", want, got)
 		}
+	}
+	// the partition key of a cookie decodes the old string form too
+	if got := files["network/types.go"].String(); !strings.Contains(got, "func (t *CookiePartitionKey) UnmarshalJSON(buf []byte) error") {
+		t.Errorf("expected CookiePartitionKey to have an UnmarshalJSON method, got:\n%s", got)
 	}
 	// an object type without properties is a map, and a map is not a pointer
 	if got := files["page/page.go"].String(); strings.Contains(got, "*Headers") {

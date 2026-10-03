@@ -126,7 +126,9 @@ type typeData struct {
 
 func newTypeData(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) *typeData {
 	if t.RawType != "command" {
-		t = withBase64(t, TypeName(t, prefix, suffix))
+		name := TypeName(t, prefix, suffix)
+		t = withBase64(t, name)
+		t = withUnmarshaler(t, name)
 	}
 	return &typeData{t, prefix, suffix, d, domains, noExposeOverride, omitOnlyWhenOptional}
 }
@@ -208,6 +210,30 @@ func returnsType(c *pdl.Type) *pdl.Type {
 		Description: "is the result of the command " + c.RawName + ".",
 		Properties:  c.Returns,
 	}
+}
+
+// unmarshalers lists the types that have a form in the protocol that the struct
+// cannot decode alone. The value is the name of the template that writes the
+// UnmarshalJSON method of the type. The key is the protocol name of the type.
+var unmarshalers = map[string]string{
+	// Older versions of the browser send the partition key as a string, and newer
+	// versions send an object.
+	"Network.CookiePartitionKey": "cookiepartitionkey",
+}
+
+// withUnmarshaler returns t with the UnmarshalJSON method that unmarshalers
+// names for it, or t itself when it has none. typeName is the Go name of t.
+func withUnmarshaler(t *pdl.Type, typeName string) *pdl.Type {
+	name, ok := unmarshalers[t.RawName]
+	if !ok || t.RawType != "type" {
+		return t
+	}
+	c := *t
+	if c.Extra != "" {
+		c.Extra += "\n\n"
+	}
+	c.Extra += render(name, struct{ Type string }{typeName})
+	return &c
 }
 
 // base64Rule says how a struct tells that its text value is base64.

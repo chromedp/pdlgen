@@ -217,3 +217,21 @@ func (r *{{.Type}}) UnmarshalJSON(buf []byte) error {
 	return nil
 }
 {{end -}}
+
+{{define "cookiepartitionkey" -}}
+// UnmarshalJSON decodes the partition key from an object, or from the plain
+// string that older versions of the browser send. The string is the top level
+// site. The type always encodes as an object.
+func (t *{{.Type}}) UnmarshalJSON(buf []byte) error {
+	if jsontext.Value(buf).Kind() == '"' {
+		var site string
+		if err := jsonv2.Unmarshal(buf, &site); err != nil {
+			return err
+		}
+		*t = {{.Type}}{TopLevelSite: site}
+		return nil
+	}
+	type plain {{.Type}}
+	return jsonv2.Unmarshal(buf, (*plain)(t))
+}
+{{end -}}

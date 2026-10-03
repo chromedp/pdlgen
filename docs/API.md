@@ -149,6 +149,9 @@ session returns. A caller reads it with `errors.As`.
   `[]byte` and decodes it by the flag in its `UnmarshalJSON`. A text value whose
   description starts with "Base64-encoded" is a `[]byte` as well. Neither case
   needs code in the caller.
+- `network.CookiePartitionKey` decodes the plain string that older versions of
+  Chrome send, as well as the object that newer versions send. The string is
+  the top level site. The type encodes as an object.
 - `cdp.Events` buffers from the moment it returns. A caller that never ranges
   over the iterator holds the subscription, and the documentation of the
   function says so.

@@ -25,6 +25,14 @@ domain Target
 
 # Network domain.
 domain Network
+  # The partition key of a cookie.
+  type CookiePartitionKey extends object
+    properties
+      # The top level site.
+      string topLevelSite
+      # True, if the cookie has a cross site ancestor.
+      boolean hasCrossSiteAncestor
+
   # A WebSocket message.
   type WebSocketFrame extends object
     properties

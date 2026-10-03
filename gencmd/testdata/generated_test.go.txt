@@ -238,3 +238,47 @@ func TestPointerNumber(t *testing.T) {
 		t.Errorf("expected quality 0, got: %d", res.Quality)
 	}
 }
+
+func TestCookiePartitionKeyDecodesBothForms(t *testing.T) {
+	for _, test := range []struct {
+		name, in string
+		want     network.CookiePartitionKey
+	}{
+		{"string", `"https://example.com"`, network.CookiePartitionKey{TopLevelSite: "https://example.com"}},
+		{"string with space", ` "https://example.com"`, network.CookiePartitionKey{TopLevelSite: "https://example.com"}},
+		{"object", `{"topLevelSite":"https://example.com","hasCrossSiteAncestor":true}`, network.CookiePartitionKey{TopLevelSite: "https://example.com", HasCrossSiteAncestor: true}},
+		{"object with space", ` {"topLevelSite":"https://a.com"}`, network.CookiePartitionKey{TopLevelSite: "https://a.com"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var got network.CookiePartitionKey
+			if err := jsonv2.Unmarshal([]byte(test.in), &got); err != nil {
+				t.Fatalf("expected no error, got: %v", err)
+			}
+			if got != test.want {
+				t.Errorf("expected %+v, got: %+v", test.want, got)
+			}
+		})
+	}
+	// the key is a pointer in a larger value, as it is in a cookie
+	var v struct {
+		Key *network.CookiePartitionKey `json:"partitionKey"`
+	}
+	if err := jsonv2.Unmarshal([]byte(`{"partitionKey":"https://example.com"}`), &v); err != nil || v.Key == nil || v.Key.TopLevelSite != "https://example.com" {
+		t.Errorf("expected the string form inside a struct, got: %+v, %v", v.Key, err)
+	}
+	if err := jsonv2.Unmarshal([]byte(`{"partitionKey":null}`), &v); err != nil || v.Key != nil {
+		t.Errorf("expected nil for null, got: %+v, %v", v.Key, err)
+	}
+	var bad network.CookiePartitionKey
+	if err := jsonv2.Unmarshal([]byte(`5`), &bad); err == nil {
+		t.Errorf("expected an error for a number")
+	}
+	// the key encodes as an object
+	b, err := jsonv2.Marshal(network.CookiePartitionKey{TopLevelSite: "https://example.com"})
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if want := `{"topLevelSite":"https://example.com","hasCrossSiteAncestor":false}`; string(b) != want {
+		t.Errorf("expected %s, got: %s", want, b)
+	}
+}
