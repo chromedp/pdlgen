@@ -27,7 +27,7 @@ type PDL struct {
 
 // Parse parses a PDL file contained in buf.
 //
-// Rewrite of the Python script from the Chromium source tree.
+// This is a Go port of the Python script in the Chromium source tree.
 //
 // See: $CHROMIUM_SOURCE/third_party/inspector_protocol/pdl.py
 // Rev: a42a629f67ac9aae0aaa8fbd912c654559c5d880
@@ -256,8 +256,7 @@ func (pdl *PDL) Bytes() []byte {
 	return append(bytes.TrimRightFunc(buf.Bytes(), unicode.IsSpace), '\n')
 }
 
-// Version holds information for the the version Chrome DevTools Protocol
-// definition.
+// Version holds the version of a Chrome DevTools Protocol definition.
 type Version struct {
 	// Major is the major version.
 	Major int
@@ -361,7 +360,7 @@ type Type struct {
 	// special internal types).
 	NoResolve bool `json:"-"`
 
-	// Extra will be added as output after the the type is emitted.
+	// Extra is the text that the generator writes after the type.
 	Extra string `json:"-"`
 }
 

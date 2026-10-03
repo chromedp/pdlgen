@@ -66,8 +66,8 @@ func FormatComment(s, chop, newstr string) string {
 	return w.String() + Wrap(s, CommentWidth-len(CommentPrefix), CommentPrefix)
 }
 
-// Wrap wraps a line of text to the specified width, and adding the prefix to
-// each wrapped line.
+// Wrap wraps a line of text to the specified width and adds the prefix to each
+// wrapped line.
 func Wrap(s string, width int, prefix string) string {
 	words := strings.Fields(strings.TrimSpace(s))
 	if len(words) == 0 {

@@ -50,7 +50,7 @@ func EventMethodType(t *pdl.Type, d *pdl.Domain) string {
 	return EventMethodPrefix + strcase.ForceCamelIdentifier(ProtoName(t, d)) + EventMethodSuffix
 }
 
-// CommandMethodType returns the method type of the event.
+// CommandMethodType returns the method type of the command.
 func CommandMethodType(t *pdl.Type, d *pdl.Domain) string {
 	return CommandMethodPrefix + strcase.ForceCamelIdentifier(ProtoName(t, d)) + CommandMethodSuffix
 }
@@ -184,7 +184,7 @@ func GoType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 	return z
 }
 
-// EnumValueName returns the name for a enum value.
+// EnumValueName returns the name for an enum value.
 func EnumValueName(t *pdl.Type, v string) string {
 	// special case for "negative" value
 	var neg string
@@ -206,12 +206,12 @@ func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 
 // StructDef returns a struct definition for a list of types.
 //
-// When input is true, the struct is the parameters of a command, so an optional
-// boolean is a pointer: nil leaves the parameter out of the message, which
-// lets the browser use the default of the protocol, and a pointer to false
-// sends false. A boolean in any other struct is a plain bool, and is always
-// emitted. A binary value is a byte slice, which the JSON package encodes as
-// base64 without a tag.
+// When input is true, the struct holds the parameters of a command. An optional
+// boolean is then a pointer. A nil pointer leaves the parameter out of the
+// message, so the browser uses the default of the protocol. A pointer to false
+// sends false. A boolean in any other struct is a plain bool, and the message
+// always holds it. A binary value is a byte slice, which the JSON package
+// encodes as base64 without a tag.
 func StructDef(types []*pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional, input bool) string {
 	var s strings.Builder
 	s.WriteString("struct")

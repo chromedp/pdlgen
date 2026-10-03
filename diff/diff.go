@@ -39,7 +39,6 @@ func CompareFiles(a, b string) ([]byte, error) {
 		opts = append(opts, "--cols="+cols)
 	}
 
-	// log.Printf("DIFF a:%s, b:%s", a, b)
 	cmd := exec.Command(diffTool, append(opts, a, b)...)
 	buf, err := cmd.CombinedOutput()
 	if hasDiff(icdiff, err) {
@@ -63,8 +62,8 @@ func (fi *FileInfo) String() string {
 	return filepath.Base(fi.Name)
 }
 
-// FindFilesWithMask walks dir finding all files with the regexp mask, removing
-// any exclude'd files.
+// FindFilesWithMask walks dir and returns the files whose names match the
+// regexp mask. It leaves out the files whose base names are in exclude.
 func FindFilesWithMask(dir, mask string, exclude ...string) ([]*FileInfo, error) {
 	maskRE := regexp.MustCompile(mask)
 
@@ -101,12 +100,10 @@ func FindFilesWithMask(dir, mask string, exclude ...string) ([]*FileInfo, error)
 	return files, nil
 }
 
-// WalkAndCompare walks dir, looking for files matching the supplied regexp
-// mask, successively comparing each against filename. The first having a diff
-// (compared by most recent first) will be returned.
-//
-// Useful for comparing multiple files to find the most recent difference from
-// a set of files matching mask that likely have the same content.
+// WalkAndCompare walks dir, finds the files whose names match the regexp mask,
+// and compares each against filename, the most recent first. It returns the
+// diff of the first file that differs. This finds the most recent difference
+// in a set of files that usually have the same content.
 func WalkAndCompare(dir, mask string, filename string, cmp func(*FileInfo, *FileInfo) bool) ([]byte, error) {
 	files, err := FindFilesWithMask(dir, mask)
 	if err != nil {

@@ -2,7 +2,7 @@
 // commands, events and types of the Chrome DevTools Protocol, from the protocol
 // definitions in the Chromium and V8 source trees.
 //
-// Please see README.md for more information on using this tool.
+// README.md describes how to use the command.
 package main
 
 import (

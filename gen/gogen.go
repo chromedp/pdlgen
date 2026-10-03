@@ -84,10 +84,10 @@ func (gg *GoGenerator) Emit() map[string]*bytes.Buffer {
 // fileBuffers is a type to manage buffers for file data.
 type fileBuffers map[string]*bytes.Buffer
 
-// generateSharedTypes generates the common shared types for domains.
+// generateSharedTypes generates the shared types of the domains, and the
+// errors and the typed API of the cdp package.
 //
-// Because there are circular package dependencies, some types need to be moved
-// to eliminate circular dependencies.
+// Some types move to the cdp package to prevent import cycles.
 func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string) error {
 	// determine shared types
 	var typs []*pdl.Type
@@ -107,7 +107,7 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 
 	w := fb.get("cdp/types.go", "cdp", d, domains, basePkg)
 
-	// add executor
+	// add the errors and the typed API
 	if err := gotpl.Errors(w); err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 	return nil
 }
 
-// generateRootPackage generates the util package.
+// generateRootPackage generates the root package, which holds the message types.
 //
 // The package holds only the low-level message unmarshaler. A separate package
 // prevents circular dependencies.
@@ -235,7 +235,7 @@ func rootPackageTypes(domains []*pdl.Domain) []*pdl.Type {
 	return []*pdl.Type{{
 		Name:        "MethodType",
 		Type:        pdl.TypeString,
-		Description: "Chrome DevTools Protocol method type (ie, event and command names).",
+		Description: "Chrome DevTools Protocol method type (that is, event and command names).",
 		Extra:       gotpl.MethodType(domains),
 	}, {
 		Name:        "Error",

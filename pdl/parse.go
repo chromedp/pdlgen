@@ -31,7 +31,7 @@ func NewParser(opts ...ParserOption) *Parser {
 
 // Parse parses a PDL file contained in buf.
 //
-// Rewrite of the Python script from the Chromium source tree.
+// This is a Go port of the Python script in the Chromium source tree.
 //
 // See: $CHROMIUM_SOURCE/third_party/inspector_protocol/pdl.py
 // Rev: a42a629f67ac9aae0aaa8fbd912c654559c5d880

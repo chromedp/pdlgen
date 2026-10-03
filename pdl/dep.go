@@ -4,8 +4,8 @@ import (
 	"strings"
 )
 
-// circularDeps is the list of types that can cause circular dependency
-// issues.
+// circularDeps is the list of types that can cause import cycles between the
+// generated Go packages.
 var circularDeps = map[string]bool{
 	"browser.browsercontextid":            true,
 	"dom.backendnodeid":                   true,
@@ -43,8 +43,8 @@ var circularDeps = map[string]bool{
 	"runtime.uniquedebuggerid":            true,
 }
 
-// IsCircularDep returns whether or not a type will cause circular dependency
-// issues. Useful for generating Go packages.
+// IsCircularDep reports whether the type causes an import cycle between the
+// generated Go packages.
 func IsCircularDep(dtyp, typ string) bool {
 	return circularDeps[strings.ToLower(dtyp+"."+typ)]
 }

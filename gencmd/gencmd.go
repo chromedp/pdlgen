@@ -1,8 +1,8 @@
-// Package gencmd is the pdlgen command: it generates the Go package
-// cdproto from the Chrome DevTools Protocol definitions (PDLs) in the Chromium
-// and V8 source trees.
+// Package gencmd is the pdlgen command. It generates the Go package cdproto
+// from the Chrome DevTools Protocol definitions (PDLs) in the Chromium and V8
+// source trees.
 //
-// Please see README.md for more information on using the command.
+// README.md describes how to use the command.
 package gencmd
 
 import (
@@ -290,9 +290,10 @@ func (args *Args) run(ctx context.Context, stdout io.Writer) error {
 	return nil
 }
 
-// loadProtoDefs loads the protocol definitions either from the path specified
-// in -proto or by retrieving the versions specified in the -browser and -js
-// files.
+// loadProtoDefs loads the protocol definitions. It reads the combined file of
+// the --pdl flag when the flag is set. Otherwise it retrieves the browser
+// protocol of the Chromium version and the JavaScript protocol of the V8
+// version.
 func (args *Args) loadProtoDefs() (*pdl.PDL, error) {
 	var err error
 

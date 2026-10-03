@@ -28,8 +28,8 @@ type Import struct {
 	Path  string
 }
 
-// FileHeader writes the package header for pkgName to w. The package comment
-// is only written when d is not nil.
+// FileHeader writes the package header for pkgName to w. It writes the package
+// comment only when d is not nil.
 func FileHeader(w io.Writer, pkgName string, d *pdl.Domain) error {
 	return execute(w, "header", struct {
 		Package string
@@ -51,7 +51,7 @@ func FileImports(w io.Writer, imports map[string]string) error {
 	return execute(w, "imports", v)
 }
 
-// Domain writes the commands of domain d to w.
+// Domain writes the commands and the events of domain d to w.
 func Domain(w io.Writer, d *pdl.Domain, domains []*pdl.Domain) error {
 	return execute(w, "domain", struct {
 		Domain  *pdl.Domain
@@ -98,7 +98,7 @@ func execute(w io.Writer, name string, data any) error {
 	return nil
 }
 
-// render executes the named template, returning the result as a string.
+// render executes the named template and returns the result as a string.
 func render(name string, data any) string {
 	var buf bytes.Buffer
 	if err := execute(&buf, name, data); err != nil {

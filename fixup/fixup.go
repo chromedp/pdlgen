@@ -1,16 +1,18 @@
-// Package fixup alters the type definitions for the Chrome DevTools Protocol
-// domains prior to code generation.
+// Package fixup changes the type definitions of the Chrome DevTools Protocol
+// domains before code generation.
 //
-// Two fixes are applied. Neither adds anything that the protocol does not
+// The package makes two fixes. Neither adds anything that the protocol does not
 // define.
 //
-// The first extracts each inline enum into a named type, so that a value of the
-// enum has a type of its own and a constant for each value. See extractEnums.
+// The first fix extracts each inline enum into a named type. A value of the
+// enum then has a type of its own and a constant for each value. See
+// extractEnums.
 //
-// The second removes name stuttering: any type whose name is prefixed with the
-// name of its domain (for example, the "CSS" domain's "CSSStyle" type, or
-// "AXNode" in the "Accessibility" domain) has the prefix removed, as the Go
-// package name already provides it (for example, css.Style).
+// The second fix removes name stuttering. When the name of a type starts with
+// the name of its domain, the fix removes that prefix, because the Go package
+// name already provides it. For example, the type "CSSStyle" of the domain
+// "CSS" becomes css.Style, and "AXNode" of "Accessibility" becomes
+// accessibility.Node.
 package fixup
 
 import (
