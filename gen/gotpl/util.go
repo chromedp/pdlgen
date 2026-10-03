@@ -203,7 +203,7 @@ func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverri
 		return "[]" + GoTypeDef(o, d, domains, false, false)
 	case t.Type == pdl.TypeObject && t.Properties == nil:
 		// The protocol declares no properties, so the object holds any keys,
-		// as Network.Headers does. An empty struct could not hold them.
+		// as Network.Headers does. An empty struct cannot hold them.
 		return "map[string]any"
 	case t.Type == pdl.TypeObject:
 		return StructDef(t.Properties, d, domains, noExposeOverride, omitOnlyWhenOptional)
