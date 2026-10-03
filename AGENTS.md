@@ -50,7 +50,7 @@ Then by what you are doing:
 | adding a rewrite to the generated code | `docs/decisions/2026-10-03-the-only-fixup-removes-name-stuttering.md`, then ask the maintainer |
 | changing the output of a generated type | `docs/GENERATOR.md`, then tell the maintainer that `chromedp` is affected |
 | changing how `cdproto` is versioned or tagged | `docs/RELEASES.md`, then `docs/decisions/2026-10-03-cdproto-is-tagged-v0-chromium-major-patch.md` |
-| thinking about a typed API for the protocol | `docs/API.md`, which is Proposed and not decided. This branch generates it |
+| changing or using the typed API of the protocol | `docs/API.md`, which describes what the generator writes |
 | looking for the purpose, the architecture, the tests or the open questions | `docs/PLAN.md` |
 | changing a workflow | `docs/RELEASES.md`, under The workflows |
 | asking why something is the way it is | the index in `docs/decisions/README.md` |
@@ -206,9 +206,11 @@ Name it `YYYY-MM-DD-short-title.md` with the date of the decision. Do not give
 a decision a number. The file opens with `# <Title>`, a blank line and
 `Status: <status>.`. The status is `Decided`, `Proposed`, `Open`,
 `Amends <file>`, `Amended by <file>` or `Superseded by <file>`. Refer to a decision by its file
-name. Add its row to `docs/decisions/README.md`. If your decision changes an
-earlier one, say so in both statuses, because a reader who finds the older one
-must be told.
+name. Add its row to `docs/decisions/README.md`. If your decision changes part
+of an earlier one, the new status is `Amends <file>` and the old status is
+`Amended by <file>`. If it replaces an earlier one, the new status is `Decided`
+and its first sentence names the old file. The old status is
+`Superseded by <file>`. A reader who finds the older one must be told.
 
 Write plain English. Use short sentences and the active voice. Use `can`,
 `will`, and `must`, and do not use `should`, `may`, or `might`. Do not use

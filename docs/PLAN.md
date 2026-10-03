@@ -31,21 +31,19 @@ describes the tags.
 - A generated `version.go` that reports the Chromium and V8 versions.
 - The `Test` workflow, which tests the generator and builds the output.
 - The `Update` workflow, which regenerates, tags and pushes `cdproto` every day.
+- The typed API that uses generics and iterators, which the maintainer approved
+  on 2026-10-04. `docs/API.md` describes it. The generated code has no `Do`
+  method and no `With` method. `cdproto` v0.157.2 is the first release that has
+  it, and `chromedp` v0.17.0 uses it.
 - Documents and decisions for coding agents.
-
-## What is proposed
-
-A typed API that uses generics and iterators. `docs/API.md` describes it. The
-branch `typed-api` generates it, and it is not decided. The generated code on
-that branch has no `Do` method and no `With` method.
 
 ## Testing
 
 `gen/gen_test.go` generates code from a small protocol in the test and makes
 sure that every file is valid Go and holds the expected names. `fixup/` tests
 the enum extraction, and `relnotes/` tests the notes of a release. `gencmd/`
-runs the whole command on a small protocol file. On the branch `typed-api` it
-also builds the output and runs a test of the typed API against it. `util/`
+runs the whole command on a small protocol file. It also builds the output and
+runs a test of the typed API against it. `util/`
 tests retrieval against a local server, and `diff/` tests the protocol diff. `docs/docs_test.go` checks the documents. No test uses the network.
 
 The `generate` job of the `Test` workflow is the end to end test. It retrieves
@@ -65,10 +63,15 @@ A change to a template is compared against the old output. See
 3. Does the maintainer want `origin/master` deleted? It is the old default
    branch, and it still points at the 2020 commit. The default branch is
    `main`.
-4. Does the maintainer accept the typed API in `docs/API.md`? If the answer is
-   yes, the branch `typed-api` is merged.
-5. Does the maintainer want a `golangci-lint` configuration here? The `xo`
+4. Does the maintainer want a `golangci-lint` configuration here? The `xo`
    projects have one.
-6. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on
+5. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on
    the generated enum types? Two models suggested them. See
    `decisions/2026-10-03-inline-enums-are-named-types.md`.
+6. How does a caller send a zero value that the protocol requires, for a type
+   other than a boolean? Such a field is left out when it is zero. A pointer
+   field is one answer. See the open question in `API.md`.
+7. The package `cdp` still has the constant `ErrInvalidContext`, and nothing in
+   the generated code uses it, because the typed API does not hide the
+   connection in the context. `chromedp` has its own `ErrInvalidContext`. Does
+   the maintainer want the one in `cdp` removed?

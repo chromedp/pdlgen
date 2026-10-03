@@ -86,7 +86,7 @@ step.
 
 `cdproto` is tagged `v0.<Chromium major>.<patch>`, so the first release for
 Chromium 157 is `v0.157.0`, and the next is `v0.157.1`. The `Update` workflow
-makes the tags. Each tag and `CHANGELOG.md` in `cdproto` record the Chromium and
+makes the tags. `v0.157.2` is the first release with the typed API. Each tag and `CHANGELOG.md` in `cdproto` record the Chromium and
 V8 versions and the count of API changes. The module stays at major version 0.
 Any release can contain an incompatible change, because the protocol removes and
 renames things. The package reports its versions with
@@ -101,7 +101,7 @@ renames things. The package reports its versions with
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to change this repository |
 | [`docs/GENERATOR.md`](docs/GENERATOR.md) | The pipeline, the templates and how to change them |
 | [`docs/RELEASES.md`](docs/RELEASES.md) | The workflows, the tags and the changelog |
-| [`docs/API.md`](docs/API.md) | A proposed typed API that uses generics and iterators |
+| [`docs/API.md`](docs/API.md) | The typed API that uses generics and iterators |
 | [`docs/PLAN.md`](docs/PLAN.md) | Purpose, architecture, testing and open questions |
 | [`docs/BACKLOG.md`](docs/BACKLOG.md) | Work that is known and not done |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md) | Where the work stands |

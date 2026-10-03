@@ -18,21 +18,17 @@ On 2026-10-03 the new generator was pushed to `main`. It has these parts:
   `cdproto` as `v0.<Chromium major>.<patch>`.
 - Documents, decisions and agent skills.
 
-On the branch `typed-api` the generator writes the typed API of `docs/API.md`.
-A command is a value of the type `cdp.Command`, an event is a value of the type
-`cdp.Event`, and `cdp.Call` and `cdp.Events` run them. The branch is not
-merged, because the maintainer has not decided. A test builds a generated
-package and runs the API against it.
+On 2026-10-04 the typed API was merged to `main`. The generator writes the typed
+API of `docs/API.md`. A command is a value of the type `cdp.Command`, an event is
+a value of the type `cdp.Event`, and `cdp.Call` and `cdp.Events` run them. A test
+builds a generated package and runs the API against it. The same day the
+maintainer approved the generics and iterators API, the pipe transport, the
+visible window option and the port of the examples.
 
-`cdproto` has the tag `v0.157.0`, made before the enum extraction. The script
-was run against a local copy of `cdproto` for the next release. Nothing about
-that run is pushed.
-
-`chromedp` is being ported to the tagged `cdproto`, in the repository of
-`chromedp`.
+`cdproto` v0.157.2 is the first release with the typed API, and `chromedp`
+v0.17.0 uses it. `cdproto` v0.157.0 and v0.157.1 have the old API.
 
 ## Waiting
 
 - The secret `ACCESS_TOKEN` must exist before the `Update` workflow can push.
 - The open questions at the end of [`PLAN.md`](PLAN.md) wait for the maintainer.
-  One of them is the decision to merge the branch `typed-api`.

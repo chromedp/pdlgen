@@ -15,6 +15,12 @@ Read it before you change a workflow, the update script or the version rules.
   next is `v0.157.1`.
 - The first release for Chromium 158 is `v0.158.0`.
 
+`v0.157.2` is the first release with the typed API of `docs/API.md`.
+`v0.157.0` and `v0.157.1` have the old API. The typed API changes nearly every
+name, so `v0.157.2` is an incompatible release, and it kept the major version 0
+and the patch rule. `chromedp` v0.17.0 is the first release of `chromedp` that
+uses it.
+
 The generated API can change in an incompatible way in any release, because the
 protocol removes and renames things. The tag does not say whether a release is
 compatible. The annotation of the tag and `CHANGELOG.md` in `cdproto` say it.
