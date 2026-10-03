@@ -35,16 +35,18 @@ describes the tags.
 
 ## What is proposed
 
-A typed API that uses generics and iterators. `docs/API.md` describes it. It is
-not decided.
+A typed API that uses generics and iterators. `docs/API.md` describes it. The
+branch `typed-api` generates it, and it is not decided. The generated code on
+that branch has no `Do` method and no `With` method.
 
 ## Testing
 
 `gen/gen_test.go` generates code from a small protocol in the test and makes
 sure that every file is valid Go and holds the expected names. `fixup/` tests
-the enum extraction, `gencmd/` runs the whole command on a small protocol file,
-`util/` tests retrieval against a local server, and `diff/` tests the protocol
-diff. `docs/docs_test.go` checks the documents. No test uses the network.
+the enum extraction, and `relnotes/` tests the notes of a release. `gencmd/`
+runs the whole command on a small protocol file. On the branch `typed-api` it
+also builds the output and runs a test of the typed API against it. `util/`
+tests retrieval against a local server, and `diff/` tests the protocol diff. `docs/docs_test.go` checks the documents. No test uses the network.
 
 The `generate` job of the `Test` workflow is the end to end test. It retrieves
 the latest protocol, generates `cdproto` and builds it. Its weakness is that it
@@ -60,11 +62,13 @@ A change to a template is compared against the old output. See
    right? The old workflow named the secret and never used it.
 2. The workflows use `actions/checkout@v4` and `actions/setup-go@v5`. Are those
    the versions that the maintainer wants?
-3. Does the maintainer want `origin/master` deleted? It is the old default branch and it still
-   points at the 2020 commit. The default branch is `main`.
-4. Does the maintainer accept the typed API in `docs/API.md`?
-5. Does the maintainer want a `golangci-lint` configuration here? The `xo` projects have
-   one.
-6. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on the
-   generated enum types? Two models suggested them. See
+3. Does the maintainer want `origin/master` deleted? It is the old default
+   branch, and it still points at the 2020 commit. The default branch is
+   `main`.
+4. Does the maintainer accept the typed API in `docs/API.md`? If the answer is
+   yes, the branch `typed-api` is merged.
+5. Does the maintainer want a `golangci-lint` configuration here? The `xo`
+   projects have one.
+6. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on
+   the generated enum types? Two models suggested them. See
    `decisions/2026-10-03-inline-enums-are-named-types.md`.

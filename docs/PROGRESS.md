@@ -18,6 +18,12 @@ On 2026-10-03 the generator was rewritten and pushed to `main`:
   `cdproto` as `v0.<Chromium major>.<patch>`.
 - Documents, decisions and agent skills.
 
+On the branch `typed-api` the generator writes the typed API of `docs/API.md`.
+A command is a value of the type `cdp.Command`, an event is a value of the type
+`cdp.Event`, and `cdp.Call` and `cdp.Events` run them. The branch is not
+merged, because the maintainer has not decided. A test builds a generated
+package and runs the API against it.
+
 `cdproto` has the tag `v0.157.0`, made before the enum extraction. The script
 was run against a local copy of `cdproto` for the next release. Nothing about
 that run is pushed.
@@ -29,3 +35,4 @@ that run is pushed.
 
 - The secret `ACCESS_TOKEN` must exist before the `Update` workflow can push.
 - The open questions at the end of [`PLAN.md`](PLAN.md) wait for the maintainer.
+  One of them is the decision to merge the branch `typed-api`.
