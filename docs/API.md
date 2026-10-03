@@ -1,15 +1,17 @@
 # A typed API for the protocol
 
 Status: Proposed. Nobody has chosen this design. The generator on the branch
-`typed-api` writes the `cdproto` side of it, and the generated code builds, passes
+`typed-api` writes the `cdproto` side of it. The generated code builds, passes
 `go vet` and has a test. The `chromedp` side below is a sketch, and none of it
-compiles. The names and the shapes can change. This document records the
-design so that the maintainer can decide, and it shows how `chromedp` can use the
-result. See `docs/decisions/2026-10-03-proposed-generics-and-iterators-api.md`.
+compiles. The names and the shapes can change. This document records the design
+so that the maintainer can decide. It also shows how `chromedp` can use the
+result. See
+`docs/decisions/2026-10-03-proposed-generics-and-iterators-api.md`.
 
 ## The problem
 
-The code that `pdlgen` writes today has four weaknesses.
+The code that `pdlgen` wrote before the branch `typed-api` has four
+weaknesses.
 
 1. A command returns its results as a list of values. `Navigate(...).Do(ctx)`
    returns four values and an error. When the protocol adds a fifth value,
@@ -41,41 +43,44 @@ The model has four parts.
 
 ### What the generator writes in this model
 
-For the command `Page.navigate` in the package `page`:
+For the command `Page.navigate` and the event `Page.loadEventFired` in the
+package `page`, the generator writes this, with the field comments left out:
 
 ```go
-// NavigateParams are the parameters of Page.navigate.
+// NavigateParams are the parameters of the command Page.navigate.
 type NavigateParams struct {
 	URL            string         `json:"url"`
-	Referrer       string         `json:"referrer,omitzero"`
-	TransitionType TransitionType `json:"transitionType,omitzero"`
-	FrameID        cdp.FrameID    `json:"frameId,omitzero"`
+	Referrer       string         `json:"referrer,omitempty,omitzero"`
+	TransitionType TransitionType `json:"transitionType,omitempty,omitzero"`
+	FrameID        cdp.FrameID    `json:"frameId,omitempty,omitzero"`
+	ReferrerPolicy ReferrerPolicy `json:"referrerPolicy,omitempty,omitzero"`
 }
 
-// NavigateResult is the result of Page.navigate.
+// NavigateResult is the result of the command Page.navigate.
 type NavigateResult struct {
-	FrameID    cdp.FrameID  `json:"frameId"`
-	LoaderID   cdp.LoaderID `json:"loaderId,omitzero"`
-	ErrorText  string       `json:"errorText,omitzero"`
-	IsDownload bool         `json:"isDownload,omitzero"`
+	FrameID    cdp.FrameID  `json:"frameId,omitempty,omitzero"`
+	LoaderID   cdp.LoaderID `json:"loaderId,omitempty,omitzero"`
+	ErrorText  string       `json:"errorText,omitempty,omitzero"`
+	IsDownload bool         `json:"isDownload"`
 }
 
-// Navigate is the command Page.navigate.
-var Navigate = cdp.Command[NavigateParams, NavigateResult]{Method: "Page.navigate"}
+// Navigate navigates current page to the given URL.
+var Navigate = cdp.Command[NavigateParams, NavigateResult]{Method: CommandNavigate}
 
-// LoadEventFired is the event Page.loadEventFired.
-var LoadEventFired = cdp.Event[LoadEventFiredEvent]{Method: "Page.loadEventFired"}
+// LoadEventFired [no description].
+var LoadEventFired = cdp.Event[EventLoadEventFired]{Method: "Page.loadEventFired"}
 ```
 
 A command that takes no parameters uses `cdp.Empty` for `P`, and a command
-that returns nothing uses `cdp.Empty` for `R`. A result struct is always
-generated, even for a command that returns one value, so that adding a second
-value later is not a break.
+that returns nothing uses `cdp.Empty` for `R`. A result struct exists for each
+command that returns something, even for a command that returns one value, so
+that adding a second value later is not a break.
 
 ### The core package
 
-The `cdp` package holds about forty lines of code. The sketch leaves out the
-connection:
+The `cdp` package holds the core in about one hundred lines, with the
+comments. The sketch shortens it and leaves out the connection, which stays in
+`chromedp`:
 
 ```go
 package cdp
@@ -89,41 +94,22 @@ type Command[P, R any] struct{ Method string }
 // Event is a protocol event with the payload E.
 type Event[E any] struct{ Method string }
 
-// Session is one connection to a browser target.
-type Session struct { /* connection, pending calls, listeners */ }
+// Session is a connection to a browser target.
+type Session interface {
+	Call(ctx context.Context, method string, params, result any) error
+	Subscribe(method string) (events <-chan jsontext.Value, cancel func())
+}
 
 // Call runs the command on the session.
-func Call[P, R any](ctx context.Context, s *Session, c Command[P, R], p P) (R, error) {
-	var res R
-	err := s.call(ctx, c.Method, p, &res)
-	return res, err
-}
+func Call[P, R any](ctx context.Context, s Session, c Command[P, R], p P) (R, error)
 
 // Events returns the events of one kind. The session starts to buffer them
 // when Events returns, and not when the caller starts to range.
-func Events[E any](ctx context.Context, s *Session, e Event[E]) iter.Seq2[E, error] {
-	ch := s.listen(e.Method)
-	return func(yield func(E, error) bool) {
-		defer s.unlisten(e.Method, ch)
-		for {
-			select {
-			case <-ctx.Done():
-				var zero E
-				yield(zero, ctx.Err())
-				return
-			case v := <-ch:
-				if !yield(v.(E), nil) {
-					return
-				}
-			}
-		}
-	}
-}
+func Events[E any](ctx context.Context, s Session, e Event[E]) iter.Seq2[E, error]
 ```
 
 A protocol error from the browser is a `*cdproto.Error`, which the session
-returns. A caller reads it with
-`errors.As`.
+returns. A caller reads it with `errors.As`.
 
 ## How chromedp uses it
 
@@ -285,11 +271,11 @@ if errors.As(err, &perr) {
 ### Options
 
 A command takes a struct. A zero field is omitted from the message, because
-the field has `omitzero`. The generator no longer writes the `With...` methods.
-A field that must be sent even when it is zero is a pointer, or a type from
-`cdp` that says so. This is an open question below. A field that holds an enum
-has the named type of that enum, so a caller cannot pass an arbitrary string by
-accident.
+the field has `omitzero`. The generator does not write the `With...` methods. An
+optional boolean is a `*bool`, so that a caller can send `false`. For another
+type, a field that must be sent when it is zero is an open question below. A
+field that holds an enum has the named type of that enum, so a caller cannot
+pass an arbitrary string by accident.
 
 ### Old code keeps working
 
@@ -324,60 +310,46 @@ This is the migration path. A project moves one call at a time.
 
 ## Open questions
 
-1. Where do `Command`, `Event`, `Session` and `Call` live? `cdproto` can hold
-   them, because the generated code needs the types. A session needs a
-   connection, and `cdproto` has none today. The connection can stay in
-   `chromedp`, and `cdproto` can define an interface:
+The branch answers three earlier questions: where the core lives, whether the
+old API stays, and what to do about the name collision. The next section gives
+the answers.
 
-   ```go
-   type Session interface {
-   	Call(ctx context.Context, method string, params, result any) error
-   	Listen(method string) (<-chan jsontext.Value, func())
-   }
-   ```
-
-   `Call` takes that interface instead of `*Session`.
-2. How does a caller send a zero value that the protocol requires? Today the
-   generator has a few of these in a hand written list, which the fixup rule
-   removed. A pointer field is one answer.
-3. Does the old API stay in `cdproto` for a time, so that both can be used
-   in one program? That doubles the size of the generated code.
-4. How is a name chosen when a command and its parameter type share a name?
-   Today the command is `Navigate` and the parameters are `NavigateParams`. The
-   variable `page.Navigate` collides with a function of the same name, so
-   the old and the new cannot live in one package.
-5. Does the protocol need a `Seq2` for every event, or is `Seq` enough when the
+1. How does a caller send a zero value that the protocol requires, for a type
+   other than a boolean? Today the generator has a few of these in a hand
+   written list, which the rewrite rule removed. A pointer field is one answer.
+2. Does the protocol need a `Seq2` for every event, or is `Seq` enough when the
    caller cancels with the context?
 
 ## What the branch generates
 
 The branch `typed-api` of this repository has the `cdproto` side. A few points
-differ from the sketch above, and the sketch of the `chromedp` side is not
-changed by them.
+differ from the first sketches above. The sketch of the `chromedp` side does not
+change because of them.
 
 - The core is in the `cdp` package, because the generated packages already
   import it. `Session` is an interface with two methods, `Call` and `Subscribe`,
   so the connection stays in `chromedp`. `cdp.Call` and `cdp.Events` are the
   functions that the examples use.
-- A result struct is named `FooResult`. A command with no parameters or no results
-  uses `cdp.Empty`, and has no struct.
-- The old `Do` method, the constructor and the `With...` methods are gone. A
-  generated package cannot hold both, because the value `page.Navigate` and the
-  old function `page.Navigate` have the same name. The old executor in the
-  context is gone as well.
-- An optional boolean in the parameters of a command is a `*bool`. A plain `bool`
-  cannot say "leave it out", and the protocol has about ten optional booleans whose
-  default is true, so a zero `false` changes what the browser does. In Go 1.26
-  and later, `new(true)` and `new(false)` make the pointer.
+- A result struct is named `FooResult`. A command with no parameters or no
+  results uses `cdp.Empty`, and has no struct for them.
+- The old `Do` method, the old function for each command and the `With...`
+  methods are gone. A generated package cannot hold both, because the value
+  `page.Navigate` and the old function `page.Navigate` have the same name. The
+  old executor in the context is gone as well.
+- An optional boolean in the parameters of a command is a `*bool`. A plain
+  `bool` cannot say "leave it out". The protocol has about ten optional
+  booleans whose default is true, so a zero `false` changes what the browser
+  does. In Go 1.26 and later, `new(true)` and `new(false)` make the pointer.
 - A binary value is a `[]byte`. The standard library encodes it as base64
   without a tag, so the base64 step of the old `Do` method is gone.
-- `cdp.Events` buffers from the moment it returns. A caller that never ranges over
-  the iterator holds the subscription, and the documentation of the function says
-  so.
+- `cdp.Events` buffers from the moment it returns. A caller that never ranges
+  over the iterator holds the subscription, and the documentation of the
+  function says so.
 - `gencmd/gencmd_test.go` generates a small protocol and runs
-  `gencmd/testdata/generated_test.go.txt` against it with the go command. The test
-  covers a command with an enum, a pointer boolean and a binary result, a command
-  with nothing, an error, the order of events and the end of an iterator.
+  `gencmd/testdata/generated_test.go.txt` against it with the go command. The
+  test covers a command with an enum, a pointer boolean and a binary result, a
+  command with nothing, an error, the order of events and the end of an
+  iterator.
 
 ## What changes in this repository
 
