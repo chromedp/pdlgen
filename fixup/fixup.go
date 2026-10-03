@@ -9,8 +9,8 @@
 // extractEnums.
 //
 // The second fix removes name stuttering. When the name of a type starts with
-// the name of its domain, the fix removes that prefix, because the Go package
-// name already provides it. For example, the type "CSSStyle" of the domain
+// the name of its domain, the fix removes that prefix. The Go package name
+// already provides it. For example, the type "CSSStyle" of the domain
 // "CSS" becomes css.Style, and "AXNode" of "Accessibility" becomes
 // accessibility.Node.
 package fixup

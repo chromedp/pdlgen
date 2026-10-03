@@ -37,8 +37,9 @@ func FileHeader(w io.Writer, pkgName string, d *pdl.Domain) error {
 	}{pkgName, d})
 }
 
-// FileImports writes the import block for the imports (a map of import path to
-// alias, where an alias equal to the path means no alias) to w, sorted by path.
+// FileImports writes the import block for the imports to w, sorted by path. The
+// map holds the alias of each import path. An alias equal to the path means no
+// alias.
 func FileImports(w io.Writer, imports map[string]string) error {
 	var v []Import
 	for path, alias := range imports {
@@ -180,8 +181,8 @@ func funcMap() template.FuncMap {
 	}
 }
 
-// ExportedName returns the exported name of a Go type name, removing any
-// package qualifier ("time.Time" becomes "Time").
+// ExportedName returns the exported name of a Go type name. It removes any
+// package qualifier, so "time.Time" becomes "Time".
 func ExportedName(s string) string {
 	if _, after, ok := strings.Cut(s, "."); ok {
 		s = after

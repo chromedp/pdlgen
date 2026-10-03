@@ -75,9 +75,9 @@ func CommandReturnsType(t *pdl.Type) string {
 	return TypeName(t, CommandReturnsPrefix, CommandReturnsSuffix)
 }
 
-// ResolveRef is a utility func to resolve the fully qualified name of a type's
-// ref from the list of provided domains, relative to domain d when ref is not
-// namespaced.
+// ResolveRef resolves the fully qualified name of the ref of a type from the
+// list of domains. When the ref has no domain, ResolveRef resolves it relative
+// to domain d.
 func ResolveRef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainType, *pdl.Type) {
 	n := strings.SplitN(t.Ref, ".", 2)
 	// determine domain
@@ -111,9 +111,9 @@ func ResolveRef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainTy
 
 // ResolveType resolves the type relative to the Go domain.
 //
-// Returns the DomainType of the underlying type, the underlying type (or the
-// original passed type if not a reference) and the fully qualified name type
-// name.
+// It returns the DomainType of the underlying type and the underlying type,
+// which is the original type when it is not a reference. It also returns the
+// fully qualified type name.
 func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainType, *pdl.Type, string) {
 	switch {
 	case t.NoResolve || strings.HasPrefix(t.Ref, "*"):

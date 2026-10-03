@@ -15,13 +15,14 @@ const docBase = "https://chromedevtools.github.io/devtools-protocol/tot/"
 // extractEnums replaces each inline enum in the domain with a reference to a
 // named type, which it adds to the domain.
 //
-// An inline enum is declared directly on a property of a type, or on a
-// parameter or a return value of a command or an event. The name of the new
-// type is the name of the declaring type, command or event followed by the
-// name of the property, as in "DispatchKeyEventType" for the "type" parameter
-// of "Input.dispatchKeyEvent". Each place gets a type of its own, even when two
-// places have the same values, because the protocol changes the values of each
-// place on its own.
+// An inline enum is declared directly on a property of a type. It can also be
+// declared on a parameter or a return value of a command or an event. The name
+// of the new type is the name of the declaring type, command or event, followed
+// by the name of the property. For example, the "type" parameter of
+// "Input.dispatchKeyEvent" gets the type "DispatchKeyEventType".
+//
+// Each place gets a type of its own, even when two places have the same values.
+// The protocol changes the values of each place on its own.
 func extractEnums(d *pdl.Domain) error {
 	// extract from the properties of the types first, as the new types are
 	// added to the list

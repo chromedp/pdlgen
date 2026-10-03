@@ -1,6 +1,6 @@
-// Command pdlgen generates the Go package cdproto, which holds the
-// commands, events and types of the Chrome DevTools Protocol, from the protocol
-// definitions in the Chromium and V8 source trees.
+// Command pdlgen generates the Go package cdproto from the protocol
+// definitions in the Chromium and V8 source trees. The package holds the
+// commands, events and types of the Chrome DevTools Protocol.
 //
 // README.md describes how to use the command.
 package main

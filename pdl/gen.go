@@ -36,8 +36,8 @@ func main() {
 	}
 }
 
-// run downloads and generates a HAR definition from the remote website,
-// writing the generated definition to flagOut.
+// run downloads a HAR definition from the remote website, generates the PDL
+// and writes it to flagOut.
 func run() error {
 	// retrieve
 	buf, err := grab(specURL)
