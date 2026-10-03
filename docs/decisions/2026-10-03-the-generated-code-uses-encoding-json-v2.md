@@ -1,8 +1,10 @@
 # The generated code uses encoding/json/v2 from the standard library
 
-Status: Amends 2025-02-22-the-generated-code-uses-go-json-experiment.md.
+Status: Decided.
 
-The maintainer decided on 2026-10-03 that the generated code must not use
+This decision supersedes
+`2025-02-22-the-generated-code-uses-go-json-experiment.md`. The maintainer
+decided on 2026-10-03 that the generated code must not use
 `github.com/go-json-experiment/json`. It must use `encoding/json/v2` and
 `encoding/json/jsontext`, which are in the standard library of Go 1.27.
 

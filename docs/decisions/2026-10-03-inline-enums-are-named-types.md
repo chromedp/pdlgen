@@ -48,7 +48,7 @@ parent and the property, on no sharing of types, and on no validation when a
 value is decoded or encoded. Two of them also asked for a pointer in an optional
 field, so that `nil` means the field is absent. That is not done, because every
 optional field in the generated code uses `omitzero` and none uses a pointer.
-The branch `typed-api` has one exception: an optional boolean in the parameters
+The typed API has one exception: an optional boolean in the parameters
 of a command is a `*bool`. See `docs/API.md`.
 One asked for an `IsKnown` method and `Deprecated:` comments, which are not done.
 They are possible later.
@@ -62,5 +62,5 @@ counts about 270 incompatible changes, mostly field types and the removed
 `UnmarshalJSON` methods, and about 490 compatible additions. The longest
 constant that this rule makes is 77 characters, `SetInstrumentationBreakpointInstrumentationBeforeScriptWithSourceMapExecution`.
 The longest in the package is 89 characters, and it belongs to an enum that the
-protocol already names. `chromedp` adopts the change in its port of `cdproto`
-v0.157.
+protocol already names. `chromedp` adopted the change in its port to `cdproto`
+v0.157.2.

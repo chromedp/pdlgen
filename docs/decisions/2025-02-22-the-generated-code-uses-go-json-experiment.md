@@ -1,6 +1,6 @@
 # The generated code uses go-json-experiment instead of easyjson
 
-Status: Amended by 2026-10-03-the-generated-code-uses-encoding-json-v2.md.
+Status: Superseded by 2026-10-03-the-generated-code-uses-encoding-json-v2.md.
 
 On 2025-02-22 the generator changed from `easyjson` to
 `github.com/go-json-experiment/json`, in the commit `ea7a5fa` named "Change
@@ -17,7 +17,7 @@ remembers the reasons, add them here.
 The generator did not run `easyjson`. The generated `go.mod` required
 `github.com/go-json-experiment/json`. `UnmarshalMessage` took `jsonv2.Options`.
 
-## Amendment
+## Superseded
 
 The generated code now uses the standard library. See
 `2026-10-03-the-generated-code-uses-encoding-json-v2.md`. The text above says

@@ -1,15 +1,16 @@
 # Generate a typed API that uses generics and iterators
 
-Status: Proposed.
+Status: Decided.
 
 On 2026-10-03 the maintainer asked whether Go 1.27 generics and iterators allow
 a better API for the protocol than the `chromedp.Action` interface, which is old
 and not friendly. The maintainer asked for a document that records the idea. The
 maintainer also asked for example code that shows how `chromedp` can use it. The
-maintainer did not choose it.
+maintainer approved the design on 2026-10-04, after the generator side was
+built.
 
-Gemini Pro answered the question. Qwen Max did not answer in time. The answer
-and the research are in `docs/API.md`.
+Gemini Pro answered the question. Qwen Max did not answer in time. The design
+that came from the answer is in `docs/API.md`.
 
 ## The proposal
 
@@ -31,9 +32,10 @@ Every name changes, so this is a break for every user of `cdproto`. The
 generated code grows. The call is longer than the chained form, because Go has
 no generic methods and so the call must be a function.
 
-## What happens next
+## What happened next
 
-The generator side is built on the branch `typed-api`, as an experiment for
-review, and `docs/API.md` describes what it generates. It is not merged. Nothing
-more happens until the maintainer decides. If the maintainer accepts it, this file is amended to
-`Decided`, and the branch is merged.
+The generator side was built on a branch named `typed-api`, and `docs/API.md`
+describes what it generates. The maintainer approved the design on 2026-10-04,
+and the branch was merged to `main` on the same day. `cdproto` v0.157.2 is the
+first release with the typed API, and `chromedp` v0.17.0 uses it. The earlier
+releases, v0.157.0 and v0.157.1, have the old API.
