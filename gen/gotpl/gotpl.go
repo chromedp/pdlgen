@@ -20,7 +20,13 @@ import (
 var tmplFS embed.FS
 
 // tmpl is the set of all templates.
-var tmpl = template.Must(template.New("gotpl").Funcs(funcMap()).ParseFS(tmplFS, "*.tmpl"))
+var tmpl *template.Template
+
+// init parses the templates. It is not a variable initializer, because a func in
+// the func map renders a template, which a variable initializer cannot do.
+func init() {
+	tmpl = template.Must(template.New("gotpl").Funcs(funcMap()).ParseFS(tmplFS, "*.tmpl"))
+}
 
 // Import is an import path with an optional alias.
 type Import struct {
@@ -142,16 +148,7 @@ func funcMap() template.FuncMap {
 			p.Description = "are the parameters of the command " + c.RawName + "."
 			return &p
 		},
-		"returnsType": func(c *pdl.Type) *pdl.Type {
-			return &pdl.Type{
-				RawType:     "returns",
-				RawName:     c.RawName,
-				Name:        c.Name,
-				Type:        pdl.TypeObject,
-				Description: "is the result of the command " + c.RawName + ".",
-				Properties:  c.Returns,
-			}
-		},
+		"returnsType": returnsType,
 		// names
 		"packageName":          genutil.PackageName,
 		"protoName":            ProtoName,
@@ -196,4 +193,58 @@ func EnumValue(t *pdl.Type, i int, e string) string {
 		return strconv.Itoa(i + 1)
 	}
 	return `"` + e + `"`
+}
+
+// returnsType returns the type of the result of the command c.
+//
+// A result can hold a text value that the browser sends as base64 when a flag
+// next to it says so, as Network.getResponseBody does with body and
+// base64Encoded. The value of such a result is a []byte, and the result decodes
+// it by the flag, as the old Do method did.
+func returnsType(c *pdl.Type) *pdl.Type {
+	t := &pdl.Type{
+		RawType:     "returns",
+		RawName:     c.RawName,
+		Name:        c.Name,
+		Type:        pdl.TypeObject,
+		Description: "is the result of the command " + c.RawName + ".",
+		Properties:  c.Returns,
+	}
+	field, flag := base64Pair(c.Returns)
+	if field == nil {
+		return t
+	}
+	t.Properties = make([]*pdl.Type, len(c.Returns))
+	for i, p := range c.Returns {
+		if p == field {
+			bin := *p
+			bin.Type = pdl.TypeBinary
+			p = &bin
+		}
+		t.Properties[i] = p
+	}
+	t.Extra = render("base64result", struct{ Type, Field, FieldJSON, Flag string }{
+		Type:      CommandReturnsType(c),
+		Field:     GoName(field, false),
+		FieldJSON: field.Name,
+		Flag:      GoName(flag, false),
+	})
+	return t
+}
+
+// base64Pair returns the text value and the flag that says it is base64, when
+// the properties have a boolean base64Encoded and a string value next to it.
+// The value is the property before the flag, or the one after it.
+func base64Pair(props []*pdl.Type) (field, flag *pdl.Type) {
+	for i, p := range props {
+		if p.Name != "base64Encoded" || p.Type != pdl.TypeBoolean {
+			continue
+		}
+		for _, j := range []int{i - 1, i + 1} {
+			if j >= 0 && j < len(props) && props[j].Type == pdl.TypeString && props[j].Ref == "" && props[j].Enum == nil {
+				return props[j], p
+			}
+		}
+	}
+	return nil, nil
 }

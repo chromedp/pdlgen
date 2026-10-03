@@ -41,6 +41,14 @@ domain Page
   # Closes the page.
   command close
 
+  # Returns the body of the page.
+  command getBody
+    returns
+      # The body, as text or as base64.
+      string body
+      # True, if the body is base64.
+      boolean base64Encoded
+
   # Fired when the load event fires.
   event loadEventFired
     parameters

@@ -24,6 +24,7 @@ is wrong, and it prints the row to add.
 | 2026-10-03 | [The `old` branch became `main`, and the old `main` became `wip`](2026-10-03-main-is-the-former-old-branch.md) | Decided |
 | 2026-10-03 | [Generate a typed API that uses generics and iterators](2026-10-03-proposed-generics-and-iterators-api.md) | Proposed |
 | 2026-10-03 | [The notes of a release come from apidiff](2026-10-03-release-notes-come-from-apidiff.md) | Decided |
+| 2026-10-03 | [A result decodes a base64 value by its flag](2026-10-03-results-decode-base64-by-the-flag.md) | Decided |
 | 2026-10-03 | [The templates are standard Go templates](2026-10-03-templates-are-standard-go-templates.md) | Decided |
 | 2026-10-03 | [The command uses ox, and names use ox/strcase](2026-10-03-the-command-uses-ox-and-strcase.md) | Decided |
 | 2026-10-03 | [The generated code uses encoding/json/v2 from the standard library](2026-10-03-the-generated-code-uses-encoding-json-v2.md) | Amends 2025-02-22-the-generated-code-uses-go-json-experiment.md |

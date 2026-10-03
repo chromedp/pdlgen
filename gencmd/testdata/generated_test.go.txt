@@ -86,6 +86,32 @@ func TestCallWithoutParamsOrResult(t *testing.T) {
 	}
 }
 
+func TestResultDecodesBase64ByTheFlag(t *testing.T) {
+	for _, test := range []struct {
+		name, result, want string
+		wantFlag           bool
+	}{
+		{"base64", `{"body":"aGVsbG8=","base64Encoded":true}`, "hello", true},
+		{"text", `{"body":"plain <b>text</b>","base64Encoded":false}`, "plain <b>text</b>", false},
+		{"no flag", `{"body":"x"}`, "x", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s := &fake{result: test.result}
+			res, err := cdp.Call(context.Background(), s, page.GetBody, cdp.Empty{})
+			if err != nil {
+				t.Fatalf("expected no error, got: %v", err)
+			}
+			if string(res.Body) != test.want || res.Base64encoded != test.wantFlag {
+				t.Errorf("expected %q and %v, got: %q and %v", test.want, test.wantFlag, res.Body, res.Base64encoded)
+			}
+		})
+	}
+	s := &fake{result: `{"body":"!!","base64Encoded":true}`}
+	if _, err := cdp.Call(context.Background(), s, page.GetBody, cdp.Empty{}); err == nil {
+		t.Errorf("expected an error for a body that is not base64")
+	}
+}
+
 func TestEvents(t *testing.T) {
 	s := &fake{events: make(chan jsontext.Value, 2)}
 	// the events are sent before the loop starts, as when a caller subscribes,

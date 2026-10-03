@@ -341,7 +341,9 @@ change because of them.
   booleans whose default is true, so a zero `false` changes what the browser
   does. In Go 1.26 and later, `new(true)` and `new(false)` make the pointer.
 - A binary value is a `[]byte`. The standard library encodes it as base64
-  without a tag, so the base64 step of the old `Do` method is gone.
+  without a tag. A result with a text value and a `base64Encoded` flag, such as
+  `Network.getResponseBody`, holds the value as a `[]byte` and decodes it by the
+  flag in its `UnmarshalJSON`. Both cases need no code in the caller.
 - `cdp.Events` buffers from the moment it returns. A caller that never ranges
   over the iterator holds the subscription, and the documentation of the
   function says so.

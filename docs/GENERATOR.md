@@ -71,7 +71,9 @@ A command `Foo` in the domain `Bar` becomes the struct `FooParams`, the struct
 A command without parameters or without results uses `cdp.Empty` in place of the
 struct. The constant `CommandFoo` holds the name of the command. An optional
 boolean parameter is a `*bool`, so that `nil` leaves it out of the message. A
-binary value is a `[]byte`.
+binary value is a `[]byte`. A result that has a text value and a `base64Encoded`
+flag next to it, such as `Network.getResponseBody`, holds the value as a `[]byte`,
+and its `UnmarshalJSON` decodes the value by the flag, as the old `Do` method did.
 
 An event `baz` becomes the struct `EventBaz` and the value `Baz` of the type
 `cdp.Event[EventBaz]`. A caller runs a command with
