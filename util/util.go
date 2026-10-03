@@ -111,14 +111,37 @@ func GetDepVersion(typ, ver string, deps, refs Cache) (string, error) {
 	}
 
 	// find tag
-	for k, v := range r {
-		if !strings.HasPrefix(k, "refs/tags/") {
-			continue
-		}
-		if v.Value == rev {
-			return strings.TrimPrefix(k, "refs/tags/"), nil
-		}
+	if tag := findTag(r, rev); tag != "" {
+		return tag, nil
 	}
 
 	return "", fmt.Errorf("could not find %s revision tag for rev %s", rev, m[1])
+}
+
+// findTag returns the tag of the refs that points at the revision, or an empty
+// string. More than one tag can point at a revision, as V8 tags both "15.7.23"
+// and "15.7.23-pgo" for one commit. The tag with the fewest dashes wins, and
+// then the shortest and then the first in order, so that the answer does not
+// depend on the order of the map.
+func findTag(refs map[string]Ref, rev string) string {
+	var tags []string
+	for k, v := range refs {
+		if name, ok := strings.CutPrefix(k, "refs/tags/"); ok && v.Value == rev {
+			tags = append(tags, name)
+		}
+	}
+	sort.Slice(tags, func(i, j int) bool {
+		a, b := tags[i], tags[j]
+		if da, db := strings.Count(a, "-"), strings.Count(b, "-"); da != db {
+			return da < db
+		}
+		if len(a) != len(b) {
+			return len(a) < len(b)
+		}
+		return a < b
+	})
+	if len(tags) == 0 {
+		return ""
+	}
+	return tags[0]
 }
