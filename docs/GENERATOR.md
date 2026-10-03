@@ -74,6 +74,9 @@ boolean parameter is a `*bool`, so that `nil` leaves it out of the message. A
 binary value is a `[]byte`. A result that has a text value and a `base64Encoded`
 flag next to it, such as `Network.getResponseBody`, holds the value as a `[]byte`,
 and its `UnmarshalJSON` decodes the value by the flag, as the old `Do` method did.
+The rule applies to every struct, results, types and events alike. A text value
+whose description starts with "Base64-encoded" and that has no flag is a `[]byte`
+too.
 
 An event `baz` becomes the struct `EventBaz` and the value `Baz` of the type
 `cdp.Event[EventBaz]`. A caller runs a command with

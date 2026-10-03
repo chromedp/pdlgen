@@ -125,6 +125,9 @@ type typeData struct {
 }
 
 func newTypeData(t *pdl.Type, prefix, suffix string, d *pdl.Domain, domains []*pdl.Domain, noExposeOverride, omitOnlyWhenOptional bool) *typeData {
+	if t.RawType != "command" {
+		t = withBase64(t, TypeName(t, prefix, suffix))
+	}
 	return &typeData{t, prefix, suffix, d, domains, noExposeOverride, omitOnlyWhenOptional}
 }
 
@@ -196,13 +199,8 @@ func EnumValue(t *pdl.Type, i int, e string) string {
 }
 
 // returnsType returns the type of the result of the command c.
-//
-// A result can hold a text value that the browser sends as base64 when a flag
-// next to it says so, as Network.getResponseBody does with body and
-// base64Encoded. The value of such a result is a []byte, and the result decodes
-// it by the flag, as the old Do method did.
 func returnsType(c *pdl.Type) *pdl.Type {
-	t := &pdl.Type{
+	return &pdl.Type{
 		RawType:     "returns",
 		RawName:     c.RawName,
 		Name:        c.Name,
@@ -210,26 +208,47 @@ func returnsType(c *pdl.Type) *pdl.Type {
 		Description: "is the result of the command " + c.RawName + ".",
 		Properties:  c.Returns,
 	}
-	field, flag := base64Pair(c.Returns)
+}
+
+// withBase64 returns t with the base64 pair of its struct fixed, or t itself
+// when it has no pair.
+//
+// A struct can hold a text value that the browser sends as base64 when a flag
+// next to it says so, as Network.getResponseBody does with body and
+// base64Encoded. The value of such a struct is a []byte, and the struct decodes
+// it by the flag in its UnmarshalJSON, as the old Do method did. typeName is the
+// Go name of the struct.
+func withBase64(t *pdl.Type, typeName string) *pdl.Type {
+	props := t.Properties
+	if t.RawType == "event" {
+		props = t.Parameters
+	}
+	field, flag := base64Pair(props)
 	if field == nil {
 		return t
 	}
-	t.Properties = make([]*pdl.Type, len(c.Returns))
-	for i, p := range c.Returns {
+	c := *t
+	fixed := make([]*pdl.Type, len(props))
+	for i, p := range props {
 		if p == field {
 			bin := *p
 			bin.Type = pdl.TypeBinary
 			p = &bin
 		}
-		t.Properties[i] = p
+		fixed[i] = p
 	}
-	t.Extra = render("base64result", struct{ Type, Field, FieldJSON, Flag string }{
-		Type:      CommandReturnsType(c),
+	if t.RawType == "event" {
+		c.Parameters = fixed
+	} else {
+		c.Properties = fixed
+	}
+	c.Extra = t.Extra + render("base64result", struct{ Type, Field, FieldJSON, Flag string }{
+		Type:      typeName,
 		Field:     GoName(field, false),
 		FieldJSON: field.Name,
 		Flag:      GoName(flag, false),
 	})
-	return t
+	return &c
 }
 
 // base64Pair returns the text value and the flag that says it is base64, when

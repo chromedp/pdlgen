@@ -112,6 +112,26 @@ func TestResultDecodesBase64ByTheFlag(t *testing.T) {
 	}
 }
 
+func TestEventDecodesBase64ByTheFlag(t *testing.T) {
+	s := &fake{events: make(chan jsontext.Value, 2)}
+	events := cdp.Events(context.Background(), s, page.BodyReceived)
+	s.events <- jsontext.Value(`{"body":"aGVsbG8=","base64Encoded":true}`)
+	s.events <- jsontext.Value(`{"body":"text","base64Encoded":false}`)
+	var got []string
+	for ev, err := range events {
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		got = append(got, string(ev.Body))
+		if len(got) == 2 {
+			break
+		}
+	}
+	if len(got) != 2 || got[0] != "hello" || got[1] != "text" {
+		t.Errorf("unexpected bodies: %q", got)
+	}
+}
+
 func TestEvents(t *testing.T) {
 	s := &fake{events: make(chan jsontext.Value, 2)}
 	// the events are sent before the loop starts, as when a caller subscribes,

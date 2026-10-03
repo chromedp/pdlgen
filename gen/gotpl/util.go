@@ -24,6 +24,9 @@ const (
 	CommandTypeSuffix    = "Params"
 	CommandReturnsPrefix = ""
 	CommandReturnsSuffix = "Result"
+	// Base64Prefix is the start of the description of a text value that is
+	// base64 encoded.
+	Base64Prefix = "Base64-encoded"
 	// ChromeDevToolsDocBase is the base URL for the Chrome DevTools
 	// documentation site.
 	//
@@ -143,6 +146,10 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 		return d.Domain, t, GoEnumType(pdl.TypeAny)
 	case t.Type == pdl.TypeObject:
 		panic("should not encounter an object with defined properties that does not have Ref and Name")
+	case t.Type == pdl.TypeString && t.Enum == nil && strings.HasPrefix(t.Description, Base64Prefix):
+		// The description says that the text is base64, so the value is a
+		// []byte, which the JSON package decodes from base64.
+		return d.Domain, t, "[]byte"
 	}
 	return d.Domain, t, GoEnumType(t.Type)
 }

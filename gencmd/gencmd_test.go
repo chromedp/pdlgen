@@ -49,6 +49,14 @@ domain Page
       # True, if the body is base64.
       boolean base64Encoded
 
+  # Fired when a body arrives, as text or as base64.
+  event bodyReceived
+    parameters
+      # The body.
+      string body
+      # True, if the body is base64.
+      boolean base64Encoded
+
   # Fired when the load event fires.
   event loadEventFired
     parameters
