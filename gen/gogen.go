@@ -257,7 +257,7 @@ func (e *Error) Error() string {
 	}, {
 		Name:        "Message",
 		Type:        pdl.TypeObject,
-		Description: "Chrome DevTools Protocol message sent/read over websocket connection.",
+		Description: "Chrome DevTools Protocol message that the websocket connection sends or reads.",
 		Properties: []*pdl.Type{{
 			Name:        "id",
 			Type:        pdl.TypeInteger,

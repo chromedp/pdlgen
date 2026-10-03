@@ -1,5 +1,5 @@
 {{- define "errors" -}}
-// Error is a error.
+// Error is the type of the constant errors of this package.
 type Error string
 
 // Error values.
@@ -7,7 +7,8 @@ const (
 	// ErrInvalidContext is the invalid context error.
 	ErrInvalidContext Error = "invalid context"
 
-	// ErrMsgMissingParamsOrResult is the msg missing params or result error.
+	// ErrMsgMissingParamsOrResult is the error for a message that has neither
+	// params nor a result.
 	ErrMsgMissingParamsOrResult Error = "msg missing params or result"
 )
 
@@ -88,20 +89,22 @@ func UnmarshalMessage(msg *Message, opts ...jsonv2.Options) (any, error) {
 {{end -}}
 
 {{- define "version" -}}
-// The versions of the protocol definitions this package was generated from.
+// The versions of the protocol definitions that the generator read to write
+// this package.
 const (
 	chromiumVersion = {{printf "%q" .Chromium}}
 	v8Version       = {{printf "%q" .V8}}
 )
 
 // ChromiumVersion returns the Chromium version of the browser protocol
-// definitions (browser_protocol.pdl) this package was generated from.
+// definitions (browser_protocol.pdl) that the generator read to write this
+// package.
 func ChromiumVersion() string {
 	return chromiumVersion
 }
 
 // V8Version returns the V8 version of the JavaScript protocol definitions
-// (js_protocol.pdl) this package was generated from.
+// (js_protocol.pdl) that the generator read to write this package.
 func V8Version() string {
 	return v8Version
 }
@@ -129,7 +132,8 @@ type Event[E any] struct {
 // events arrive.
 type Session interface {
 	// Call sends the command with the params, waits for the response, and decodes
-	// the result into result. An error from the browser is returned as an error.
+	// the result into result. Call returns an error from the browser as an
+	// error.
 	Call(ctx context.Context, method string, params, result any) error
 
 	// Subscribe starts to buffer the events of the method, and returns the
@@ -149,16 +153,18 @@ func Call[P, R any](ctx context.Context, s Session, c Command[P, R], params P) (
 	return res, nil
 }
 
-// Events subscribes to the event on the session, and returns an iterator over
-// the payloads. The session starts to buffer events when Events returns, and
-// not when the caller starts to range, so a caller can subscribe, trigger the
-// event, and then range. The iterator stops when the caller breaks out of the
-// loop, when the context ends, which yields the error of the context, or when
-// the session closes. A payload that does not decode yields the decode error
-// and ends the iteration.
+// Events subscribes to the event on the session and returns an iterator over
+// the payloads. The session starts to buffer events when Events returns, not
+// when the caller starts to range. A caller can therefore subscribe, trigger
+// the event, and then range.
 //
-// A caller must range over the iterator, or cancel the context. An iterator
-// that nobody reads holds its subscription.
+// The iterator stops when the caller breaks out of the loop or when the session
+// closes. It also stops when the context ends, and it then yields the error of
+// the context. A payload that does not decode yields the decode error and ends
+// the iteration.
+//
+// A caller must range over the iterator or cancel the context. An iterator that
+// nobody reads holds its subscription.
 func Events[E any](ctx context.Context, s Session, e Event[E]) iter.Seq2[E, error] {
 	events, cancel := s.Subscribe(e.Method)
 	return func(yield func(E, error) bool) {
