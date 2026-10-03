@@ -64,9 +64,9 @@ func Type(w io.Writer, t *pdl.Type, prefix, suffix string, d *pdl.Domain, domain
 	return execute(w, "type", newTypeData(t, prefix, suffix, d, domains, noExposeOverride, omitOnlyWhenOptional))
 }
 
-// Executor writes the shared executor types and funcs to w.
-func Executor(w io.Writer) error {
-	return execute(w, "executor", nil)
+// Errors writes the shared error types to w.
+func Errors(w io.Writer) error {
+	return execute(w, "errors", nil)
 }
 
 // Version writes the version funcs for the Chromium and V8 versions to w.
@@ -128,13 +128,6 @@ type commandData struct {
 	Domains []*pdl.Domain
 }
 
-// optionData is the data passed to the command option func template.
-type optionData struct {
-	T, C    *pdl.Type
-	D       *pdl.Domain
-	Domains []*pdl.Domain
-}
-
 // funcMap returns the template func map.
 func funcMap() template.FuncMap {
 	return template.FuncMap{
@@ -143,8 +136,10 @@ func funcMap() template.FuncMap {
 		"command": func(c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) *commandData {
 			return &commandData{c, d, domains}
 		},
-		"option": func(t, c *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) *optionData {
-			return &optionData{t, c, d, domains}
+		"paramsType": func(c *pdl.Type) *pdl.Type {
+			p := *c
+			p.Description = "are the parameters of the command " + c.RawName + "."
+			return &p
 		},
 		"returnsType": func(c *pdl.Type) *pdl.Type {
 			return &pdl.Type{
@@ -152,46 +147,33 @@ func funcMap() template.FuncMap {
 				RawName:     c.RawName,
 				Name:        c.Name,
 				Type:        pdl.TypeObject,
-				Description: "Return values.",
+				Description: "is the result of the command " + c.RawName + ".",
 				Properties:  c.Returns,
 			}
 		},
 		// names
-		"packageName":            genutil.PackageName,
-		"protoName":              ProtoName,
-		"camelName":              CamelName,
-		"goName":                 GoName,
-		"eventMethodType":        EventMethodType,
-		"commandMethodType":      CommandMethodType,
-		"eventType":              EventType,
-		"commandType":            CommandType,
-		"commandReturnsType":     CommandReturnsType,
-		"enumValueName":          EnumValueName,
-		"commandTypePrefix":      func() string { return CommandTypePrefix },
-		"commandTypeSuffix":      func() string { return CommandTypeSuffix },
-		"commandReturnsPrefix":   func() string { return CommandReturnsPrefix },
-		"commandReturnsSuffix":   func() string { return CommandReturnsSuffix },
-		"optionFuncPrefix":       func() string { return OptionFuncPrefix },
-		"optionFuncSuffix":       func() string { return OptionFuncSuffix },
-		"base64EncodedParamName": func() string { return Base64EncodedParamName },
+		"packageName":          genutil.PackageName,
+		"protoName":            ProtoName,
+		"camelName":            CamelName,
+		"goName":               GoName,
+		"eventMethodType":      EventMethodType,
+		"commandMethodType":    CommandMethodType,
+		"eventType":            EventType,
+		"commandType":          CommandType,
+		"commandReturnsType":   CommandReturnsType,
+		"enumValueName":        EnumValueName,
+		"commandTypePrefix":    func() string { return CommandTypePrefix },
+		"commandTypeSuffix":    func() string { return CommandTypeSuffix },
+		"commandReturnsPrefix": func() string { return CommandReturnsPrefix },
+		"commandReturnsSuffix": func() string { return CommandReturnsSuffix },
 		// types
 		"goType":     GoType,
 		"goTypeDef":  GoTypeDef,
 		"goEnumType": func(te pdl.TypeEnum) string { return GoEnumType(te) },
-		"isBoolean":  func(t *pdl.Type) bool { return t.Type == pdl.TypeBoolean },
 		"isNil":      func(v []*pdl.Type) bool { return v == nil },
 		// comments
 		"comment":    func(s, prefix string) string { return genutil.FormatComment(s, "", prefix) },
 		"docRefLink": DocRefLink,
-		"paramDesc":  ParamDesc,
-		// command parameters and return values
-		"paramList":             ParamList,
-		"retTypeList":           RetTypeList,
-		"emptyRetList":          EmptyRetList,
-		"retNameList":           RetNameList,
-		"base64EncodedRetParam": Base64EncodedRetParam,
-		"hasBase64EncodedParam": HasBase64EncodedParam,
-		"commandParamValue":     CommandParamValue,
 		// enums
 		"enumValue":    EnumValue,
 		"exportedName": ExportedName,
@@ -213,27 +195,4 @@ func EnumValue(t *pdl.Type, i int, e string) string {
 		return strconv.Itoa(i + 1)
 	}
 	return `"` + e + `"`
-}
-
-// HasBase64EncodedParam returns true when the command's return values include
-// a parameter indicating whether or not the value is base64 encoded.
-func HasBase64EncodedParam(c *pdl.Type) bool {
-	for _, p := range c.Returns {
-		if p.Name == Base64EncodedParamName {
-			return true
-		}
-	}
-	return false
-}
-
-// CommandParamValue returns the Go value to use for the parameter in a
-// command's constructor func.
-func CommandParamValue(t *pdl.Type) string {
-	if t.Type == pdl.TypeBoolean && t.Optional {
-		if defaultTrueRE.MatchString(t.Description) {
-			return "true"
-		}
-		return "false"
-	}
-	return GoName(t, true)
 }

@@ -90,7 +90,7 @@ func TestGoGenerator(t *testing.T) {
 	}
 	for name, want := range map[string][]string{
 		"version.go":     {`chromiumVersion = "1.2.3.4"`, `v8Version       = "5.6.7"`},
-		"page/page.go":   {"func Navigate(url string) *NavigateParams", "func (p NavigateParams) WithReferrer(", "func (p *NavigateParams) Do(ctx context.Context)", "CommandNavigate = \"Page.navigate\""},
+		"page/page.go":   {"var Navigate = cdp.Command[NavigateParams, NavigateResult]{Method: CommandNavigate}", "type NavigateResult struct", "var Close = cdp.Command[cdp.Empty, cdp.Empty]{Method: CommandClose}", "CommandNavigate = \"Page.navigate\""},
 		"page/types.go":  {"type Result struct", "type NavigateFormat string", "NavigateFormatJpeg NavigateFormat = \"jpeg\""},
 		"page/events.go": {"type EventLoadEventFired struct", "type EventClosed struct"},
 	} {

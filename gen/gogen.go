@@ -108,7 +108,7 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 	w := fb.get("cdp/types.go", "cdp", d, domains, basePkg)
 
 	// add executor
-	if err := gotpl.Executor(w); err != nil {
+	if err := gotpl.Errors(w); err != nil {
 		return err
 	}
 	if err := gotpl.Session(w); err != nil {

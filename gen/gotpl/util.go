@@ -2,7 +2,6 @@ package gotpl
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"unicode"
 
@@ -24,15 +23,7 @@ const (
 	CommandTypePrefix    = ""
 	CommandTypeSuffix    = "Params"
 	CommandReturnsPrefix = ""
-	CommandReturnsSuffix = "Returns"
-	OptionFuncPrefix     = "With"
-	OptionFuncSuffix     = ""
-	// Base64EncodedParamName is the base64encoded variable name in command
-	// return values when they are optionally base64 encoded.
-	Base64EncodedParamName = "base64Encoded"
-	// Base64EncodedDescriptionPrefix is the prefix for command return
-	// description prefix when base64 encoded.
-	Base64EncodedDescriptionPrefix = "Base64-encoded"
+	CommandReturnsSuffix = "Result"
 	// ChromeDevToolsDocBase is the base URL for the Chrome DevTools
 	// documentation site.
 	//
@@ -82,28 +73,6 @@ func CommandType(t *pdl.Type) string {
 // CommandReturnsType returns the type of the command return type.
 func CommandReturnsType(t *pdl.Type) string {
 	return TypeName(t, CommandReturnsPrefix, CommandReturnsSuffix)
-}
-
-// ParamDesc returns a parameter description.
-func ParamDesc(t *pdl.Type) string {
-	desc := t.Description
-	if desc != "" {
-		desc = " - " + genutil.CleanDesc(desc)
-	}
-	return strcase.ForceLowerCamelIdentifier(t.Name) + desc
-}
-
-// ParamList returns the list of parameters.
-func ParamList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, all bool) string {
-	var s strings.Builder
-	for _, p := range t.Parameters {
-		if !all && p.Optional {
-			continue
-		}
-		_, _, z := ResolveType(p, d, domains)
-		s.WriteString(GoName(p, true) + " " + z + ",")
-	}
-	return strings.TrimSuffix(s.String(), ",")
 }
 
 // ResolveRef is a utility func to resolve the fully qualified name of a type's
@@ -233,76 +202,6 @@ func GoEmptyValue(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
 		return "nil"
 	}
 	return GoEnumEmptyValue(t.Type)
-}
-
-// RetTypeList returns a list of the return types.
-func RetTypeList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
-	var s strings.Builder
-	b64ret := Base64EncodedRetParam(t)
-	for _, p := range t.Returns {
-		if p.Name == Base64EncodedParamName {
-			continue
-		}
-		n := p.Name
-		_, _, z := ResolveType(p, d, domains)
-		// if this is a base64 encoded item
-		if b64ret != nil && b64ret.Name == p.Name {
-			z = "[]byte"
-		}
-		s.WriteString(strcase.ForceLowerCamelIdentifier(n) + " " + z + ",")
-	}
-	return strings.TrimSuffix(s.String(), ",")
-}
-
-// EmptyRetList returns a list of the empty return values.
-func EmptyRetList(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) string {
-	var s strings.Builder
-	b64ret := Base64EncodedRetParam(t)
-	for _, p := range t.Returns {
-		if p.Name == Base64EncodedParamName {
-			continue
-		}
-		_, o, z := ResolveType(p, d, domains)
-		v := GoEnumEmptyValue(o.Type)
-		if strings.HasPrefix(z, "*") || strings.HasPrefix(z, "[]") || (b64ret != nil && b64ret.Name == p.Name) {
-			v = "nil"
-		}
-		s.WriteString(v + ", ")
-	}
-	return strings.TrimSuffix(s.String(), ", ")
-}
-
-// RetNameList returns a <valname>.<name> list for a command's return list.
-func RetNameList(t *pdl.Type, valname string, d *pdl.Domain, domains []*pdl.Domain) string {
-	var s strings.Builder
-	b64ret := Base64EncodedRetParam(t)
-	for _, p := range t.Returns {
-		if p.Name == Base64EncodedParamName {
-			continue
-		}
-		n := valname + "." + GoName(p, false)
-		if b64ret != nil && b64ret.Name == p.Name {
-			n = "dec"
-		}
-		s.WriteString(n + ", ")
-	}
-	return strings.TrimSuffix(s.String(), ", ")
-}
-
-// Base64EncodedRetParam returns the base64 encoded return parameter, or nil if
-// no parameters are base64 encoded.
-func Base64EncodedRetParam(t *pdl.Type) *pdl.Type {
-	var last *pdl.Type
-	for _, p := range t.Returns {
-		if p.Name == Base64EncodedParamName {
-			return last
-		}
-		if p.Type == pdl.TypeBinary || strings.HasPrefix(p.Description, Base64EncodedDescriptionPrefix) {
-			return p
-		}
-		last = p
-	}
-	return nil
 }
 
 // StructDef returns a struct definition for a list of types.
@@ -436,6 +335,3 @@ func DocRefLink(t *pdl.Type) string {
 	domain, name := t.RawName[:i], t.RawName[i+1:]
 	return ChromeDevToolsDocBase + "/" + domain + "#" + typ + "-" + name
 }
-
-// defaultTrueRE matches the "defaults to true" string variants in comments for boolean fields.
-var defaultTrueRE = regexp.MustCompile(`(?i)default.*true`)
