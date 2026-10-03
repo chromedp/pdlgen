@@ -219,9 +219,10 @@ Load the `simple-english` skill before you write any text that a person reads.
 Follow it for that text. Its rules include the ones above and add more, such as
 no contractions and one word for one meaning. The maintainer asked for this.
 
-`docs/docs_test.go` checks the rules of the skill that a machine can check, and
-it checks the links, the decision index and the skill copies. If it reports a
-sentence, rewrite the sentence. Sentence length and the voice are still yours
+`docs/docs_test.go` checks the rules of the skill that a machine can check. It
+checks the Markdown files and the comments of the Go files that we write. It
+also checks the links, the document tables, the decision index and the skill
+copies. If it reports a sentence, rewrite the sentence. Sentence length and the voice are still yours
 to check.
 
 Work that is known and not done goes in `docs/BACKLOG.md`, with the decision or

@@ -47,8 +47,8 @@ and tags it. [`docs/RELEASES.md`](docs/RELEASES.md) describes the tags.
 The repository carries two agent skills. A skill is a set of instructions that
 a coding agent loads for a task. `simple-english` sets how prose is written,
 and `go-pedantry` sets how Go is written. `docs/docs_test.go` checks the rules
-of `simple-english` that a machine can check. If it reports a sentence, rewrite
-the sentence.
+of `simple-english` that a machine can check, in the Markdown files and in the
+Go comments. If it reports a sentence, rewrite the sentence.
 
 `skills-lock.json` names the source of each skill. The `skills` command from npm
 writes it, and writes each skill into two folders. Codex and the other agents

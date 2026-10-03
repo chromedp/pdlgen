@@ -7,7 +7,7 @@ known and not done goes in [`BACKLOG.md`](BACKLOG.md), and a decision goes in
 
 ## Where the work stands
 
-On 2026-10-03 the generator was rewritten and pushed to `main`:
+On 2026-10-03 the new generator was pushed to `main`. It has these parts:
 
 - Standard `text/template` templates, and `encoding/json/v2` in the generated
   code.

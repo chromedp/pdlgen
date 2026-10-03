@@ -128,6 +128,24 @@ func TestTheDecisionIndexIsComplete(t *testing.T) {
 	}
 }
 
+func TestEveryDocumentIsListed(t *testing.T) {
+	files, err := filepath.Glob(filepath.Join(root, "docs", "*.md"))
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	for _, table := range []string{"README.md", "AGENTS.md"} {
+		buf, err := os.ReadFile(filepath.Join(root, table))
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		for _, f := range files {
+			if name := "docs/" + filepath.Base(f); !bytes.Contains(buf, []byte(name)) {
+				t.Errorf("%s does not list %s", table, name)
+			}
+		}
+	}
+}
+
 func TestSkillsAreCopies(t *testing.T) {
 	var a, b []string
 	for _, d := range []struct {
@@ -170,7 +188,7 @@ var proseRules = []struct {
 }{
 	{"modal", regexp.MustCompile(`(?i)\b(?:should|would|may|might|could)\b`), "use can, will or must"},
 	{"semicolon", regexp.MustCompile(`;`), "write two sentences"},
-	{"dash", regexp.MustCompile("—|–|\\s--\\s"), "write two sentences"},
+	{"dash", regexp.MustCompile(`—|–|\s--\s`), "write two sentences"},
 	{"contraction", regexp.MustCompile(`(?i)\b[a-z]+n't\b|\b(?:it|that|there|here|what|let)'s\b|\b(?:i|you|we|they)'(?:re|ve|ll|d|m)\b`), "write the words in full"},
 	{"bold", regexp.MustCompile(`\*\*`), "remove the bold"},
 	{"perfect", regexp.MustCompile(`(?i)\b(?:has|have) been\b`), "use the simple past or the present"},
