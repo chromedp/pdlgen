@@ -2,6 +2,8 @@ package docs_test
 
 import (
 	"bytes"
+	"go/parser"
+	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -185,6 +187,16 @@ func prose(s string) string {
 	return s
 }
 
+// check reports each prose rule that the line breaks.
+func check(t *testing.T, name string, line int, text string) {
+	t.Helper()
+	for _, r := range proseRules {
+		if m := r.re.FindString(text); m != "" {
+			t.Errorf("%s: line %d: %s %q: %s", name, line, r.name, m, r.fix)
+		}
+	}
+}
+
 func TestProseIsSimpleEnglish(t *testing.T) {
 	for _, name := range markdown(t) {
 		buf, err := os.ReadFile(name)
@@ -192,9 +204,72 @@ func TestProseIsSimpleEnglish(t *testing.T) {
 			t.Fatalf("expected no error, got: %v", err)
 		}
 		for i, line := range strings.Split(prose(string(buf)), "\n") {
-			for _, r := range proseRules {
-				if m := r.re.FindString(line); m != "" {
-					t.Errorf("%s: line %d: %s %q: %s", name, i+1, r.name, m, r.fix)
+			check(t, name, i+1, line)
+		}
+	}
+}
+
+// goFiles returns the paths of the Go files that we write by hand. It skips
+// the folders that are not ours, the test data and the generated files.
+func goFiles(t *testing.T) []string {
+	t.Helper()
+	var v []string
+	err := filepath.WalkDir(root, func(name string, d fs.DirEntry, err error) error {
+		switch {
+		case err != nil:
+			return err
+		case d.IsDir() && (d.Name() == ".git" || d.Name() == ".agents" || d.Name() == ".claude" || d.Name() == "testdata"):
+			return filepath.SkipDir
+		case !d.IsDir() && strings.HasSuffix(name, ".go"):
+			buf, err := os.ReadFile(name)
+			if err != nil {
+				return err
+			}
+			if !bytes.HasPrefix(buf, []byte("// Code generated")) {
+				v = append(v, name)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	return v
+}
+
+// commentLines returns the prose lines of a comment, keyed by line number. It
+// skips directives and the indented lines of a doc comment code block.
+func commentLines(c string, first int) map[int]string {
+	m := make(map[int]string)
+	for i, line := range strings.Split(c, "\n") {
+		switch {
+		case strings.HasPrefix(line, "//go:") || strings.HasPrefix(line, "//line "):
+			continue
+		case strings.HasPrefix(line, "//"):
+			line = line[2:]
+		case i == 0:
+			line = strings.TrimPrefix(line, "/*")
+		}
+		line = strings.TrimSuffix(line, "*/")
+		if strings.HasPrefix(line, "\t") || strings.HasPrefix(line, "  ") {
+			continue
+		}
+		m[first+i] = line
+	}
+	return m
+}
+
+func TestGoCommentsAreSimpleEnglish(t *testing.T) {
+	fset := token.NewFileSet()
+	for _, name := range goFiles(t) {
+		f, err := parser.ParseFile(fset, name, nil, parser.ParseComments)
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+		for _, g := range f.Comments {
+			for _, c := range g.List {
+				for n, line := range commentLines(c.Text, fset.Position(c.Pos()).Line) {
+					check(t, name, n, prose(line))
 				}
 			}
 		}
