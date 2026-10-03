@@ -1,7 +1,7 @@
 # The typed API of the protocol
 
 Status: Decided. The maintainer approved this design on 2026-10-04. The
-generator writes the `cdproto` side of it, and `cdproto` v0.157.2 is the first
+generator writes the `cdproto` side of it, and `cdproto` v0.157.3 is the first
 release that has it. `chromedp` v0.17.0 uses it. This document describes what
 the generator writes and why. See
 `docs/decisions/2026-10-03-proposed-generics-and-iterators-api.md` for the
@@ -9,7 +9,7 @@ decision and its history.
 
 ## The problem
 
-The code that `pdlgen` wrote before the typed API, up to `cdproto` v0.157.1,
+The code that `pdlgen` wrote before the typed API, up to `cdproto` v0.157.2,
 had four weaknesses.
 
 1. A command returned its results as a list of values. `Navigate(...).Do(ctx)`

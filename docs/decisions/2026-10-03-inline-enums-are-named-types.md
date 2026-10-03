@@ -63,4 +63,4 @@ counts about 270 incompatible changes, mostly field types and the removed
 constant that this rule makes is 77 characters, `SetInstrumentationBreakpointInstrumentationBeforeScriptWithSourceMapExecution`.
 The longest in the package is 89 characters, and it belongs to an enum that the
 protocol already names. `chromedp` adopted the change in its port to `cdproto`
-v0.157.2.
+v0.157.3.

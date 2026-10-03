@@ -33,7 +33,7 @@ describes the tags.
 - The `Update` workflow, which regenerates, tags and pushes `cdproto` every day.
 - The typed API that uses generics and iterators, which the maintainer approved
   on 2026-10-04. `docs/API.md` describes it. The generated code has no `Do`
-  method and no `With` method. `cdproto` v0.157.2 is the first release that has
+  method and no `With` method. `cdproto` v0.157.3 is the first release that has
   it, and `chromedp` v0.17.0 uses it.
 - Documents and decisions for coding agents.
 

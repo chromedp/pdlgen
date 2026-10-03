@@ -36,6 +36,6 @@ no generic methods and so the call must be a function.
 
 The generator side was built on a branch named `typed-api`, and `docs/API.md`
 describes what it generates. The maintainer approved the design on 2026-10-04,
-and the branch was merged to `main` on the same day. `cdproto` v0.157.2 is the
+and the branch was merged to `main` on the same day. `cdproto` v0.157.3 is the
 first release with the typed API, and `chromedp` v0.17.0 uses it. The earlier
-releases, v0.157.0 and v0.157.1, have the old API.
+releases, v0.157.0, v0.157.1 and v0.157.2, have the old API.

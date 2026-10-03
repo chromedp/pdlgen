@@ -25,8 +25,8 @@ builds a generated package and runs the API against it. The same day the
 maintainer approved the generics and iterators API, the pipe transport, the
 visible window option and the port of the examples.
 
-`cdproto` v0.157.2 is the first release with the typed API, and `chromedp`
-v0.17.0 uses it. `cdproto` v0.157.0 and v0.157.1 have the old API.
+`cdproto` v0.157.3 is the first release with the typed API, and `chromedp`
+v0.17.0 uses it. `cdproto` v0.157.0, v0.157.1 and v0.157.2 have the old API.
 
 ## Waiting
 
