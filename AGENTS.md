@@ -11,10 +11,12 @@ and every pull request for `cdproto` belongs here, and none belongs in the
 
 The generated code must be regular. A reader who knows how one command is
 generated knows how all of them are. The generator makes two rewrites, and no
-others. It removes name stuttering, as in `css.CSSStyle` that becomes
-`css.Style`, and it gives each inline enum a named type with a constant for
-each value. See `docs/decisions/2026-10-03-the-only-fixup-removes-name-stuttering.md`
-and `docs/decisions/2026-10-03-inline-enums-are-named-types.md`.
+others. A rewrite changes a name or a type that the protocol defines. The first
+rewrite removes name stuttering, so `css.CSSStyle` becomes `css.Style`. The
+second gives each inline enum a named type with a constant for each value. An
+inline enum is an enum that a property or a parameter declares in place. See
+`docs/decisions/2026-10-03-the-only-fixup-removes-name-stuttering.md` and
+`docs/decisions/2026-10-03-inline-enums-are-named-types.md`.
 
 ## Standing rules
 
@@ -48,7 +50,8 @@ Then by what you are doing:
 | adding a rewrite to the generated code | `docs/decisions/2026-10-03-the-only-fixup-removes-name-stuttering.md`, then ask the maintainer |
 | changing the output of a generated type | `docs/GENERATOR.md`, then tell the maintainer that `chromedp` is affected |
 | changing how `cdproto` is versioned or tagged | `docs/RELEASES.md`, then `docs/decisions/2026-10-03-cdproto-is-tagged-v0-chromium-major-patch.md` |
-| thinking about a typed API for the protocol | `docs/API.md`, which is Proposed and not decided |
+| thinking about a typed API for the protocol | `docs/API.md`, which is Proposed and not decided. This branch generates it |
+| looking for the purpose, the architecture, the tests or the open questions | `docs/PLAN.md` |
 | changing a workflow | `docs/RELEASES.md`, under The workflows |
 | asking why something is the way it is | the index in `docs/decisions/README.md` |
 | looking for work that is known and not done | `docs/BACKLOG.md` |
@@ -68,10 +71,12 @@ something is written down, it is not written down, and it is an open question.
    generated file here. Fix the generator, then regenerate. A hand edit is
    lost on the next daily run.
 2. Do not add a rewrite to the generated code. The only two are the name
-   stuttering fix and the inline enum extraction, both in `fixup/`. A helper method, a convenience type, a renamed
-   field or a changed type belongs in `chromedp`, not here. A change that only
-   lets the code compile is not a rewrite. Moving a type into the `cdp`
-   package to break an import cycle is one, and its list is `pdl/dep.go`.
+   stuttering fix and the inline enum extraction, both in `fixup/`. A helper
+   method, a convenience type, a renamed field or a changed type belongs in
+   `chromedp`, not here. A change that only lets the code compile is not a
+   rewrite. Moving a type into the `cdp` package to break an import cycle is not
+   a rewrite either, because it only decides where the code goes. The list is
+   `pdl/dep.go`.
 3. Templates are standard `text/template` files in `gen/gotpl/*.tmpl`, and the
    binary embeds them. Do not add a template engine, and do not add a step that
    turns templates into Go.
@@ -86,11 +91,13 @@ something is written down, it is not written down, and it is an open question.
    change that fails that job.
 7. `cdproto` stays at major version 0. The minor version is the Chromium major
    version, and the patch version counts the releases for it. Only the
-   `Update` workflow makes a tag. Never tag by hand unless the maintainer says so. Never
-   move or delete a tag that was pushed. If a release is bad, retract it in
-   the `go.mod` of `cdproto` and release a new one. See `docs/RELEASES.md`.
-8. The `Update` workflow commits as the repository owner. Do not change the author, and do not
-   add an author line for a coding agent to a commit that the workflow makes.
+   `Update` workflow makes a tag. Never tag by hand unless the maintainer says
+   so. Never move or delete a tag that you pushed. If a release is bad, retract
+   it in the `go.mod` of `cdproto` and release a new one. See
+   `docs/RELEASES.md`.
+8. The `Update` workflow commits as the repository owner. Do not change the
+   author. Do not add an author line for a coding agent to a commit that the
+   workflow makes.
 9. Never write a token, a key or a password in a file, a log or a message. The
    workflow reads `ACCESS_TOKEN` from the secrets of the repository, and a
    file names it and nothing more.
@@ -105,23 +112,27 @@ something is written down, it is not written down, and it is an open question.
   holds the command: the `Args` struct, whose `ox` tags define the flags, and
   the code that loads the protocol, calls the fixup and the generator, and
   writes the files.
-- `grab.go` retrieves a protocol file that another file includes.
+- `grab.go` is a program that you start with `go run grab.go`. It caches the
+  combined protocol files of the recent Chromium releases. The build tag
+  `ignore` keeps it out of `go build`.
 - `pdl/` parses the protocol definition language and holds the types that
   describe a domain. `pdl/dep.go` lists the types that move to the `cdp`
-  package, and `pdl/har.go` holds the HAR domain, which the protocol files do
-  not define.
+  package. `pdl/har.go` holds the HAR domain, which the protocol files do not
+  define, and `pdl/gen.go` writes it.
 - `fixup/` removes name stuttering and extracts inline enums into named types.
   It is small on purpose.
 - `gen/` holds the Go generator. `gen/gotpl/` holds the templates and the
   functions they call, and `gen/genutil/` holds the comment and name helpers.
 - `util/` retrieves and caches the files, and compares versions.
-- `relnotes/` and `cmd/relnotes/` write the notes of a release from the output of
-  `apidiff`, for the commit, the tag and the changelog.
+- `relnotes/` and `cmd/relnotes/` write the notes of a release from the output
+  of `apidiff`, for the commit, the tag and the changelog.
 - `diff/` prints the difference between two protocol files.
 - `.github/workflows/` holds the `Test` and `Update` workflows.
 - `.github/scripts/update.sh` regenerates `cdproto`, and makes the tag and the
   commit.
 - `docs/` holds the documents. `docs/decisions/` holds the decisions.
+- `.agents/skills/` and `.claude/skills/` hold the two agent skills, as copies.
+  `skills-lock.json` names their sources.
 
 ## Go conventions
 
@@ -186,15 +197,14 @@ no difference unless the output is what you changed.
 
 A new document goes in `docs/`. Only `README.md`, `AGENTS.md`, `CLAUDE.md`,
 `CONTRIBUTING.md` and `LICENSE` belong in the repository root, and a test
-enforces that. Add the document to the table at the top of this file and to the
-one in `README.md`, because a document nobody can find is a document nobody
-reads.
+enforces that. Add the document to the table under Which document to read and to the table
+in `README.md`, because a document nobody can find is a document nobody reads.
 
 A decision goes in a file of its own in `docs/decisions/` and nowhere else.
-Name it `YYYY-MM-DD-short-title.md` with the date of the decision. A
-decision is never given a number. The file opens with `# <Title>`, a blank
-line, and `Status: <status>.`, where the status is `Decided`, `Proposed`, `Open`,
-`Amends <file>` or `Superseded by <file>`. Refer to a decision by its file
+Name it `YYYY-MM-DD-short-title.md` with the date of the decision. Do not give
+a decision a number. The file opens with `# <Title>`, a blank line and
+`Status: <status>.`. The status is `Decided`, `Proposed`, `Open`,
+`Amends <file>`, `Amended by <file>` or `Superseded by <file>`. Refer to a decision by its file
 name. Add its row to `docs/decisions/README.md`. If your decision changes an
 earlier one, say so in both statuses, because a reader who finds the older one
 must be told.
