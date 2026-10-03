@@ -1,9 +1,11 @@
 # A typed API for the protocol
 
-Status: Proposed. Nobody has chosen this design, and none of the code below
-compiles. The names and the shapes can change. This document records the idea
-so that the maintainer can decide, and it shows how `chromedp` can use the result. See
-`docs/decisions/2026-10-03-proposed-generics-and-iterators-api.md`.
+Status: Proposed. Nobody has chosen this design. The generator on the branch
+`typed-api` writes the `cdproto` side of it, and the generated code builds, passes
+`go vet` and has a test. The `chromedp` side below is a sketch, and none of it
+compiles. The names and the shapes can change. This document records the
+design so that the maintainer can decide, and it shows how `chromedp` can use the
+result. See `docs/decisions/2026-10-03-proposed-generics-and-iterators-api.md`.
 
 ## The problem
 
@@ -119,7 +121,8 @@ func Events[E any](ctx context.Context, s *Session, e Event[E]) iter.Seq2[E, err
 }
 ```
 
-A protocol error from the browser is a `*cdp.Error`. A caller reads it with
+A protocol error from the browser is a `*cdproto.Error`, which the session
+returns. A caller reads it with
 `errors.As`.
 
 ## How chromedp uses it
@@ -273,7 +276,7 @@ _, err := cdp.Call(ctx, s.Page(), dom.QuerySelector, dom.QuerySelectorParams{
 	NodeID:   root,
 	Selector: "(",
 })
-var perr *cdp.Error
+var perr *cdproto.Error
 if errors.As(err, &perr) {
 	fmt.Println(perr.Code, perr.Message)
 }
@@ -346,13 +349,44 @@ This is the migration path. A project moves one call at a time.
 5. Does the protocol need a `Seq2` for every event, or is `Seq` enough when the
    caller cancels with the context?
 
+## What the branch generates
+
+The branch `typed-api` of this repository has the `cdproto` side. A few points
+differ from the sketch above, and the sketch of the `chromedp` side is not
+changed by them.
+
+- The core is in the `cdp` package, because the generated packages already
+  import it. `Session` is an interface with two methods, `Call` and `Subscribe`,
+  so the connection stays in `chromedp`. `cdp.Call` and `cdp.Events` are the
+  functions that the examples use.
+- A result struct is named `FooResult`. A command with no parameters or no results
+  uses `cdp.Empty`, and has no struct.
+- The old `Do` method, the constructor and the `With...` methods are gone. A
+  generated package cannot hold both, because the value `page.Navigate` and the
+  old function `page.Navigate` have the same name. The old executor in the
+  context is gone as well.
+- An optional boolean in the parameters of a command is a `*bool`. A plain `bool`
+  cannot say "leave it out", and the protocol has about ten optional booleans whose
+  default is true, so a zero `false` changes what the browser does. In Go 1.26
+  and later, `new(true)` and `new(false)` make the pointer.
+- A binary value is a `[]byte`. The standard library encodes it as base64
+  without a tag, so the base64 step of the old `Do` method is gone.
+- `cdp.Events` buffers from the moment it returns. A caller that never ranges over
+  the iterator holds the subscription, and the documentation of the function says
+  so.
+- `gencmd/gencmd_test.go` generates a small protocol and runs
+  `gencmd/testdata/generated_test.go.txt` against it with the go command. The test
+  covers a command with an enum, a pointer boolean and a binary result, a command
+  with nothing, an error, the order of events and the end of an iterator.
+
 ## What changes in this repository
 
-- `gen/gotpl/domain.tmpl` writes the parameter, the result and the command
-  variable, and does not write `Do` or the `With...` methods.
-- `gen/gotpl/type.tmpl` writes an event as a payload type and an `Event`
-  variable.
+The work of the branch is these changes, and each is a commit:
+
 - `gen/gotpl/extra.tmpl` writes the `cdp` package of this document.
+- `gen/gotpl/domain.tmpl` writes the parameter and result structs, the command
+  value and the event value, and does not write `Do` or the `With...` methods.
+- `gen/gotpl/util.go` writes `[]byte` and `*bool` where the rules above say.
 - `docs/GENERATOR.md` describes the new files.
 
-Nothing in this list starts until the maintainer decides.
+Nothing is merged to `main` until the maintainer decides.

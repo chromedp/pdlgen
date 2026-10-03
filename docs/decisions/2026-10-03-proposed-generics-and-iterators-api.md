@@ -32,5 +32,7 @@ no generic methods and so the call must be a function.
 
 ## What happens next
 
-Nothing, until the maintainer decides. If the maintainer accepts it, this file is amended to
-`Decided`, and the generator work in `docs/API.md` starts.
+The generator side is built on the branch `typed-api`, as an experiment for
+review, and `docs/API.md` describes what it generates. It is not merged. Nothing
+more happens until the maintainer decides. If the maintainer accepts it, this file is amended to
+`Decided`, and the branch is merged.

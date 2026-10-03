@@ -55,15 +55,22 @@ For the package `github.com/chromedp/cdproto` and each domain `<domain>`:
 - `version.go` holds the Chromium and V8 versions, as `ChromiumVersion` and
   `V8Version`. They are functions on purpose. See
   `docs/decisions/2026-10-03-the-update-workflow-tags-cdproto-daily.md`.
-- `cdp/types.go` holds the shared types and the `Executor` interface.
-- `<domain>/<domain>.go` holds the commands of the domain.
+- `cdp/types.go` holds the shared types, the error types, and the core of the
+  typed API: `Command`, `Event`, `Empty`, `Session`, `Call` and `Events`.
+- `<domain>/<domain>.go` holds the parameter and result structs and the value
+  of each command of the domain, and the value of each event.
 - `<domain>/types.go` holds its types, and `<domain>/events.go` holds its
   events.
 
-A command `Foo` in the domain `Bar` becomes the type `FooParams`, the function
-`Foo`, the method `Do` on `*FooParams`, and the type `FooReturns` when the
-command returns values. An optional parameter becomes a method that begins with
-`With`. The constant `CommandBarFoo` holds the name of the command.
+A command `Foo` in the domain `Bar` becomes the struct `FooParams`, the struct
+`FooResult`, and the value `Foo` of the type `cdp.Command[FooParams, FooResult]`.
+A command without parameters or without results uses `cdp.Empty` in place of the
+struct. The constant `CommandFoo` holds the name of the command. An optional
+boolean parameter is a `*bool`, so that `nil` leaves it out of the message. A
+binary value is a `[]byte`. An event `baz` becomes the struct `EventBaz` and the
+value `Baz` of the type `cdp.Event[EventBaz]`. A caller runs a command with
+`cdp.Call(ctx, session, bar.Foo, bar.FooParams{...})` and reads an event with
+`cdp.Events(ctx, session, bar.Baz)`. `docs/API.md` describes the design.
 
 ## The templates
 
