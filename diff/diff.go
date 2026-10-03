@@ -81,7 +81,7 @@ func FindFilesWithMask(dir, mask string, exclude ...string) ([]*FileInfo, error)
 			return nil
 		}
 
-		// skip if same as current or doesn't match file mask
+		// skip if same as current or does not match file mask
 		fn := n[len(dir):]
 		if !maskRE.MatchString(fn) || slices.Contains(exclude, filepath.Base(fn)) {
 			return nil

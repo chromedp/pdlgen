@@ -130,8 +130,8 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 
 // generateRootPackage generates the util package.
 //
-// Currently only contains the low-level message unmarshaler -- if this wasn't
-// in a separate package, then there would be circular dependencies.
+// The package holds only the low-level message unmarshaler. A separate package
+// prevents circular dependencies.
 func (fb fileBuffers) generateRootPackage(domains []*pdl.Domain, basePkg string) error {
 	n := path.Base(basePkg)
 	d := &pdl.Domain{

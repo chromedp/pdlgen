@@ -1,5 +1,5 @@
 // Package pdl contains types and funcs for working with Chrome DevTools
-// Protocol definitions (ie, PDL files).
+// Protocol definitions (that is, PDL files).
 package pdl
 
 import (
@@ -357,8 +357,8 @@ type Type struct {
 	// IsCircularDep indicates a type that causes circular dependencies.
 	IsCircularDep bool `json:"-"`
 
-	// NoResolve toggles not resolving the type to a domain (ie, for special
-	// internal types).
+	// NoResolve toggles not resolving the type to a domain (for example, for
+	// special internal types).
 	NoResolve bool `json:"-"`
 
 	// Extra will be added as output after the the type is emitted.
