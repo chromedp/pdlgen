@@ -17,8 +17,6 @@ func (t {{$typ}}) {{$z}}() {{$gz}} {
 }
 {{- end}}
 {{- if .T.Enum}}
-{{- $gz := goEnumType .T.Type}}
-
 // {{$typ}} values.
 const (
 {{- range $i, $e := .T.Enum}}
@@ -39,32 +37,6 @@ func (t {{$typ}}) String() string {
 }
 {{- end}}
 
-// UnmarshalJSON satisfies [json.Unmarshaler].
-func (t *{{$typ}}) UnmarshalJSON(buf []byte) error {
-	s := string(buf)
-{{- if eq $gz "float64"}}
-	v, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return err
-	}
-{{- else if eq $gz "int64"}}
-	v, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return err
-	}
-{{- else}}
-	s = strings.TrimSuffix(strings.TrimPrefix(s, `"`), `"`)
-{{end}}
-	switch {{$typ}}({{if eq $gz "string"}}s{{else}}v{{end}}) {
-{{- range .T.Enum}}
-	case {{enumValueName $.T .}}:
-		*t = {{enumValueName $.T .}}
-{{- end}}
-	default:
-		return fmt.Errorf("unknown {{$typ}} value: %v", s)
-	}
-	return nil
-}
 {{- end}}
 {{- if .T.Extra}}
 

@@ -1,10 +1,16 @@
 // Package fixup alters the type definitions for the Chrome DevTools Protocol
 // domains prior to code generation.
 //
-// The only fix applied is removing name stuttering: any type whose name is
-// prefixed with the name of its domain (for example, the "CSS" domain's
-// "CSSStyle" type, or "AXNode" in the "Accessibility" domain) has the prefix
-// removed, as the Go package name already provides it (ie, css.Style).
+// Two fixes are applied. Neither adds anything that the protocol does not
+// define.
+//
+// The first extracts each inline enum into a named type, so that a value of the
+// enum has a type of its own and a constant for each value. See extractEnums.
+//
+// The second removes name stuttering: any type whose name is prefixed with the
+// name of its domain (for example, the "CSS" domain's "CSSStyle" type, or
+// "AXNode" in the "Accessibility" domain) has the prefix removed, as the Go
+// package name already provides it (for example, css.Style).
 package fixup
 
 import (
@@ -16,8 +22,14 @@ import (
 
 var axRE = regexp.MustCompile(`^AX`)
 
-// FixDomains removes name stuttering from the types defined in the domains.
-func FixDomains(domains []*pdl.Domain) {
+// FixDomains extracts the inline enums of the domains into named types, and
+// removes name stuttering from the types.
+func FixDomains(domains []*pdl.Domain) error {
+	for _, d := range domains {
+		if err := extractEnums(d); err != nil {
+			return err
+		}
+	}
 	for _, d := range domains {
 		for _, t := range d.Types {
 			if t.IsCircularDep {
@@ -33,4 +45,5 @@ func FixDomains(domains []*pdl.Domain) {
 			}
 		}
 	}
+	return nil
 }

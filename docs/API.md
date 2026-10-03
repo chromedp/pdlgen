@@ -284,7 +284,9 @@ if errors.As(err, &perr) {
 A command takes a struct. A zero field is omitted from the message, because
 the field has `omitzero`. The generator no longer writes the `With...` methods.
 A field that must be sent even when it is zero is a pointer, or a type from
-`cdp` that says so. This is an open question below.
+`cdp` that says so. This is an open question below. A field that holds an enum
+has the named type of that enum, so a caller cannot pass an arbitrary string by
+accident.
 
 ### Old code keeps working
 

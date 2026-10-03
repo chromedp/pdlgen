@@ -30,7 +30,9 @@ only starts it, with `ox`.
 5. Mark the circular types. A type that two domains need causes an import
    cycle. `pdl/dep.go` lists these types and `pdl.IsCircularDep` reads the
    list. The generator writes them in the `cdp` package.
-6. Fix the names. `fixup.FixDomains` removes name stuttering. See
+6. Fix the types. `fixup.FixDomains` gives each inline enum a named type, and it
+   removes name stuttering. See
+   `docs/decisions/2026-10-03-inline-enums-are-named-types.md` and
    `docs/decisions/2026-10-03-the-only-fixup-removes-name-stuttering.md`.
 7. Generate. `gen.NewGoGenerator` fills the templates and returns the files in
    memory.
@@ -118,7 +120,7 @@ To see how a change affects the public API, run `apidiff` on the two trees. The
 ## Names
 
 `gen/gotpl/util.go` decides every Go name. A protocol name becomes an exported
-name with `snaker.ForceCamelIdentifier`. A parameter name that is a Go keyword
+name with `strcase.ForceCamelIdentifier`, from `github.com/xo/ox/strcase`. A parameter name that is a Go keyword
 gets the suffix `Val`. `gen/genutil/genutil.go` decides how a comment is
 worded and wrapped to 80 columns, and it holds the lists of words that keep
 their case, such as `DOM` and `UTC`.

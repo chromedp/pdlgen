@@ -10,9 +10,11 @@ and every pull request for `cdproto` belongs here, and none belongs in the
 `cdproto` repository.
 
 The generated code must be regular. A reader who knows how one command is
-generated knows how all of them are. The one rewrite that the generator makes
-removes name stuttering, as in `css.CSSStyle` that becomes `css.Style`. See
-`docs/decisions/2026-10-03-the-only-fixup-removes-name-stuttering.md`.
+generated knows how all of them are. The generator makes two rewrites, and no
+others. It removes name stuttering, as in `css.CSSStyle` that becomes
+`css.Style`, and it gives each inline enum a named type with a constant for
+each value. See `docs/decisions/2026-10-03-the-only-fixup-removes-name-stuttering.md`
+and `docs/decisions/2026-10-03-inline-enums-are-named-types.md`.
 
 ## Standing rules
 
@@ -65,8 +67,8 @@ something is written down, it is not written down, and it is an open question.
 1. Never edit a file in a `cdproto` checkout by hand, and never commit a
    generated file here. Fix the generator, then regenerate. A hand edit is
    lost on the next daily run.
-2. Do not add a rewrite to the generated code. The only one is the name
-   stuttering fix in `fixup/`. A helper method, a convenience type, a renamed
+2. Do not add a rewrite to the generated code. The only two are the name
+   stuttering fix and the inline enum extraction, both in `fixup/`. A helper method, a convenience type, a renamed
    field or a changed type belongs in `chromedp`, not here. A change that only
    lets the code compile is not a rewrite. Moving a type into the `cdp`
    package to break an import cycle is one, and its list is `pdl/dep.go`.
@@ -108,7 +110,8 @@ something is written down, it is not written down, and it is an open question.
   describe a domain. `pdl/dep.go` lists the types that move to the `cdp`
   package, and `pdl/har.go` holds the HAR domain, which the protocol files do
   not define.
-- `fixup/` removes name stuttering. It is small on purpose.
+- `fixup/` removes name stuttering and extracts inline enums into named types.
+  It is small on purpose.
 - `gen/` holds the Go generator. `gen/gotpl/` holds the templates and the
   functions they call, and `gen/genutil/` holds the comment and name helpers.
 - `util/` retrieves and caches the files, and compares versions.

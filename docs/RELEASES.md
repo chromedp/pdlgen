@@ -47,14 +47,17 @@ runs `.github/scripts/update.sh`. The checkout of `cdproto` uses the secret
 `.github/scripts/update.sh` does these steps:
 
 1. Run the generator, and write the result into the `cdproto` checkout.
-2. Run `go build` and `go vet` in `cdproto`. If either fails, the script stops
+2. Set the `go` line of the `go.mod` of `cdproto` to 1.27 and run `go mod tidy`.
+   The generated code uses `encoding/json/v2` from the standard library, so it
+   needs Go 1.27 and no other module.
+3. Run `go build` and `go vet` in `cdproto`. If either fails, the script stops
    and nothing is committed.
-3. If `git status` shows no change, print `no changes` and stop.
-4. Read the Chromium and V8 versions from `version.go`.
-5. Compare the public API of the last tag with the new code, using `apidiff`.
-6. Choose the next version by the rule above.
-7. Add an entry to `CHANGELOG.md`.
-8. Commit with the message `Updating to <chromium>_<v8> definitions`, make an
+4. If `git status` shows no change, print `no changes` and stop.
+5. Read the Chromium and V8 versions from `version.go`.
+6. Compare the public API of the last tag with the new code, using `apidiff`.
+7. Choose the next version by the rule above.
+8. Add an entry to `CHANGELOG.md`.
+9. Commit with the message `Updating to <chromium>_<v8> definitions`, make an
    annotated tag, and push the commit and the tag.
 
 The commit and the tag are made as the repository owner. The script sets the author from

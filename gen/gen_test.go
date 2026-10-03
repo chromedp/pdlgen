@@ -38,6 +38,9 @@ domain Page
       string url
       optional string referrer
       optional boolean replace
+      optional enum format
+        jpeg
+        png
     returns
       FrameId frameId
       optional string errorText
@@ -68,7 +71,9 @@ func TestGoGenerator(t *testing.T) {
 			}
 		}
 	}
-	fixup.FixDomains(p.Domains)
+	if err := fixup.FixDomains(p.Domains); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
 	e, err := gen.NewGoGenerator(p.Domains, "github.com/chromedp/cdproto", gen.Versions{Chromium: "1.2.3.4", V8: "5.6.7"})
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -86,7 +91,7 @@ func TestGoGenerator(t *testing.T) {
 	for name, want := range map[string][]string{
 		"version.go":     {`chromiumVersion = "1.2.3.4"`, `v8Version       = "5.6.7"`},
 		"page/page.go":   {"func Navigate(url string) *NavigateParams", "func (p NavigateParams) WithReferrer(", "func (p *NavigateParams) Do(ctx context.Context)", "CommandNavigate = \"Page.navigate\""},
-		"page/types.go":  {"type Result struct"},
+		"page/types.go":  {"type Result struct", "type NavigateFormat string", "NavigateFormatJpeg NavigateFormat = \"jpeg\""},
 		"page/events.go": {"type EventLoadEventFired struct", "type EventClosed struct"},
 	} {
 		got := files[name].String()

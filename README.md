@@ -65,8 +65,10 @@ The options are:
 ## How it works
 
 The generator reads the protocol, skips what the protocol deprecates, and fills
-standard Go [`text/template`][text-template] templates. One rewrite removes name
-stuttering, so `css.CSSStyle` becomes `css.Style`. Types that two domains need
+standard Go [`text/template`][text-template] templates. Two rewrites change the
+types. One removes name stuttering, so `css.CSSStyle` becomes `css.Style`. The
+other gives each inline enum a named type, so the `type` parameter of
+`Input.dispatchKeyEvent` has the type `input.DispatchKeyEventType`. Types that two domains need
 move to the `cdp` package, to avoid import cycles. [`docs/GENERATOR.md`](docs/GENERATOR.md)
 describes every step.
 

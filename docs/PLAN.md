@@ -26,7 +26,8 @@ describes the tags.
 ## What exists
 
 - The generator and its templates, which are standard `text/template` files.
-- One rewrite, which removes name stuttering.
+- Two rewrites. One removes name stuttering, and one gives each inline enum a
+  named type with a constant for each value. Enums decode without validation.
 - A generated `version.go` that reports the Chromium and V8 versions.
 - The `Test` workflow, which tests the generator and builds the output.
 - The `Update` workflow, which regenerates, tags and pushes `cdproto` every day.
@@ -40,8 +41,10 @@ not decided.
 ## Testing
 
 `gen/gen_test.go` generates code from a small protocol in the test and makes
-sure that every file is valid Go and holds the expected names. No test uses the
-network.
+sure that every file is valid Go and holds the expected names. `fixup/` tests
+the enum extraction, `gencmd/` runs the whole command on a small protocol file,
+`util/` tests retrieval against a local server, and `diff/` tests the protocol
+diff. `docs/docs_test.go` checks the documents. No test uses the network.
 
 The `generate` job of the `Test` workflow is the end to end test. It retrieves
 the latest protocol, generates `cdproto` and builds it. Its weakness is that it
@@ -52,18 +55,16 @@ A change to a template is compared against the old output. See
 
 ## Open questions
 
-1. `chromedp` uses helpers that the removed fixups wrote. Examples are the
-   `cdp.Node` methods, `cdp.FrameState`, `input.Modifier` and the timestamp
-   types. `chromedp` will not build against the new `cdproto` until it holds
-   its own copies. Who moves them, and when?
-2. The `Update` workflow needs the secret `ACCESS_TOKEN` to push to
+1. The `Update` workflow needs the secret `ACCESS_TOKEN` to push to
    `chromedp/cdproto`. Does the secret exist, and does its token have that
    right? The old workflow named the secret and never used it.
-3. The workflows use `actions/checkout@v4` and `actions/setup-go@v5`. Are those
+2. The workflows use `actions/checkout@v4` and `actions/setup-go@v5`. Are those
    the versions that the maintainer wants?
-4. `go.mod` says `go 1.27.1`. Is that the version that CI must use?
-5. Does the maintainer want `origin/master` deleted? It is the old default branch and it still
+3. Does the maintainer want `origin/master` deleted? It is the old default branch and it still
    points at the 2020 commit. The default branch is `main`.
-6. Does the maintainer accept the typed API in `docs/API.md`?
-7. Does the maintainer want a `golangci-lint` configuration here? The `xo` projects have
+4. Does the maintainer accept the typed API in `docs/API.md`?
+5. Does the maintainer want a `golangci-lint` configuration here? The `xo` projects have
    one.
+6. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on the
+   generated enum types? Two models suggested them. See
+   `decisions/2026-10-03-inline-enums-are-named-types.md`.

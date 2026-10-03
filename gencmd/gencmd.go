@@ -223,7 +223,9 @@ func (args *Args) run(ctx context.Context, stdout io.Writer) error {
 	}
 
 	// remove name stuttering
-	fixup.FixDomains(processed)
+	if err := fixup.FixDomains(processed); err != nil {
+		return err
+	}
 
 	// get generator
 	generator := gen.Generators()["go"]

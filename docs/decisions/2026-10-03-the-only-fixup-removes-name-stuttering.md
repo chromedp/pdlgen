@@ -1,6 +1,6 @@
 # The only fixup removes name stuttering
 
-Status: Decided.
+Status: Amended by 2026-10-03-inline-enums-are-named-types.md.
 
 The maintainer decided on 2026-10-03 that the generated code must be regular, and that
 the only rewrite the generator can make removes name stuttering.
@@ -39,3 +39,9 @@ field that is zero is left out of the message unless the protocol requires it.
 Each rewrite made the code differ from the protocol, and each one needed a
 maintainer who knew why it was there. Anything that `chromedp` needs belongs in
 `chromedp`, where it can change without a protocol update.
+
+## Amendment
+
+The inline enum extraction came back on 2026-10-03, as a second rewrite. See
+`2026-10-03-inline-enums-are-named-types.md`. The stuttering fix is still the
+only rewrite that renames anything that the protocol names.
