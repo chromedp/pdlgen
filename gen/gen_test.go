@@ -38,6 +38,7 @@ domain Page
       string url
       optional string referrer
       optional boolean replace
+      optional Headers headers
       optional enum format
         jpeg
         png
@@ -103,5 +104,9 @@ func TestGoGenerator(t *testing.T) {
 				t.Errorf("%s: expected output to contain %q", name, s)
 			}
 		}
+	}
+	// an object type without properties is a map, and a map is not a pointer
+	if got := files["page/page.go"].String(); strings.Contains(got, "*Headers") {
+		t.Errorf("expected a map parameter to be no pointer, got:\n%s", got)
 	}
 }

@@ -160,10 +160,10 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 		case dtyp != d.Domain:
 			s = strings.ToLower(dtyp.String()) + "."
 		}
-		// add ptr if object
+		// Add a pointer for an object that is a struct. An object without
+		// properties is a map, which needs none.
 		var ptr string
-		switch typ.Type {
-		case pdl.TypeObject:
+		if typ.Type == pdl.TypeObject && typ.Properties != nil {
 			ptr = "*"
 		}
 		return dtyp, typ, ptr + s + strcase.ForceCamelIdentifier(typ.Name)
