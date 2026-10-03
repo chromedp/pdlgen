@@ -1,11 +1,11 @@
 # Plan
 
-This document holds the purpose of `cdproto-gen`, its architecture, what exists
+This document holds the purpose of `pdlgen`, its architecture, what exists
 and how it is tested. It ends with the open questions.
 
 ## Purpose
 
-`cdproto-gen` turns the Chrome DevTools Protocol definitions into the Go
+`pdlgen` turns the Chrome DevTools Protocol definitions into the Go
 package `github.com/chromedp/cdproto`. It aims to produce type safe, fast and
 regular Go that any program can use to drive Chrome, and not only `chromedp`.
 The development of the generator follows the needs of `chromedp`.

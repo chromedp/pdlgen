@@ -1,5 +1,5 @@
 // Package genutil contains utility funcs shared by the code generation
-// templates used by cdproto-gen.
+// templates used by pdlgen.
 package genutil
 
 import (
@@ -10,7 +10,7 @@ import (
 	"github.com/client9/misspell"
 	"github.com/xo/ox/strcase"
 
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/pdl"
 )
 
 // Comment consts.

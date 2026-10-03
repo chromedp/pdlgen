@@ -16,7 +16,7 @@
 #
 # Environment:
 #   CDPROTO   path to the cdproto checkout (full history and tags) [cdproto]
-#   GEN_ARGS  extra arguments passed to cdproto-gen (--chromium, --v8, ...)
+#   GEN_ARGS  extra arguments passed to pdlgen (--chromium, --v8, ...)
 #   PUSH      push the commit and tag when 1 [1]
 #   GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, GIT_COMMITTER_EMAIL
 #             identity used for the commit and tag [Kenneth Shaw <kenshaw@gmail.com>]

@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/pdl"
 )
 
 var axRE = regexp.MustCompile(`^AX`)

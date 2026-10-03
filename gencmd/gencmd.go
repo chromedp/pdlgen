@@ -1,4 +1,4 @@
-// Package gencmd is the cdproto-gen command: it generates the Go package
+// Package gencmd is the pdlgen command: it generates the Go package
 // cdproto from the Chrome DevTools Protocol definitions (PDLs) in the Chromium
 // and V8 source trees.
 //
@@ -26,18 +26,18 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/imports"
 
-	"github.com/chromedp/cdproto-gen/diff"
-	"github.com/chromedp/cdproto-gen/fixup"
-	"github.com/chromedp/cdproto-gen/gen"
-	"github.com/chromedp/cdproto-gen/gen/genutil"
-	"github.com/chromedp/cdproto-gen/pdl"
-	"github.com/chromedp/cdproto-gen/util"
+	"github.com/chromedp/pdlgen/diff"
+	"github.com/chromedp/pdlgen/fixup"
+	"github.com/chromedp/pdlgen/gen"
+	"github.com/chromedp/pdlgen/gen/genutil"
+	"github.com/chromedp/pdlgen/pdl"
+	"github.com/chromedp/pdlgen/util"
 )
 
 // DefaultWhitelist is the default list of files that the clean step keeps.
 const DefaultWhitelist = "LICENSE,README.md,CHANGELOG.md,*.pdl,go.mod,go.sum"
 
-// Args are the cdproto-gen command arguments.
+// Args are the pdlgen command arguments.
 type Args struct {
 	Chromium string `ox:"chromium protocol version - default is the latest"`
 	V8       string `ox:"v8 protocol version - default is the version in the chromium DEPS,name:v8"`
@@ -55,7 +55,7 @@ type Args struct {
 	ttl time.Duration
 }
 
-// New creates the cdproto-gen command arguments.
+// New creates the pdlgen command arguments.
 func New() *Args {
 	return &Args{
 		TTL:   "24h",
@@ -64,14 +64,14 @@ func New() *Args {
 	}
 }
 
-// Run returns the func that runs the cdproto-gen command.
+// Run returns the func that runs the pdlgen command.
 func (args *Args) Run(stdout io.Writer) func(context.Context, []string) error {
 	return func(ctx context.Context, cliargs []string) error {
 		return args.Exec(ctx, stdout, cliargs)
 	}
 }
 
-// Exec runs the cdproto-gen command.
+// Exec runs the pdlgen command.
 func (args *Args) Exec(ctx context.Context, stdout io.Writer, cliargs []string) error {
 	if len(cliargs) != 0 {
 		return fmt.Errorf("unexpected arguments: %s", strings.Join(cliargs, " "))
@@ -94,7 +94,7 @@ func (args *Args) run(ctx context.Context, stdout io.Writer) error {
 		if err != nil {
 			return err
 		}
-		args.Cache = filepath.Join(cacheDir, "cdproto-gen")
+		args.Cache = filepath.Join(cacheDir, "pdlgen")
 	}
 
 	// get latest versions

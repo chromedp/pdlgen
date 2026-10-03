@@ -2,7 +2,7 @@
 
 Status: Decided.
 
-The maintainer decided on 2026-10-03 that `cdproto-gen` moves to
+The maintainer decided on 2026-10-03 that `pdlgen` moves to
 `github.com/xo/ox`, and that the `snaker` package is replaced by `ox/strcase`.
 The structure follows `github.com/kenshaw/iv`.
 

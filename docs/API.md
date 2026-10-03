@@ -7,7 +7,7 @@ so that the maintainer can decide, and it shows how `chromedp` can use the resul
 
 ## The problem
 
-The code that `cdproto-gen` writes today has four weaknesses.
+The code that `pdlgen` writes today has four weaknesses.
 
 1. A command returns its results as a list of values. `Navigate(...).Do(ctx)`
    returns four values and an error. When the protocol adds a fifth value,

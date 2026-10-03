@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/chromedp/cdproto-gen/gen/genutil"
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/gen/genutil"
+	"github.com/chromedp/pdlgen/pdl"
 	"github.com/xo/ox/strcase"
 )
 

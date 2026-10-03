@@ -24,4 +24,5 @@ is wrong, and it prints the row to add.
 | 2026-10-03 | [The command uses ox, and names use ox/strcase](2026-10-03-the-command-uses-ox-and-strcase.md) | Decided |
 | 2026-10-03 | [The generated code uses encoding/json/v2 from the standard library](2026-10-03-the-generated-code-uses-encoding-json-v2.md) | Amends 2025-02-22-the-generated-code-uses-go-json-experiment.md |
 | 2026-10-03 | [The only fixup removes name stuttering](2026-10-03-the-only-fixup-removes-name-stuttering.md) | Decided |
+| 2026-10-03 | [The package and the command are named pdlgen](2026-10-03-the-package-is-pdlgen.md) | Decided |
 | 2026-10-03 | [The `Update` workflow regenerates and tags `cdproto` every day](2026-10-03-the-update-workflow-tags-cdproto-daily.md) | Decided |

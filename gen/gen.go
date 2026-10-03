@@ -5,7 +5,7 @@ package gen
 import (
 	"bytes"
 
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/pdl"
 )
 
 // Versions are the Chromium and V8 versions of the protocol definitions code is

@@ -1,4 +1,4 @@
-module github.com/chromedp/cdproto-gen
+module github.com/chromedp/pdlgen
 
 go 1.27.1
 

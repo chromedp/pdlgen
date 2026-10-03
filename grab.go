@@ -14,8 +14,8 @@ import (
 
 	"github.com/Masterminds/semver"
 
-	"github.com/chromedp/cdproto-gen/pdl"
-	"github.com/chromedp/cdproto-gen/util"
+	"github.com/chromedp/pdlgen/pdl"
+	"github.com/chromedp/pdlgen/util"
 )
 
 var (
@@ -43,7 +43,7 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		*flagCache = filepath.Join(cacheDir, "cdproto-gen")
+		*flagCache = filepath.Join(cacheDir, "pdlgen")
 	}
 
 	// create combined dir

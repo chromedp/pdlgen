@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chromedp/cdproto-gen/fixup"
-	"github.com/chromedp/cdproto-gen/gen"
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/fixup"
+	"github.com/chromedp/pdlgen/gen"
+	"github.com/chromedp/pdlgen/pdl"
 )
 
 const testPDL = `# Test protocol.

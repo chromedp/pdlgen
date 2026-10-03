@@ -5,9 +5,9 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/chromedp/cdproto-gen/gen/genutil"
-	"github.com/chromedp/cdproto-gen/gen/gotpl"
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/gen/genutil"
+	"github.com/chromedp/pdlgen/gen/gotpl"
+	"github.com/chromedp/pdlgen/pdl"
 )
 
 // GoGenerator generates Go source code for the Chrome DevTools Protocol.

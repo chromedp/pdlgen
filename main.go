@@ -1,4 +1,4 @@
-// Command cdproto-gen generates the Go package cdproto, which holds the
+// Command pdlgen generates the Go package cdproto, which holds the
 // commands, events and types of the Chrome DevTools Protocol, from the protocol
 // definitions in the Chromium and V8 source trees.
 //
@@ -11,11 +11,11 @@ import (
 
 	"github.com/xo/ox"
 
-	"github.com/chromedp/cdproto-gen/gencmd"
+	"github.com/chromedp/pdlgen/gencmd"
 )
 
 var (
-	name    = "cdproto-gen"
+	name    = "pdlgen"
 	version = "0.0.0-dev"
 )
 

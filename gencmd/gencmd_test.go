@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chromedp/cdproto-gen/gencmd"
+	"github.com/chromedp/pdlgen/gencmd"
 )
 
 const testPDL = `# Test protocol.

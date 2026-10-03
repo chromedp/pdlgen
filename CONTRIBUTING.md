@@ -1,4 +1,4 @@
-# Contributing to cdproto-gen
+# Contributing to pdlgen
 
 Read three things before you change anything.
 

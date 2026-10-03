@@ -22,7 +22,7 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: stable
-    - name: Checkout cdproto-gen
+    - name: Checkout pdlgen
       uses: actions/checkout@v4
     - name: Checkout cdproto
       uses: actions/checkout@v4

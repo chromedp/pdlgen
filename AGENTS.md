@@ -1,6 +1,6 @@
-# cdproto-gen
+# pdlgen
 
-`cdproto-gen` generates the Go package `github.com/chromedp/cdproto`. The
+`pdlgen` generates the Go package `github.com/chromedp/cdproto`. The
 package holds the commands, events and types of the Chrome DevTools Protocol.
 `chromedp` is the main consumer of `cdproto`.
 

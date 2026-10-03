@@ -19,7 +19,7 @@ import (
 	"github.com/gedex/inflector"
 	"github.com/xo/ox/strcase"
 
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/pdl"
 )
 
 const (

@@ -1,5 +1,5 @@
 // Package gotpl contains the text/template based code generation templates
-// used by cdproto-gen to generate Go code.
+// used by pdlgen to generate Go code.
 package gotpl
 
 import (
@@ -12,8 +12,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/chromedp/cdproto-gen/gen/genutil"
-	"github.com/chromedp/cdproto-gen/pdl"
+	"github.com/chromedp/pdlgen/gen/genutil"
+	"github.com/chromedp/pdlgen/pdl"
 )
 
 //go:embed *.tmpl

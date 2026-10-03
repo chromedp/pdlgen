@@ -1,6 +1,6 @@
-# cdproto-gen
+# pdlgen
 
-`cdproto-gen` generates Go code for the commands, events and types of the
+`pdlgen` generates Go code for the commands, events and types of the
 [Chrome DevTools Protocol][devtools-protocol]. It is a core component of the
 [`chromedp`][chromedp] project. The generator follows the needs of `chromedp`,
 but its aim is to produce [type safe, fast, efficient, idiomatic Go code][cdproto]
@@ -16,21 +16,21 @@ generated code changes, the workflow commits it and tags a release. See
 
 ## Installing
 
-Install `cdproto-gen` in the usual Go way:
+Install `pdlgen` in the usual Go way:
 
 ```sh
-go install github.com/chromedp/cdproto-gen@latest
+go install github.com/chromedp/pdlgen@latest
 ```
 
 ## Using
 
-`cdproto-gen` generates the [`github.com/chromedp/cdproto`][cdproto-godoc]
+`pdlgen` generates the [`github.com/chromedp/cdproto`][cdproto-godoc]
 package and a `github.com/chromedp/cdproto/<domain>` package for each domain.
 The `--out` option names the directory of a checkout of the
 [`cdproto`][cdproto] repository:
 
 ```sh
-cdproto-gen --chromium=157.0.8084.3 --v8=15.7.23 --out=../cdproto
+pdlgen --chromium=157.0.8084.3 --v8=15.7.23 --out=../cdproto
 ```
 
 The generator retrieves the protocol files from the [Chromium source
@@ -41,7 +41,7 @@ and any name that starts with a dot.
 ### Command-line options
 
 ```sh
-cdproto-gen --help
+pdlgen --help
 ```
 
 The options are:
@@ -52,7 +52,7 @@ The options are:
   `DEPS` file of the Chromium version. `--latest` uses the latest V8 version.
 - `--pdl` reads one combined protocol file and retrieves nothing.
 - `--out` is the output directory.
-- `--cache` is the cache directory. The default is `cdproto-gen` in the user
+- `--cache` is the cache directory. The default is `pdlgen` in the user
   cache directory.
 - `--ttl` is how long a cached file is used. The default is 24 hours, and `0`
   forces a new retrieval.

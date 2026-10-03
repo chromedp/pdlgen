@@ -1,6 +1,6 @@
 # The generator
 
-This document describes how `cdproto-gen` turns a protocol definition into the
+This document describes how `pdlgen` turns a protocol definition into the
 files of `cdproto`. Read it before you change `main.go`, `pdl/`, `fixup/` or
 `gen/`.
 
@@ -15,7 +15,7 @@ only starts it, with `ox`.
    `--latest` it reads the latest V8 version instead.
 2. Retrieve the protocol files. The browser protocol comes from the Chromium
    source tree and the JavaScript protocol comes from V8. Each file is cached
-   under the cache directory, which is `<user cache directory>/cdproto-gen`
+   under the cache directory, which is `<user cache directory>/pdlgen`
    unless `--cache` says otherwise. A cached file is used until it is older than
    `--ttl`, which is 24 hours by default. `--ttl=0` forces a new retrieval.
    `grab.go` retrieves the files that a protocol file includes.
