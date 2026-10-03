@@ -111,6 +111,9 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 	if err := gotpl.Executor(w); err != nil {
 		return err
 	}
+	if err := gotpl.Session(w); err != nil {
+		return err
+	}
 
 	// add types
 	for _, t := range typs {
@@ -202,6 +205,8 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 	importMap := map[string]string{
 		"encoding/json":               "",
 		"encoding/json/jsontext":      "",
+		"fmt":                         "",
+		"iter":                        "",
 		"encoding/json/v2":            "jsonv2",
 		basePkg + "/cdp":              "",
 		"github.com/chromedp/sysutil": "",

@@ -74,6 +74,12 @@ func Version(w io.Writer, chromium, v8 string) error {
 	return execute(w, "version", struct{ Chromium, V8 string }{chromium, v8})
 }
 
+// Session writes the types and funcs of the typed API to w: Command, Event,
+// Empty, Session, Call and Events.
+func Session(w io.Writer) error {
+	return execute(w, "session", nil)
+}
+
 // MethodType returns the additional MethodType funcs and consts.
 func MethodType(domains []*pdl.Domain) string {
 	return render("methodtype", domains)

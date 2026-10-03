@@ -139,3 +139,83 @@ func V8Version() string {
 	return v8Version
 }
 {{end -}}
+
+{{- define "session" -}}
+// Empty is the parameters or the result of a command that has none.
+type Empty struct{}
+
+// Command is a protocol command with the parameters P and the result R. The
+// generated code has one value of this type for each command.
+type Command[P, R any] struct {
+	// Method is the name of the command, such as "Page.navigate".
+	Method string
+}
+
+// Event is a protocol event with the payload E. The generated code has one
+// value of this type for each event.
+type Event[E any] struct {
+	// Method is the name of the event, such as "Page.loadEventFired".
+	Method string
+}
+
+// Session is a connection to a browser target, over which commands run and
+// events arrive.
+type Session interface {
+	// Call sends the command with the params, waits for the response, and decodes
+	// the result into result. An error from the browser is returned as an error.
+	Call(ctx context.Context, method string, params, result any) error
+
+	// Subscribe starts to buffer the events of the method, and returns the
+	// channel that they arrive on and a func that stops the subscription. A
+	// subscription starts when Subscribe returns, so no event that follows is
+	// lost.
+	Subscribe(method string) (events <-chan jsontext.Value, cancel func())
+}
+
+// Call runs the command on the session, and returns its result.
+func Call[P, R any](ctx context.Context, s Session, c Command[P, R], params P) (R, error) {
+	var res R
+	if err := s.Call(ctx, c.Method, params, &res); err != nil {
+		var zero R
+		return zero, err
+	}
+	return res, nil
+}
+
+// Events subscribes to the event on the session, and returns an iterator over
+// the payloads. The session starts to buffer events when Events returns, and
+// not when the caller starts to range, so a caller can subscribe, trigger the
+// event, and then range. The iterator stops when the caller breaks out of the
+// loop, when the context ends, which yields the error of the context, or when
+// the session closes. A payload that does not decode yields the decode error
+// and ends the iteration.
+//
+// A caller must range over the iterator, or cancel the context. An iterator
+// that nobody reads holds its subscription.
+func Events[E any](ctx context.Context, s Session, e Event[E]) iter.Seq2[E, error] {
+	events, cancel := s.Subscribe(e.Method)
+	return func(yield func(E, error) bool) {
+		defer cancel()
+		var zero E
+		for {
+			select {
+			case <-ctx.Done():
+				yield(zero, ctx.Err())
+				return
+			case raw, ok := <-events:
+				if !ok {
+					return
+				}
+				var v E
+				if err := jsonv2.Unmarshal(raw, &v); err != nil {
+					yield(zero, fmt.Errorf("decoding %s: %w", e.Method, err))
+					return
+				}
+				if !yield(v, nil) {
+					return
+				}
+			}
+		}
+	}
+}
+{{end -}}
