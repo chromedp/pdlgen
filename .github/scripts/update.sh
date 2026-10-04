@@ -18,6 +18,7 @@
 #   CDPROTO   path to the cdproto checkout (full history and tags) [cdproto]
 #   GEN_ARGS  extra arguments passed to pdlgen (--chromium, --v8, ...)
 #   PUSH      push the commit and tag when 1 [1]
+#   YEAR      the last year of the copyright line of LICENSE [the current year, UTC]
 #   GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, GIT_COMMITTER_EMAIL
 #             identity used for the commit and tag [Kenneth Shaw <kenshaw@gmail.com>]
 #
@@ -50,6 +51,14 @@ trap 'git -C "$cdproto" worktree prune; rm -rf "$tmp"' EXIT
 if [ -z "$(git -C "$cdproto" status --porcelain)" ]; then
   echo "no changes"
   exit 0
+fi
+
+# set the years of the copyright line of the license to 2016 and the current
+# year. This runs after the check above, so that a new year alone does not make
+# a release. YEAR is for tests.
+year=${YEAR:-$(date -u +%Y)}
+if [ -f "$cdproto/LICENSE" ]; then
+  sed -i -E "s/^(Copyright \(c\) 2016)(-[0-9]{4})?( )/\1-$year\3/" "$cdproto/LICENSE"
 fi
 
 chromium=$(sed -n 's/^[[:space:]]*chromiumVersion = "\(.*\)"$/\1/p' "$cdproto/version.go")

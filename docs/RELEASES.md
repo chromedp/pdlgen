@@ -64,13 +64,17 @@ one run of the workflow goes at a time.
 3. Run `go build` and `go vet` in `cdproto`. If either fails, the script stops
    and nothing is committed.
 4. If `git status` shows no change, print `no changes` and stop.
-5. Read the Chromium and V8 versions from `version.go`.
-6. Compare the public API of the last tag with the new code. Use `apidiff`.
-7. Choose the next version by the rule above.
-8. Write the notes of the release with `cmd/relnotes`, from the output of
+5. Set the years in the first `Copyright (c) 2016` line of the `LICENSE` file
+   of `cdproto` to 2016 and the current year in UTC, for example
+   `Copyright (c) 2016-2026`. This step runs after step 4, so a new year alone
+   does not make a release. The variable `YEAR` sets another year, for a test.
+6. Read the Chromium and V8 versions from `version.go`.
+7. Compare the public API of the last tag with the new code. Use `apidiff`.
+8. Choose the next version by the rule above.
+9. Write the notes of the release with `cmd/relnotes`, from the output of
    `apidiff`. See below.
-9. Add an entry to `CHANGELOG.md`.
-10. Commit with the notes as the message. Make an annotated tag with the notes
+10. Add an entry to `CHANGELOG.md`.
+11. Commit with the notes as the message. Make an annotated tag with the notes
     as the annotation. Push the commit and the tag.
 
 ## The notes of a release
