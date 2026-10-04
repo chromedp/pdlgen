@@ -58,16 +58,11 @@ A change to a template is compared against the old output. See
 
 ## Open questions
 
-1. The `Update` workflow needs the secret `ACCESS_TOKEN` to push to
-   `chromedp/cdproto`. Does the secret exist, and does its token have that
-   right? The old workflow named the secret and never used it.
-2. The workflows use `actions/checkout@v4` and `actions/setup-go@v5`. Are those
-   the versions that the maintainer wants?
-3. Does the maintainer want `origin/master` deleted? It is the old default
+1. Does the maintainer want `origin/master` deleted? It is the old default
    branch, and it still points at the 2020 commit. The default branch is
    `main`.
-4. Does the maintainer want a `golangci-lint` configuration here? The `xo`
+2. Does the maintainer want a `golangci-lint` configuration here? The `xo`
    projects have one.
-5. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on
+3. Does the maintainer want an `IsKnown` method, or `Deprecated:` comments, on
    the generated enum types? Two models suggested them. See
    `decisions/2026-10-03-inline-enums-are-named-types.md`.

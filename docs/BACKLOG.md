@@ -21,4 +21,4 @@ person runs it.
 
 The `xo` projects run `golangci-lint` with a configuration that enables most
 linters and lists the exceptions with a reason. This repository has none. See
-open question 4 in `PLAN.md`.
+open question 2 in `PLAN.md`.
