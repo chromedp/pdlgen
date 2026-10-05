@@ -1,6 +1,6 @@
 module github.com/chromedp/pdlgen
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -15,5 +15,5 @@ require (
 require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 )
