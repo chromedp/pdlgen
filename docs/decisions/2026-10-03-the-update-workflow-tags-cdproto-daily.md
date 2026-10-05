@@ -33,5 +33,5 @@ stops when nothing changed. Otherwise it chooses the tag by the rule in
 
 ## What it needs
 
-The secret `ACCESS_TOKEN` must be able to push to `chromedp/cdproto`. Whether it
-can is an open question in `docs/PLAN.md`.
+The secret `ACCESS_TOKEN` must be able to push to `chromedp/cdproto`. It can,
+and the workflow has pushed commits and tags since 2026-10-03.

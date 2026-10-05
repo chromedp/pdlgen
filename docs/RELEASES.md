@@ -16,10 +16,14 @@ Read it before you change a workflow, the update script or the version rules.
 - The first release for Chromium 158 is `v0.158.0`.
 
 `v0.157.3` is the first release with the typed API of `docs/API.md`.
-v0.157.0, v0.157.1 and v0.157.2 have the old API. The typed API changes nearly every
-name, so `v0.157.3` is an incompatible release, and it kept the major version 0
-and the patch rule. `chromedp` v0.17.0 is the first release of `chromedp` that
-uses it.
+`v0.157.0`, `v0.157.1` and `v0.157.2` have the old API. The typed API changes
+nearly every name, so `v0.157.3` is an incompatible release, and it kept the
+major version 0 and the patch rule. `chromedp` v0.17.0 is the first release of
+`chromedp` that uses it.
+
+A new Chromium or V8 version alone makes no release. The Chromium and V8
+versions in `version.go` of a release are the versions of the last update that
+changed the code. They can be older than the newest Chromium build.
 
 The generated API can change in an incompatible way in any release, because the
 protocol removes and renames things. The tag does not say whether a release is
@@ -29,7 +33,7 @@ the compatible changes since the previous tag. See
 `docs/decisions/2026-10-03-cdproto-is-tagged-v0-chromium-major-patch.md` for the
 choices that were made and the ones that were rejected.
 
-The package itself reports its versions. `cdproto.ChromiumVersion()` returns
+The package reports its versions. `cdproto.ChromiumVersion()` returns
 the Chromium version and `cdproto.V8Version()` returns the V8 version.
 
 `pdlgen` itself has no tags and will never have any. The `main` branch is the
@@ -41,10 +45,22 @@ tags of `cdproto` say which generated code a user has.
 `.github/workflows/test.yml` is the `Test` workflow. It runs on every push to
 `main` and on every pull request. It has two jobs:
 
-- `test` makes sure that the code is formatted and that `go.mod` is tidy, then
-  runs `go vet` and `go test -race`.
-- `generate` generates `cdproto` from the latest protocol and makes sure that
-  the result builds and passes `go vet`.
+- `test` uses the stable version of Go. It makes sure that the code is
+  formatted and that `go.mod` is tidy, then runs `go vet` and `go test -race`.
+- `generate` runs once for each of Go 1.25, Go 1.26 and the stable version. It
+  runs `pdlgen` with the stable version of Go, and generates `cdproto` from the
+  latest protocol. Then it sets the module as the update script does, and
+  builds, vets and tests the result with the version of Go from the matrix. With
+  Go 1.25 and Go 1.26, it runs the same steps again with `GOEXPERIMENT=jsonv2`.
+  With the stable version, it runs them again with `GOEXPERIMENT=nojsonv2` and
+  the tag `cdproto_jsoncompat`. The step that sets the module reads the
+  `jsonmod` variable of the update script.
+
+`cdproto` has its own workflow, `.github/workflows/build.yml`. It is a part of
+`cdproto` that the generator keeps, and a person edits it there. It runs the
+same builds for Go 1.25, Go 1.26 and the stable version, for Go 1.25 with
+`GOEXPERIMENT=jsonv2`, and for the stable version with the tag
+`cdproto_jsoncompat`.
 
 `.github/workflows/update.yml` is the `Update` workflow. It runs once a day at
 03:17 UTC and can be started by hand, with an optional Chromium version and V8

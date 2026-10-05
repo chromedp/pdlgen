@@ -61,6 +61,11 @@ the package clause, so that tools know that it is generated. For the package
   `docs/decisions/2026-10-03-the-update-workflow-tags-cdproto-daily.md`.
 - `cdp/types.go` holds the shared types, the error types and the core of the
   typed API: `Command`, `Event`, `Empty`, `Session`, `Call` and `Events`.
+- `cdp/jsonv2/` holds the JSON layer: `doc.go`, `json_std.go`,
+  `json_compat.go` and `json_test.go`. It is the only package that imports a JSON
+  package. The build chooses `json_std.go` or `json_compat.go`. See
+  `docs/decisions/2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md`.
+  Every other generated file uses its names, such as `jsonv2.Value`.
 - `<domain>/<domain>.go` holds the parameter structs and the result structs of
   the commands of the domain. It also holds the value of each command, the value
   of each event, and the constants `Command<Foo>` that hold the names of the
@@ -98,7 +103,7 @@ generator does not write the old `Do` and `With` methods.
 
 ## The templates
 
-The templates are in `gen/gotpl/`, in four files:
+The templates are in `gen/gotpl/`, in five files:
 
 - `file.tmpl` writes the package header and the import block. The root package
   has its own package comment, because it is not a domain.
@@ -106,6 +111,7 @@ The templates are in `gen/gotpl/`, in four files:
 - `type.tmpl` writes a type, its enum values and its enum methods.
 - `extra.tmpl` writes the errors and the typed API of the `cdp` package, the
   method list, the message unmarshaler and the version functions.
+- `json.tmpl` writes the four files of the package `cdp/jsonv2`.
 
 `gen/gotpl/gotpl.go` embeds the files, builds the function map and holds the
 functions that start a template. `gen/gotpl/util.go` holds the functions that
@@ -145,6 +151,9 @@ steps need a checkout of `cdproto` in `../cdproto`, for its `go.mod` and
    ```bash
    (cd /tmp/after && go build ./... && go vet ./...)
    ```
+
+   If you changed `json.tmpl`, also run `go test ./...` there, and run
+   `GOEXPERIMENT=nojsonv2 go test -tags cdproto_jsoncompat ./...` too.
 
 6. Run `go test ./...` in this repository.
 

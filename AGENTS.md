@@ -91,7 +91,8 @@ something is written down, it is not written down, and it is an open question.
    change that fails that job.
 7. `cdproto` stays at major version 0. The minor version is the Chromium major
    version, and the patch version counts the releases for it. Only the
-   `Update` workflow makes a tag. Never tag by hand unless the maintainer says
+   `Update` workflow makes a tag, and it makes none when only the Chromium or
+   V8 version changed. Never tag by hand unless the maintainer says
    so. Never move or delete a tag that you pushed. If a release is bad, retract
    it in the `go.mod` of `cdproto` and release a new one. See
    `docs/RELEASES.md`.
@@ -112,8 +113,8 @@ something is written down, it is not written down, and it is an open question.
     `cdp/jsonv2/json_std.go` and `cdp/jsonv2/json_compat.go` import a JSON
     package, and every other generated file uses `jsonv2.Value`,
     `jsonv2.Unmarshal` and the other names of the package `cdp/jsonv2`. That
-    package imports no other package of the module. A change to one of the two files must change the other
-    one in the same way. Test both with `go test ./...` and with
+    package imports no other package of the module. A change to one of the two
+    files must change the other one in the same way. Test both with `go test ./...` and with
     `GOEXPERIMENT=nojsonv2 go test -tags cdproto_jsoncompat ./...`. See
     `docs/decisions/2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md`.
 

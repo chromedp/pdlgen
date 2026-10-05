@@ -10,6 +10,10 @@
 #   - the first release for a Chromium major version is v0.<major>.0
 #   - every later release for the same major version adds one to the patch
 #
+# A new Chromium or V8 version alone does not make a release. The script then
+# restores version.go and stops (see
+# docs/decisions/2026-10-06-a-new-chromium-version-alone-makes-no-release.md).
+#
 # The generated API can change in an incompatible way with any update of the
 # protocol definitions. The changes to the public API since the last tag, found
 # with apidiff, go in the annotation of the tag and in CHANGELOG.md.

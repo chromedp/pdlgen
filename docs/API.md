@@ -2,7 +2,7 @@
 
 Status: Decided. The maintainer approved this design on 2026-10-04. The
 generator writes the `cdproto` side of it, and `cdproto` v0.157.3 is the first
-release that has it. `chromedp` v0.17.0 uses it. This document describes what
+release that has it. `chromedp` v0.17.0 and later use it. This document describes what
 the generator writes and why. See
 `docs/decisions/2026-10-03-proposed-generics-and-iterators-api.md` for the
 decision and its history.
@@ -25,7 +25,7 @@ had four weaknesses.
 4. An event listener was a function that took `any`. The caller wrote a type
    switch, and a typo in a case was silent.
 
-Go 1.27 has generics and iterators. They fix all four and keep the code type
+Go has generics and iterators. They fix all four and keep the code type
 safe. Generics have one limit that shapes the design: a method cannot have its
 own type parameters. A call that is generic over its parameters and its results
 must be a function, not a method.
@@ -169,7 +169,7 @@ session returns. A caller reads it with `errors.As`.
 ## How chromedp uses it
 
 `chromedp` keeps the job that it had. It starts a browser, manages targets and
-frames, and offers high level actions. `chromedp` v0.17.0 has the code below.
+frames, and offers high level actions. `chromedp` v0.17.0 and later have the code below.
 The `Target` of `chromedp` is a `cdp.Session`.
 
 ### One command

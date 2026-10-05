@@ -40,7 +40,8 @@ template, gives the steps.
 ## Releases
 
 You do not make a release. The `Update` workflow regenerates `cdproto` each day
-and tags it. [`docs/RELEASES.md`](docs/RELEASES.md) describes the tags.
+and tags it. A new Chromium or V8 version alone makes no release.
+[`docs/RELEASES.md`](docs/RELEASES.md) describes the tags.
 
 ## Agent skills
 

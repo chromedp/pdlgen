@@ -2,7 +2,8 @@
 
 `pdlgen` generates Go code for the commands, events and types of the
 [Chrome DevTools Protocol][devtools-protocol]. It is a core component of the
-[`chromedp`][chromedp] project. The generator follows the needs of `chromedp`. Its aim is to produce
+[`chromedp`][chromedp] project. The generator follows the needs of `chromedp`.
+Its aim is to produce
 [type safe, fast, efficient, idiomatic Go code][cdproto] that any Go program can
 use to drive Chrome.
 
@@ -86,25 +87,30 @@ step.
 
 `cdproto` is tagged `v0.<Chromium major>.<patch>`, so the first release for
 Chromium 157 is `v0.157.0`, and the next is `v0.157.1`. The `Update` workflow
-makes the tags. `v0.157.3` is the first release with the typed API. Each tag and `CHANGELOG.md` in `cdproto` record the Chromium and
-V8 versions and the count of API changes. The module stays at major version 0.
-Any release can contain an incompatible change, because the protocol removes and
-renames things. The package reports its versions with
-`cdproto.ChromiumVersion()` and `cdproto.V8Version()`.
-[`docs/RELEASES.md`](docs/RELEASES.md) has the rules.
+makes the tags. `v0.157.3` is the first release with the typed API. Each tag and
+`CHANGELOG.md` in `cdproto` record the Chromium and V8 versions and the count of
+API changes. The module stays at major version 0. Any release can contain an
+incompatible change, because the protocol removes and renames things.
+
+A new Chromium or V8 version alone makes no release. If the generated API is
+the same, the workflow makes no commit and no tag. For this reason, the
+Chromium version in `version.go` can be older than the newest Chromium build.
+The package reports its versions with `cdproto.ChromiumVersion()` and
+`cdproto.V8Version()`. [`docs/RELEASES.md`](docs/RELEASES.md) has the rules.
 
 ## Supported Go versions
 
 The generated `cdproto` package builds with Go 1.25 and later. `pdlgen`, which
-generates it, uses the current version of Go. Go
-1.27 has `encoding/json/v2` in the standard library, but Go 1.25 and Go 1.26 have
-it only with `GOEXPERIMENT=jsonv2`. To work without that setting, the
-subpackage `cdp/jsonv2` is the only generated package that imports a JSON
-package. It has the names of the standard library, such as `jsonv2.Value` and
-`jsonv2.Unmarshal`. On Go 1.27 or with `GOEXPERIMENT=jsonv2`, it uses the standard packages. In all other cases it
-uses the module `github.com/go-json-experiment/json`. The build tag
-`cdproto_jsoncompat` selects the module on every version of Go, for tests. Use
-`GOEXPERIMENT=nojsonv2` with the tag on Go 1.27. See
+generates it, uses the current version of Go. Go 1.27 has `encoding/json/v2` in
+the standard library, but Go 1.25 and Go 1.26 have it only with
+`GOEXPERIMENT=jsonv2`. To work without that setting, the subpackage
+`cdp/jsonv2` is the only generated package that imports a JSON package. It has
+the names of the standard library, such as `jsonv2.Value` and
+`jsonv2.Unmarshal`. On Go 1.27 or with `GOEXPERIMENT=jsonv2`, it uses the
+standard packages. In all other cases it uses the module
+`github.com/go-json-experiment/json`. The build tag `cdproto_jsoncompat` selects
+the module on every version of Go, for tests. Use `GOEXPERIMENT=nojsonv2` with
+the tag on Go 1.27. See
 [the decision](docs/decisions/2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md).
 
 ## Documents
