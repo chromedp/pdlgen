@@ -144,7 +144,7 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 		dtyp, typ, z := ResolveType(t.Items, d, domains)
 		return dtyp, typ, "[]" + z
 	case t.Type == pdl.TypeObject && (t.Properties == nil || len(t.Properties) == 0):
-		return d.Domain, t, GoEnumType(pdl.TypeAny)
+		return d.Domain, t, GoEnumType(pdl.TypeAny, d)
 	case t.Type == pdl.TypeObject:
 		panic("should not encounter an object with defined properties that does not have Ref and Name")
 	case t.Type == pdl.TypeString && t.Enum == nil && strings.HasPrefix(t.Description, Base64Prefix):
@@ -152,7 +152,7 @@ func ResolveType(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain) (pdl.DomainT
 		// []byte, which the JSON package decodes from base64.
 		return d.Domain, t, "[]byte"
 	}
-	return d.Domain, t, GoEnumType(t.Type)
+	return d.Domain, t, GoEnumType(t.Type, d)
 }
 
 // GoName returns the Go name.
@@ -187,7 +187,7 @@ func GoTypeDef(t *pdl.Type, d *pdl.Domain, domains []*pdl.Domain, noExposeOverri
 	case t.Type == pdl.TypeAny && t.Ref != "":
 		return t.Ref
 	}
-	return GoEnumType(t.Type)
+	return GoEnumType(t.Type, d)
 }
 
 // GoType returns the Go type for the type.
@@ -387,11 +387,15 @@ var goReservedNames = map[string]bool{
 	"complex128": true,
 }
 
-// GoEnumType returns the Go type for the TypeEnum.
-func GoEnumType(te pdl.TypeEnum) string {
+// GoEnumType returns the Go type for the TypeEnum in the domain d. A value of
+// any type is a cdp.Value, which is a Value in the package cdp itself.
+func GoEnumType(te pdl.TypeEnum, d *pdl.Domain) string {
 	switch te {
 	case pdl.TypeAny:
-		return "jsontext.Value"
+		if d != nil && d.Domain == "cdp" {
+			return "Value"
+		}
+		return "cdp.Value"
 	case pdl.TypeBoolean:
 		return "bool"
 	case pdl.TypeInteger:

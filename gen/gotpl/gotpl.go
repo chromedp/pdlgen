@@ -89,6 +89,27 @@ func Session(w io.Writer) error {
 	return execute(w, "session", nil)
 }
 
+// CDPDoc writes the file doc.go of the package cdp to w.
+func CDPDoc(w io.Writer) error {
+	return execute(w, "cdpdoc", nil)
+}
+
+// JSONStd writes the file of the JSON layer that uses the standard library.
+func JSONStd(w io.Writer) error {
+	return execute(w, "jsonstd", nil)
+}
+
+// JSONCompat writes the file of the JSON layer that uses the module
+// github.com/go-json-experiment/json.
+func JSONCompat(w io.Writer) error {
+	return execute(w, "jsoncompat", nil)
+}
+
+// JSONTest writes the test of the JSON layer.
+func JSONTest(w io.Writer) error {
+	return execute(w, "jsontest", nil)
+}
+
 // MethodType returns the additional MethodType funcs and consts.
 func MethodType(domains []*pdl.Domain) string {
 	return render("methodtype", domains)
@@ -174,7 +195,7 @@ func funcMap() template.FuncMap {
 		// types
 		"goType":     GoType,
 		"goTypeDef":  GoTypeDef,
-		"goEnumType": func(te pdl.TypeEnum) string { return GoEnumType(te) },
+		"goEnumType": func(te pdl.TypeEnum) string { return GoEnumType(te, nil) },
 		"isNil":      func(v []*pdl.Type) bool { return v == nil },
 		// comments
 		"comment":    func(s, prefix string) string { return genutil.FormatComment(s, "", prefix) },

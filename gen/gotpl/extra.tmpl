@@ -48,7 +48,7 @@ type empty struct{}
 var emptyVal = &empty{}
 
 // UnmarshalMessage unmarshals the message result or params.
-func UnmarshalMessage(msg *Message, opts ...jsonv2.Options) (any, error) {
+func UnmarshalMessage(msg *Message, opts ...cdp.Options) (any, error) {
 	var v any
 	switch msg.Method {
 {{- range .}}{{$d := .}}
@@ -69,7 +69,7 @@ func UnmarshalMessage(msg *Message, opts ...jsonv2.Options) (any, error) {
 		return nil, cdp.ErrUnknownCommandOrEvent(msg.Method)
 	}
 
-	var buf jsontext.Value
+	var buf cdp.Value
 	switch {
 	case msg.Params != nil:
 		buf = msg.Params
@@ -78,7 +78,7 @@ func UnmarshalMessage(msg *Message, opts ...jsonv2.Options) (any, error) {
 	default:
 		return nil, cdp.ErrMsgMissingParamsOrResult
 	}
-	if err := jsonv2.Unmarshal(buf, v, opts...); err != nil {
+	if err := cdp.Unmarshal(buf, v, opts...); err != nil {
 		return nil, err
 	}
 	return v, nil
@@ -137,7 +137,7 @@ type Session interface {
 	// channel that they arrive on and a func that stops the subscription. A
 	// subscription starts when Subscribe returns, so no event that follows is
 	// lost.
-	Subscribe(method string) (events <-chan jsontext.Value, cancel func())
+	Subscribe(method string) (events <-chan Value, cancel func())
 }
 
 // Call runs the command on the session, and returns its result.
@@ -177,7 +177,7 @@ func Events[E any](ctx context.Context, s Session, e Event[E]) iter.Seq2[E, erro
 					return
 				}
 				var v E
-				if err := jsonv2.Unmarshal(raw, &v); err != nil {
+				if err := Unmarshal(raw, &v); err != nil {
 					yield(zero, fmt.Errorf("decoding %s: %w", e.Method, err))
 					return
 				}
@@ -199,7 +199,7 @@ func (r *{{.Type}}) UnmarshalJSON(buf []byte) error {
 		*plain
 		{{.Field}} string `json:"{{.FieldJSON}}"`
 	}{plain: (*plain)(r)}
-	if err := jsonv2.Unmarshal(buf, &aux); err != nil {
+	if err := cdp.Unmarshal(buf, &aux); err != nil {
 		return err
 	}
 	if {{.Cond}} {
@@ -220,15 +220,15 @@ func (r *{{.Type}}) UnmarshalJSON(buf []byte) error {
 // string that older versions of the browser send. The string is the top level
 // site. The type always encodes as an object.
 func (t *{{.Type}}) UnmarshalJSON(buf []byte) error {
-	if jsontext.Value(buf).Kind() == '"' {
+	if cdp.Value(buf).Kind() == '"' {
 		var site string
-		if err := jsonv2.Unmarshal(buf, &site); err != nil {
+		if err := cdp.Unmarshal(buf, &site); err != nil {
 			return err
 		}
 		*t = {{.Type}}{TopLevelSite: site}
 		return nil
 	}
 	type plain {{.Type}}
-	return jsonv2.Unmarshal(buf, (*plain)(t))
+	return cdp.Unmarshal(buf, (*plain)(t))
 }
 {{end -}}

@@ -2,6 +2,7 @@ package gen
 
 import (
 	"bytes"
+	"io"
 	"path"
 	"path/filepath"
 
@@ -115,6 +116,20 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 		return err
 	}
 
+	// add the JSON layer
+	for name, write := range map[string]func(io.Writer) error{
+		"cdp/doc.go":         gotpl.CDPDoc,
+		"cdp/json_std.go":    gotpl.JSONStd,
+		"cdp/json_compat.go": gotpl.JSONCompat,
+		"cdp/json_test.go":   gotpl.JSONTest,
+	} {
+		b := new(bytes.Buffer)
+		if err := write(b); err != nil {
+			return err
+		}
+		fb[name] = b
+	}
+
 	// add types
 	for _, t := range typs {
 		if err := gotpl.Type(
@@ -204,10 +219,8 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 	// add import map
 	importMap := map[string]string{
 		"encoding/json":               "",
-		"encoding/json/jsontext":      "",
 		"fmt":                         "",
 		"iter":                        "",
-		"encoding/json/v2":            "jsonv2",
 		basePkg + "/cdp":              "",
 		"github.com/chromedp/sysutil": "",
 	}
