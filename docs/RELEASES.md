@@ -58,11 +58,15 @@ one run of the workflow goes at a time.
 `.github/scripts/update.sh` does these steps:
 
 1. Run the generator, and write the result into the `cdproto` checkout.
-2. Set the `go` line of the `go.mod` of `cdproto` to 1.27 and run `go mod tidy`.
-   The generated code uses `encoding/json/v2` from the standard library, so it
-   needs Go 1.27 and no other module.
-3. Run `go build` and `go vet` in `cdproto`. If either fails, the script stops
-   and nothing is committed.
+2. Set the `go` line of the `go.mod` of `cdproto` to 1.25, add the pinned
+   version of `github.com/go-json-experiment/json` with `go get`, and run
+   `go mod tidy`. The package `cdp` uses the module before Go 1.27. See
+   `docs/decisions/2026-10-06-the-package-cdp-hides-the-json-package.md`. The
+   `jsonmod` variable of the script holds the pinned version.
+3. Run `go build`, `go vet` and `go test` in `cdproto`, first with the standard
+   JSON package and then with `GOEXPERIMENT=nojsonv2` and the tag
+   `cdproto_jsoncompat`. If any of them fails, the script stops and nothing is
+   committed.
 4. If `git status` shows no change, print `no changes` and stop.
 5. Set the years in the first `Copyright (c) 2016` line of the `LICENSE` file
    of `cdproto` to 2016 and the current year in UTC, for example

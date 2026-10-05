@@ -99,7 +99,7 @@ type Event[E any] struct{ Method string }
 // Session is a connection to a browser target.
 type Session interface {
 	Call(ctx context.Context, method string, params, result any) error
-	Subscribe(method string) (events <-chan jsontext.Value, cancel func())
+	Subscribe(method string) (events <-chan Value, cancel func())
 }
 
 // Call runs the command on the session.
@@ -130,7 +130,8 @@ session returns. A caller reads it with `errors.As`.
   `bool` cannot say "leave it out". The protocol has 137 optional booleans in
   the parameters of commands, and some of them have the default true, so a zero
   `false` changes what the browser does. A `nil` pointer leaves the parameter
-  out. In Go 1.26 and later, `new(true)` and `new(false)` make the pointer. A
+  out. In Go 1.26 and later, `new(true)` and `new(false)` make the pointer. The
+  generated code itself builds with Go 1.25. A
   boolean in a result or in another struct is a plain `bool`.
 - An optional number or integer is a plain value, and a zero is left out of the
   message. A short table in `gen/gotpl/util.go` lists the fields where zero is a

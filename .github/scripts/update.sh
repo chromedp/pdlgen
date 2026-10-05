@@ -28,6 +28,8 @@ set -euo pipefail
 cdproto=$(realpath "${CDPROTO:-cdproto}")
 gen=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 pkg=github.com/chromedp/cdproto
+# the last version of the module that needs Go 1.25 or earlier (2026-02-13)
+jsonmod=github.com/go-json-experiment/json@44df1a37e875e488af5305814494092b9eb3f38d
 branch=main
 
 export GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME:-Kenneth Shaw}
@@ -41,12 +43,17 @@ trap 'git -C "$cdproto" worktree prune; rm -rf "$tmp"' EXIT
 # generate
 (cd "$gen" && go run . --out "$cdproto" ${GEN_ARGS:-})
 
-# the generated code uses encoding/json/v2, which needs Go 1.27, and it needs no
-# module other than the standard library
-(cd "$cdproto" && go mod edit -go=1.27 && go mod tidy)
+# the generated code builds with Go 1.25. Before Go 1.27, the package cdp reads
+# JSON with a module (see docs/decisions/2026-10-06-the-package-cdp-hides-the-json-package.md).
+# The module needs a fixed version, because a later version needs a later Go.
+# go get changes the go line, so the script sets it again.
+(cd "$cdproto" && go mod edit -go=1.25 && go get "$jsonmod" && go mod edit -go=1.25 && go mod tidy)
 
-# verify the generated code
-(cd "$cdproto" && go build ./... && go vet ./...)
+# verify the generated code with the JSON package of the standard library, and
+# with the module. Go 1.27 turns the jsonv2 experiment on, and the module does
+# not build with it, so the second run turns it off.
+(cd "$cdproto" && go build ./... && go vet ./... && go test ./...)
+(cd "$cdproto" && GOEXPERIMENT=nojsonv2 go vet -tags cdproto_jsoncompat ./... && GOEXPERIMENT=nojsonv2 go test -tags cdproto_jsoncompat ./...)
 
 if [ -z "$(git -C "$cdproto" status --porcelain)" ]; then
   echo "no changes"

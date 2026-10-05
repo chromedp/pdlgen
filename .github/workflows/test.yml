@@ -5,15 +5,19 @@ on:
   pull_request:
 jobs:
   test:
-    name: Test
+    name: Test (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.25', '1.26', 'stable']
     steps:
     - name: Checkout
       uses: actions/checkout@v7
     - name: Install Go
       uses: actions/setup-go@v7
       with:
-        go-version-file: go.mod
+        go-version: ${{ matrix.go-version }}
     - name: Check formatting
       run: |
         test -z "$(gofmt -l .)" || { gofmt -d .; exit 1; }
@@ -26,13 +30,17 @@ jobs:
     - name: Test
       run: go test -race ./...
   generate:
-    name: Generate
+    name: Generate (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.25', '1.26', 'stable']
     steps:
     - name: Install Go
       uses: actions/setup-go@v7
       with:
-        go-version: stable
+        go-version: ${{ matrix.go-version }}
     - name: Checkout pdlgen
       uses: actions/checkout@v7
     - name: Checkout cdproto
@@ -42,8 +50,35 @@ jobs:
         path: cdproto
     - name: Generate
       run: go run . --out cdproto
-    - name: Build
+    - name: Set the module
+      working-directory: cdproto
+      run: |
+        jsonmod=$(sed -n 's/^jsonmod=//p' ../.github/scripts/update.sh)
+        go mod edit -go=1.25
+        go get "$jsonmod"
+        go mod edit -go=1.25
+        go mod tidy
+    - name: Build, vet and test
       working-directory: cdproto
       run: |
         go build ./...
         go vet ./...
+        go test ./...
+    - name: Build, vet and test with GOEXPERIMENT=jsonv2
+      if: matrix.go-version != 'stable'
+      working-directory: cdproto
+      env:
+        GOEXPERIMENT: jsonv2
+      run: |
+        go build ./...
+        go vet ./...
+        go test ./...
+    - name: Build, vet and test with the tag cdproto_jsoncompat
+      if: matrix.go-version == 'stable'
+      working-directory: cdproto
+      env:
+        GOEXPERIMENT: nojsonv2
+      run: |
+        go build -tags cdproto_jsoncompat ./...
+        go vet -tags cdproto_jsoncompat ./...
+        go test -tags cdproto_jsoncompat ./...
