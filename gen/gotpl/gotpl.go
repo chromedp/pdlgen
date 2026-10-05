@@ -89,9 +89,9 @@ func Session(w io.Writer) error {
 	return execute(w, "session", nil)
 }
 
-// CDPDoc writes the file doc.go of the package cdp to w.
-func CDPDoc(w io.Writer) error {
-	return execute(w, "cdpdoc", nil)
+// JSONDoc writes the file doc.go of the package cdp/jsonv2 to w.
+func JSONDoc(w io.Writer) error {
+	return execute(w, "jsondoc", nil)
 }
 
 // JSONStd writes the file of the JSON layer that uses the standard library.
@@ -195,7 +195,7 @@ func funcMap() template.FuncMap {
 		// types
 		"goType":     GoType,
 		"goTypeDef":  GoTypeDef,
-		"goEnumType": func(te pdl.TypeEnum) string { return GoEnumType(te, nil) },
+		"goEnumType": func(te pdl.TypeEnum) string { return GoEnumType(te) },
 		"isNil":      func(v []*pdl.Type) bool { return v == nil },
 		// comments
 		"comment":    func(s, prefix string) string { return genutil.FormatComment(s, "", prefix) },

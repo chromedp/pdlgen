@@ -1,6 +1,6 @@
 # The generated code uses encoding/json/v2 from the standard library
 
-Status: Amended by 2026-10-06-the-package-cdp-hides-the-json-package.md.
+Status: Amended by 2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md.
 
 This decision supersedes
 `2025-02-22-the-generated-code-uses-go-json-experiment.md`. The maintainer

@@ -121,7 +121,7 @@ func TestGoGenerator(t *testing.T) {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 	files := e.Emit()
-	for _, name := range []string{"cdproto.go", "version.go", "cdp/types.go", "cdp/doc.go", "cdp/json_std.go", "cdp/json_compat.go", "cdp/json_test.go", "page/page.go", "page/types.go", "page/events.go"} {
+	for _, name := range []string{"cdproto.go", "version.go", "cdp/types.go", "cdp/jsonv2/doc.go", "cdp/jsonv2/json_std.go", "cdp/jsonv2/json_compat.go", "cdp/jsonv2/json_test.go", "page/page.go", "page/types.go", "page/events.go"} {
 		buf, ok := files[name]
 		if !ok {
 			t.Fatalf("expected file %s to be generated", name)
@@ -153,28 +153,28 @@ func TestGoGenerator(t *testing.T) {
 	// only the JSON layer of the package cdp imports a JSON package. The other
 	// files use the names of the layer, so that they build with Go 1.25.
 	for name, buf := range files {
-		if strings.HasPrefix(name, "cdp/json_") || name == "cdp/doc.go" {
+		if strings.HasPrefix(name, "cdp/jsonv2/") {
 			continue
 		}
-		for _, bad := range []string{"encoding/json/", "go-json-experiment", "jsonv2.", "jsontext."} {
+		for _, bad := range []string{"encoding/json/", "go-json-experiment", "jsontext."} {
 			if strings.Contains(buf.String(), bad) {
 				t.Errorf("%s: expected no %q", name, bad)
 			}
 		}
 	}
 	for name, want := range map[string]string{
-		"cdp/json_std.go":    "//go:build (go1.27 || goexperiment.jsonv2) && !cdproto_jsoncompat",
-		"cdp/json_compat.go": "//go:build !(go1.27 || goexperiment.jsonv2) || cdproto_jsoncompat",
+		"cdp/jsonv2/json_std.go":    "//go:build (go1.27 || goexperiment.jsonv2) && !cdproto_jsoncompat",
+		"cdp/jsonv2/json_compat.go": "//go:build !(go1.27 || goexperiment.jsonv2) || cdproto_jsoncompat",
 	} {
 		if got := files[name].String(); !strings.Contains(got, want) {
 			t.Errorf("%s: expected output to contain %q", name, want)
 		}
 	}
-	if got := files["cdp/types.go"].String(); !strings.Contains(got, "(events <-chan Value, cancel func())") {
-		t.Errorf("expected the package cdp to use Value without a prefix, got:\n%s", got)
+	if got := files["cdp/types.go"].String(); !strings.Contains(got, "(events <-chan jsonv2.Value, cancel func())") {
+		t.Errorf("expected the package cdp to use jsonv2.Value, got:\n%s", got)
 	}
-	if got := files["cdproto.go"].String(); !strings.Contains(got, "cdp.Value") || !strings.Contains(got, "cdp.Unmarshal(buf, v, opts...)") {
-		t.Errorf("expected the root package to use cdp.Value and cdp.Unmarshal, got:\n%s", got)
+	if got := files["cdproto.go"].String(); !strings.Contains(got, "jsonv2.Value") || !strings.Contains(got, "jsonv2.Unmarshal(buf, v, opts...)") {
+		t.Errorf("expected the root package to use jsonv2.Value and jsonv2.Unmarshal, got:\n%s", got)
 	}
 	// an optional number that the generator lists is a pointer in a type and in
 	// the parameters of a command, so that a pointer to zero is sent and nil is

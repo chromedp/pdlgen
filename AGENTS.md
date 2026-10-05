@@ -108,12 +108,13 @@ something is written down, it is not written down, and it is an open question.
 
 12. The generated code and `pdlgen` must build with `go 1.25`. Do not write
     `new(expr)` or another feature of a later Go version. Only
-    `cdp/json_std.go` and `cdp/json_compat.go` import a JSON package, and every
-    other generated file uses `cdp.Value`, `cdp.Unmarshal` and the other names of
-    the package `cdp`. A change to one of the two files must change the other
+    `cdp/jsonv2/json_std.go` and `cdp/jsonv2/json_compat.go` import a JSON
+    package, and every other generated file uses `jsonv2.Value`,
+    `jsonv2.Unmarshal` and the other names of the package `cdp/jsonv2`. That
+    package imports no other package of the module. A change to one of the two files must change the other
     one in the same way. Test both with `go test ./...` and with
     `GOEXPERIMENT=nojsonv2 go test -tags cdproto_jsoncompat ./...`. See
-    `docs/decisions/2026-10-06-the-package-cdp-hides-the-json-package.md`.
+    `docs/decisions/2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md`.
 
 ## Layout
 

@@ -10,7 +10,7 @@ known and not done goes in [`BACKLOG.md`](BACKLOG.md), and a decision goes in
 On 2026-10-03 the new generator was pushed to `main`. It has these parts:
 
 - Standard `text/template` templates, and `encoding/json/v2` in the generated
-  code. On 2026-10-06 the package `cdp` took over the JSON names, so that
+  code. On 2026-10-06 the subpackage `cdp/jsonv2` took over the JSON names, so that
   `cdproto` builds with Go 1.25.
 - Two rewrites: name stuttering and the extraction of inline enums.
 - The command is `pdlgen`, built on `ox`, and the module is

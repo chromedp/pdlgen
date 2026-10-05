@@ -201,8 +201,8 @@ func TestGeneratedCodeWorks(t *testing.T) {
 	}
 	// The module github.com/go-json-experiment/json is not in the module of the
 	// test, and a test must not download it. If the Go version needs it, the
-	// package cdp is not testable here.
-	list := exec.Command(goTool, "list", "-e", "-f", `{{join .GoFiles " "}}`, "./cdp")
+	// package cdp/jsonv2 is not testable here.
+	list := exec.Command(goTool, "list", "-e", "-f", `{{join .GoFiles " "}}`, "./cdp/jsonv2")
 	list.Dir = out
 	files, err := list.Output()
 	if err != nil {

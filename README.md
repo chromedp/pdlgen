@@ -97,13 +97,14 @@ renames things. The package reports its versions with
 
 `pdlgen` and the generated `cdproto` package build with Go 1.25 and later. Go
 1.27 has `encoding/json/v2` in the standard library, but Go 1.25 and Go 1.26 have
-it only with `GOEXPERIMENT=jsonv2`. To work without that setting, the package
-`cdp` is the only generated package that imports a JSON package. On Go 1.27 or
-with `GOEXPERIMENT=jsonv2`, it uses the standard packages. In all other cases it
+it only with `GOEXPERIMENT=jsonv2`. To work without that setting, the
+subpackage `cdp/jsonv2` is the only generated package that imports a JSON
+package. It has the names of the standard library, such as `jsonv2.Value` and
+`jsonv2.Unmarshal`. On Go 1.27 or with `GOEXPERIMENT=jsonv2`, it uses the standard packages. In all other cases it
 uses the module `github.com/go-json-experiment/json`. The build tag
 `cdproto_jsoncompat` selects the module on every version of Go, for tests. Use
 `GOEXPERIMENT=nojsonv2` with the tag on Go 1.27. See
-[the decision](docs/decisions/2026-10-06-the-package-cdp-hides-the-json-package.md).
+[the decision](docs/decisions/2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md).
 
 ## Documents
 

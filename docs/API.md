@@ -99,7 +99,7 @@ type Event[E any] struct{ Method string }
 // Session is a connection to a browser target.
 type Session interface {
 	Call(ctx context.Context, method string, params, result any) error
-	Subscribe(method string) (events <-chan Value, cancel func())
+	Subscribe(method string) (events <-chan jsonv2.Value, cancel func())
 }
 
 // Call runs the command on the session.

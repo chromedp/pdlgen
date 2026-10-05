@@ -1,4 +1,4 @@
-# The package cdp hides the JSON package, so that cdproto builds with Go 1.25
+# The subpackage cdp/jsonv2 hides the JSON package, so that cdproto builds with Go 1.25
 
 Status: Amends 2026-10-03-the-generated-code-uses-encoding-json-v2.md.
 
@@ -10,21 +10,22 @@ only with `GOEXPERIMENT=jsonv2`.
 
 ## What changed
 
-The package `cdp` is the only package that imports a JSON package. It names the
-types and the funcs that the generated code and `chromedp` need: `Value`,
+The new subpackage `cdp/jsonv2` is the only package that imports a JSON package.
+Its name is `jsonv2`, and its names mirror the standard library: `Value`,
 `Options`, `Decoder`, `Encoder`, `SyntacticError`, `Marshal`, `Unmarshal`,
 `MarshalEncode`, `UnmarshalDecode`, `JoinOptions`, `DefaultOptionsV2` and
 `AllowInvalidUTF8`. Every other generated file uses these names, for example
-`cdp.Value` and `cdp.Unmarshal`. No new package exists, because every domain
-package already imports `cdp`, and the root package cannot hold the layer
-without an import cycle.
+`jsonv2.Value` and `jsonv2.Unmarshal`. A first design put the names in the
+package `cdp`, but `cdp.Value` was ambiguous. The subpackage imports no other
+package of the module, so the package `cdp`, every domain package and the root
+package can import it without a cycle.
 
 Two generated files define the names:
 
-- `cdp/json_std.go` builds with Go 1.27 or later, and with `GOEXPERIMENT=jsonv2`.
-  It uses the standard packages. Its types are aliases, so the public API is the
-  same as before for a program on Go 1.27.
-- `cdp/json_compat.go` builds in all other cases. It uses the module
+- `cdp/jsonv2/json_std.go` builds with Go 1.27 or later, and with
+  `GOEXPERIMENT=jsonv2`. It uses the standard packages. Its types are aliases,
+  so the public API is the same as before for a program on Go 1.27.
+- `cdp/jsonv2/json_compat.go` builds in all other cases. It uses the module
   `github.com/go-json-experiment/json`.
 
 The build tag `cdproto_jsoncompat` selects the second file on every version of
@@ -49,6 +50,6 @@ for a pointer, because `new(expr)` needs Go 1.26.
 ## What it costs
 
 A program on Go 1.25 or Go 1.26 gets the module as a dependency, and its types
-are not the standard types. A program that passes a `cdp.Value` to code that
+are not the standard types. A program that passes a `jsonv2.Value` to code that
 takes a standard `jsontext.Value` must be on Go 1.27 or set `GOEXPERIMENT`. The
 update script must pin the module by hand.

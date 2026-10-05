@@ -60,8 +60,8 @@ one run of the workflow goes at a time.
 1. Run the generator, and write the result into the `cdproto` checkout.
 2. Set the `go` line of the `go.mod` of `cdproto` to 1.25, add the pinned
    version of `github.com/go-json-experiment/json` with `go get`, and run
-   `go mod tidy`. The package `cdp` uses the module before Go 1.27. See
-   `docs/decisions/2026-10-06-the-package-cdp-hides-the-json-package.md`. The
+   `go mod tidy`. The package `cdp/jsonv2` uses the module before Go 1.27. See
+   `docs/decisions/2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md`. The
    `jsonmod` variable of the script holds the pinned version.
 3. Run `go build`, `go vet` and `go test` in `cdproto`, first with the standard
    JSON package and then with `GOEXPERIMENT=nojsonv2` and the tag

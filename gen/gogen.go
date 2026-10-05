@@ -118,10 +118,10 @@ func (fb fileBuffers) generateSharedTypes(domains []*pdl.Domain, basePkg string)
 
 	// add the JSON layer
 	for name, write := range map[string]func(io.Writer) error{
-		"cdp/doc.go":         gotpl.CDPDoc,
-		"cdp/json_std.go":    gotpl.JSONStd,
-		"cdp/json_compat.go": gotpl.JSONCompat,
-		"cdp/json_test.go":   gotpl.JSONTest,
+		"cdp/jsonv2/doc.go":         gotpl.JSONDoc,
+		"cdp/jsonv2/json_std.go":    gotpl.JSONStd,
+		"cdp/jsonv2/json_compat.go": gotpl.JSONCompat,
+		"cdp/jsonv2/json_test.go":   gotpl.JSONTest,
 	} {
 		b := new(bytes.Buffer)
 		if err := write(b); err != nil {
@@ -222,6 +222,7 @@ func (fb fileBuffers) get(s string, pkgName string, d *pdl.Domain, domains []*pd
 		"fmt":                         "",
 		"iter":                        "",
 		basePkg + "/cdp":              "",
+		basePkg + "/cdp/jsonv2":       "jsonv2",
 		"github.com/chromedp/sysutil": "",
 	}
 	// add io only for cdp package

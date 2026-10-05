@@ -43,8 +43,8 @@ trap 'git -C "$cdproto" worktree prune; rm -rf "$tmp"' EXIT
 # generate
 (cd "$gen" && go run . --out "$cdproto" ${GEN_ARGS:-})
 
-# the generated code builds with Go 1.25. Before Go 1.27, the package cdp reads
-# JSON with a module (see docs/decisions/2026-10-06-the-package-cdp-hides-the-json-package.md).
+# the generated code builds with Go 1.25. Before Go 1.27, the package cdp/jsonv2
+# reads JSON with a module (see docs/decisions/2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md).
 # The module needs a fixed version, because a later version needs a later Go.
 # go get changes the go line, so the script sets it again.
 (cd "$cdproto" && go mod edit -go=1.25 && go get "$jsonmod" && go mod edit -go=1.25 && go mod tidy)
