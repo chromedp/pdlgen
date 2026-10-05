@@ -42,10 +42,11 @@ Go 1.26. The script sets the `go` line of `cdproto` again after `go get`.
 
 ## Other changes
 
-The `go.mod` of `pdlgen` says `go 1.25`. This needs older releases of
-`github.com/xo/ox` and `golang.org/x/tools`, `mod`, `net` and `sync`, because
-the newest releases need Go 1.26 or Go 1.27. The generated tests use a helper
-for a pointer, because `new(expr)` needs Go 1.26.
+Only the generated code needs `go 1.25`. `pdlgen` is a standalone generator
+and uses the current version of Go, so its `go.mod` follows its dependencies
+(the maintainer decided this on 2026-10-06, after a first version of the change
+had set `pdlgen` to `go 1.25`). The generated tests use a helper for a pointer,
+because `new(expr)` needs Go 1.26.
 
 ## What it costs
 

@@ -106,7 +106,8 @@ something is written down, it is not written down, and it is an open question.
 11. The protocol files are cached in a directory on the machine that runs the
     generator. Do not commit a protocol file, except a small one in `testdata`.
 
-12. The generated code and `pdlgen` must build with `go 1.25`. Do not write
+12. The generated code must build with `go 1.25`. `pdlgen` itself uses the
+    current version of Go, and its `go.mod` follows its dependencies. Do not write
     `new(expr)` or another feature of a later Go version. Only
     `cdp/jsonv2/json_std.go` and `cdp/jsonv2/json_compat.go` import a JSON
     package, and every other generated file uses `jsonv2.Value`,

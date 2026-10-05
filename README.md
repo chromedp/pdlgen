@@ -95,7 +95,8 @@ renames things. The package reports its versions with
 
 ## Supported Go versions
 
-`pdlgen` and the generated `cdproto` package build with Go 1.25 and later. Go
+The generated `cdproto` package builds with Go 1.25 and later. `pdlgen`, which
+generates it, uses the current version of Go. Go
 1.27 has `encoding/json/v2` in the standard library, but Go 1.25 and Go 1.26 have
 it only with `GOEXPERIMENT=jsonv2`. To work without that setting, the
 subpackage `cdp/jsonv2` is the only generated package that imports a JSON
