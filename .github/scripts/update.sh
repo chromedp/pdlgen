@@ -60,6 +60,16 @@ if [ -z "$(git -C "$cdproto" status --porcelain)" ]; then
   exit 0
 fi
 
+# A new Chromium or V8 version alone does not make a release. When version.go is
+# the only file that changed, the generated API is the same, so the script
+# restores the file and stops. The next release that changes the code will
+# have the new versions. The check runs before the years of the license change.
+if [ -z "$(git -C "$cdproto" status --porcelain | grep -v -E '^.. version\.go$' || true)" ]; then
+  echo "no changes except the Chromium or V8 version: $(git -C "$cdproto" diff -U0 -- version.go | grep -E '^[-+][[:space:]]+(chromium|v8)Version' | tr -s '\t ' ' ' | tr '\n' ';')"
+  git -C "$cdproto" checkout -- version.go
+  exit 0
+fi
+
 # set the years of the copyright line of the license to 2016 and the current
 # year. This runs after the check above, so that a new year alone does not make
 # a release. YEAR is for tests.

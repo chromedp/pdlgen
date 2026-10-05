@@ -32,6 +32,7 @@ is wrong, and it prints the row to add.
 | 2026-10-03 | [The generated code uses encoding/json/v2 from the standard library](2026-10-03-the-generated-code-uses-encoding-json-v2.md) | Amended by 2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md |
 | 2026-10-03 | [The only fixup removes name stuttering](2026-10-03-the-only-fixup-removes-name-stuttering.md) | Amended by 2026-10-03-inline-enums-are-named-types.md |
 | 2026-10-03 | [The package and the command are named pdlgen](2026-10-03-the-package-is-pdlgen.md) | Decided |
-| 2026-10-03 | [The `Update` workflow regenerates and tags `cdproto` every day](2026-10-03-the-update-workflow-tags-cdproto-daily.md) | Decided |
+| 2026-10-03 | [The `Update` workflow regenerates and tags `cdproto` every day](2026-10-03-the-update-workflow-tags-cdproto-daily.md) | Amended by 2026-10-06-a-new-chromium-version-alone-makes-no-release.md |
 | 2026-10-04 | [An optional number can be a pointer, from a table](2026-10-04-an-optional-number-can-be-a-pointer.md) | Decided |
 | 2026-10-06 | [The subpackage cdp/jsonv2 hides the JSON package, so that cdproto builds with Go 1.25](2026-10-06-the-subpackage-cdp-jsonv2-hides-the-json-package.md) | Amends 2026-10-03-the-generated-code-uses-encoding-json-v2.md |
+| 2026-10-06 | [A new Chromium version alone makes no release](2026-10-06-a-new-chromium-version-alone-makes-no-release.md) | Amends 2026-10-03-the-update-workflow-tags-cdproto-daily.md |

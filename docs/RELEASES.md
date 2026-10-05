@@ -67,7 +67,11 @@ one run of the workflow goes at a time.
    JSON package and then with `GOEXPERIMENT=nojsonv2` and the tag
    `cdproto_jsoncompat`. If any of them fails, the script stops and nothing is
    committed.
-4. If `git status` shows no change, print `no changes` and stop.
+4. If `git status` shows no change, print `no changes` and stop. If `version.go`
+   is the only file that changed, the Chromium or V8 version changed and the
+   generated API did not. Print the versions, restore `version.go`, and stop. A
+   new version of Chromium alone does not make a commit or a tag. See
+   `docs/decisions/2026-10-06-a-new-chromium-version-alone-makes-no-release.md`.
 5. Set the years in the first `Copyright (c) 2016` line of the `LICENSE` file
    of `cdproto` to 2016 and the current year in UTC, for example
    `Copyright (c) 2016-2026`. This step runs after step 4, so a new year alone

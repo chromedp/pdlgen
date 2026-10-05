@@ -1,6 +1,6 @@
 # The `Update` workflow regenerates and tags `cdproto` every day
 
-Status: Decided.
+Status: Amended by 2026-10-06-a-new-chromium-version-alone-makes-no-release.md.
 
 The maintainer decided on 2026-10-03 that a workflow in this repository
 regenerates `cdproto` once a day. The workflow commits and tags the result as
