@@ -28,6 +28,35 @@ func parse(t *testing.T, s string) *relnotes.Report {
 	return r
 }
 
+func TestParseRootPackage(t *testing.T) {
+	// apidiff writes the names of the root package without the prefix ./pkg.
+	r := parse(t, `Incompatible changes:
+- Message.Params: changed from jsontext.Value to cdp.Value
+- (*Message).Foo: removed
+Compatible changes:
+- CommandPageGetSpellCheckCustomDictionary: added
+- ./page.GetSpellCheckCustomDictionaryParams: added
+`)
+	if len(r.Changes) != 4 {
+		t.Fatalf("expected 4 changes, got: %d", len(r.Changes))
+	}
+	want := []struct {
+		pkg, name string
+		kind      relnotes.Kind
+		inc       bool
+	}{
+		{"cdproto", "Message.Params", relnotes.Changed, true},
+		{"cdproto", "Message.Foo", relnotes.Removed, true},
+		{"cdproto", "CommandPageGetSpellCheckCustomDictionary", relnotes.Added, false},
+		{"page", "GetSpellCheckCustomDictionaryParams", relnotes.Added, false},
+	}
+	for i, w := range want {
+		if c := r.Changes[i]; c.Package != w.pkg || c.Name != w.name || c.Kind != w.kind || c.Incompatible != w.inc {
+			t.Errorf("change %d: got %+v, want %+v", i, c, w)
+		}
+	}
+}
+
 func TestParse(t *testing.T) {
 	r := parse(t, sample)
 	if len(r.Changes) != 8 {

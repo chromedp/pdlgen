@@ -55,8 +55,11 @@ func Parse(r io.Reader) (*Report, error) {
 			incompatible = true
 		case line == "Compatible changes:":
 			incompatible = false
-		case strings.HasPrefix(line, "- ./"):
-			c, err := parseLine(strings.TrimPrefix(line, "- ./"))
+		case strings.HasPrefix(line, "- "):
+			// apidiff writes the name of a package of the module as ./pkg.Name.
+			// It writes the name of the root package without a prefix, such as
+			// Message.Params or CommandPageEnable.
+			c, err := parseLine(strings.TrimPrefix(line, "- "))
 			if err != nil {
 				return nil, err
 			}
@@ -72,14 +75,23 @@ func Parse(r io.Reader) (*Report, error) {
 	return rep, nil
 }
 
-// parseLine parses "pkg.Name: removed" and its relatives.
+// rootPackage is the name that the notes use for the root package of the
+// module, which apidiff writes without a package prefix.
+const rootPackage = "cdproto"
+
+// parseLine parses "./pkg.Name: removed" and its relatives, and "Name: added"
+// for the root package.
 func parseLine(s string) (Change, error) {
 	name, what, ok := strings.Cut(s, ": ")
 	if !ok {
 		return Change{}, fmt.Errorf("unexpected change %q", s)
 	}
 	var c Change
-	c.Package, c.Name, _ = strings.Cut(name, ".")
+	if rest, ok := strings.CutPrefix(name, "./"); ok {
+		c.Package, c.Name, _ = strings.Cut(rest, ".")
+	} else {
+		c.Package, c.Name = rootPackage, name
+	}
 	// a method of a pointer type is written (*Type).Method
 	c.Name = strings.NewReplacer("(*", "", ")", "").Replace(c.Name)
 	switch {
