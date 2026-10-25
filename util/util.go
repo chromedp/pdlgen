@@ -40,7 +40,9 @@ func GetLatestVersion(index Cache) (string, error) {
 
 	var vers []*semver.Version
 	doc.Find(`h3:contains("Tags") + ul li`).Each(func(i int, s *goquery.Selection) {
-		if t := s.Text(); VerRE.MatchString(t) {
+		// The page puts white space around the text of a tag, and the
+		// expression for a version matches the whole text.
+		if t := strings.TrimSpace(s.Text()); VerRE.MatchString(t) {
 			vers = append(vers, MakeSemver(t))
 		}
 	})
